@@ -29,6 +29,7 @@ import {
   resetPasswordDirect,
   StoredUserRecord
 } from './authService';
+import { safeFetchJson } from '../utils/apiHelper';
 
 const ADMIN_EMAILS = ['admin@jobia.az', 'qadiryaqublu@gmail.com'];
 
@@ -204,13 +205,12 @@ export async function registerCandidateWithFirebase(data: {
   saveStoredUsers(users);
 
   // Dispatch OTP / Welcome email in background
-  try {
-    fetch('/api/auth/send-otp', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ identifier: email, channel: 'email', purpose: 'register', email }),
-    }).catch(() => {});
-  } catch {}
+  safeFetchJson('/api/auth/send-otp', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ identifier: email, channel: 'email', purpose: 'register', email }),
+    timeoutMs: 10000,
+  }).catch(() => {});
 
   const session: AuthSession = {
     token: `token-${Date.now()}-${Math.random().toString(36).substring(2)}`,
@@ -319,13 +319,12 @@ export async function registerEmployerWithFirebase(data: {
   saveStoredUsers(users);
 
   // Dispatch OTP email through server in background
-  try {
-    fetch('/api/auth/send-otp', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ identifier: email, channel: 'email', purpose: 'register', email }),
-    }).catch(() => {});
-  } catch {}
+  safeFetchJson('/api/auth/send-otp', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ identifier: email, channel: 'email', purpose: 'register', email }),
+    timeoutMs: 10000,
+  }).catch(() => {});
 
   const session: AuthSession = {
     token: `token-${Date.now()}-${Math.random().toString(36).substring(2)}`,
@@ -971,18 +970,17 @@ export async function generateAndSaveVerificationCode(userId: string, email: str
   }
 
   // 3. Dispatch backend email notice
-  try {
-    fetch('/api/auth/send-otp', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        identifier: email,
-        channel: 'email',
-        purpose: 'register',
-        email: email,
-      }),
-    }).catch(() => {});
-  } catch {}
+  safeFetchJson('/api/auth/send-otp', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      identifier: email,
+      channel: 'email',
+      purpose: 'register',
+      email: email,
+    }),
+    timeoutMs: 10000,
+  }).catch(() => {});
 
   console.log(`[SECURE EMAIL VERIFICATION] User: ${email} | Code: ${code} | Expires: 10 mins (${expiresAt})`);
   return code;

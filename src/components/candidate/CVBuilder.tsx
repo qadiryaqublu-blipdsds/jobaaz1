@@ -13,6 +13,7 @@ import { downloadCVAsPDF, generateCVFileName } from '../../utils/pdfExport';
 import { fileToDataUrl, generateSeedAvatar } from '../../utils/imageUpload';
 import { INITIAL_EMPTY_CV } from '../../data/mockData';
 import { JobiaSectionFooter } from '../JobiaSectionFooter';
+import { safeFetchJson } from '../../utils/apiHelper';
 import { 
   FileText, 
   Sparkles, 
@@ -194,7 +195,7 @@ Dillər:
       await new Promise((r) => setTimeout(r, 400));
       setGenerationStep('🤖 Süni intellekt CV bölmələrini peşəkar formatda tərtib edir...');
 
-      const response = await fetch('/api/ai/generate-cv-from-text', {
+      const response = await safeFetchJson<any>('/api/ai/generate-cv-from-text', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -203,11 +204,11 @@ Dillər:
         }),
       });
 
-      if (!response.ok) {
-        throw new Error('Server mətni emal edə bilmədi.');
+      if (!response.ok || !response.data) {
+        throw new Error(response.error || 'Server mətni emal edə bilmədi.');
       }
 
-      const data = await response.json();
+      const data = response.data;
       setGenerationStep('✨ CV forması yenilənir...');
       await new Promise((r) => setTimeout(r, 300));
 
@@ -294,7 +295,7 @@ Dillər:
         .map((s: any) => (typeof s === 'string' ? s : s?.name || ''))
         .filter((k: string) => k.trim().length > 0);
 
-      const response = await fetch('/api/ai/generate-cv-content', {
+      const response = await safeFetchJson<any>('/api/ai/generate-cv-content', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -305,9 +306,8 @@ Dillər:
         }),
       });
 
-      const data = await response.json();
-
-      if (data.content) {
+      if (response.ok && response.data?.content) {
+        const data = response.data;
         if (type === 'summary') {
           updatePersonalInfo('summary', data.content);
         } else if (type === 'experience_bullets' && targetId) {

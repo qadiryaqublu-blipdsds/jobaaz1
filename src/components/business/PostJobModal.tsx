@@ -20,6 +20,7 @@ import {
   Compass
 } from 'lucide-react';
 import { ModalBottomLogo } from '../ModalBottomLogo';
+import { safeFetchJson } from '../../utils/apiHelper';
 
 interface PostJobModalProps {
   company: Company;
@@ -125,7 +126,7 @@ export const PostJobModal: React.FC<PostJobModalProps> = ({ company, editingJob,
 
     setIsGeneratingAI(true);
     try {
-      const res = await fetch('/api/ai/generate-job-desc', {
+      const res = await safeFetchJson<any>('/api/ai/generate-job-desc', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -137,12 +138,14 @@ export const PostJobModal: React.FC<PostJobModalProps> = ({ company, editingJob,
         }),
       });
 
-      const data = await res.json();
-      if (data.description) setDescription(data.description);
-      if (data.responsibilities) setResponsibilities(data.responsibilities);
-      if (data.requirements) setRequirements(data.requirements);
-      if (data.benefits) setBenefits(data.benefits);
-      if (data.skills) setSkills(data.skills);
+      if (res.ok && res.data) {
+        const data = res.data;
+        if (data.description) setDescription(data.description);
+        if (data.responsibilities) setResponsibilities(data.responsibilities);
+        if (data.requirements) setRequirements(data.requirements);
+        if (data.benefits) setBenefits(data.benefits);
+        if (data.skills) setSkills(data.skills);
+      }
     } catch (err) {
       console.error(err);
     } finally {

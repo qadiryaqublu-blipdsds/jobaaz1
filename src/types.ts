@@ -509,12 +509,197 @@ export interface OfferAuditLog {
   newValue?: string;
 }
 
+export interface CVSectionAudit {
+  sectionKey: 'personal_info' | 'summary' | 'experience' | 'skills' | 'education' | 'languages' | 'formatting_ats';
+  sectionName: string; // e.g. 'Şəxsi Məlumatlar və Əlaqə'
+  score: number; // 0 - 100
+  status: 'Əla' | 'Yaxşı' | 'Orta' | 'Kritik Çatışmazlıq';
+  summary: string; // Hər nəticənin dəqiq və aydın xülasəsi
+  findings: string[]; // Faktiki tapıntılar
+  recommendations: string[]; // Real tövsiyələr
+}
+
+export interface CareerDomainAnalysis {
+  dominantDomain: string; // e.g. 'İnformasiya Texnologiyaları və Proqramlaşdırma', 'Bank və Maliyyə', 'Satış və Müştəri Xidmətləri'
+  dominantDomainExperienceYears: string; // e.g. '3 il 6 ay (65%)'
+  totalExperienceYears: string; // e.g. '5 il 2 ay'
+  seniorityLevel: 'Təcrübəçi / Yeni Başlayan' | 'Junior (1-2 il)' | 'Middle (2-4 il)' | 'Senior (5+ il)' | 'Lead / Rəhbər';
+  domainBreakdown: {
+    domain: string;
+    duration: string; // e.g. '3 il 2 ay'
+    percentage: number; // e.g. 65
+    roles: string[]; // e.g. ['Frontend Developer', 'React Mütəxəssis']
+    companies: string[]; // e.g. ['Kapital Bank ASC', 'Code Academy']
+  }[];
+  educationSummary: {
+    highestInstitution: string; // e.g. 'Bakı Dövlət Universiteti (BDU)'
+    degree: string; // e.g. 'Bakalavr'
+    fieldOfStudy: string; // e.g. 'Kompüter Elmləri'
+    period: string; // e.g. '2018 - 2022'
+    statusNote: string; // e.g. 'Ali təhsilli (Dövlət akkreditasiyalı universitet)'
+  };
+}
+
+export interface FactualEducationEntry {
+  degree: string;
+  institution: string;
+  fieldOfStudy: string;
+  dates: string;
+}
+
+export interface FactualExperienceEntry {
+  position: string;
+  company: string;
+  duration: string;
+  dutiesAndAchievements: string[];
+}
+
+export interface FactualLanguageEntry {
+  language: string;
+  level: string;
+}
+
+export interface FactualCertificateEntry {
+  name: string;
+  date?: string;
+  issuer?: string;
+}
+
+export interface FactualCVExtractionBlocks {
+  blockA_PersonalInfo: {
+    fullName: string;
+    phone: string;
+    email: string;
+    city: string;
+    links: string;
+    jobTitle: string;
+  };
+  blockB_Education: FactualEducationEntry[];
+  blockC_Experience: FactualExperienceEntry[];
+  blockD_LanguagesAndCertificates: {
+    languages: FactualLanguageEntry[];
+    certificates: FactualCertificateEntry[];
+  };
+  blockE_TechnicalSkills: string[];
+  auditAndReview: {
+    strengths: string[];
+    discrepanciesAndGaps: string[];
+    improvementSuggestions: string[];
+  };
+}
+
+export interface SkillCategory {
+  category: string;
+  skills: string[];
+}
+
+export interface BulletImprovement {
+  originalOrWeakness: string;
+  improved: string;
+  explanation: string;
+}
+
+export interface InterviewQuestionItem {
+  category: string;
+  question: string;
+  whyAsked: string;
+  sampleAnswerTips: string;
+}
+
+export interface ATSCheckList {
+  hasContactInfo: boolean;
+  hasSummary: boolean;
+  hasClearSections: boolean;
+  hasQuantifiableResults: boolean;
+  atsReadabilityNotes?: string;
+}
+
+export interface JobMatchDetails {
+  matchPercentage: number;
+  compatibilitySummary: string;
+  matchedKeywords: string[];
+  missingKeywords: string[];
+}
+
+export interface AnalyzeCVRequest {
+  cvText?: string;
+  fileBase64?: string;
+  mimeType?: string;
+  fileName?: string;
+  jobDescription?: string;
+  language?: 'az' | 'en' | 'tr' | 'ru';
+  focusArea?: 'comprehensive' | 'ats_only' | 'interview_prep';
+  cvData?: any;
+  targetJobTitle?: string;
+  vacancyDescription?: string;
+}
+
+export interface SampleCV {
+  id: string;
+  title: string;
+  cvText: string;
+  jobDescription?: string;
+}
+
+export interface ChatMessage {
+  id: string;
+  sender: 'user' | 'assistant';
+  text: string;
+  timestamp: string;
+}
+
+export interface CareerFitDetails {
+  primaryDomain: string;
+  totalExperienceEstimate: string;
+  growthTrajectory?: string;
+  suitableRoles: {
+    role: string;
+    matchPercentage: number;
+    reason: string;
+  }[];
+  recommendedIndustries: string[];
+}
+
+export interface ExperienceHistoryItem {
+  role: string;
+  company: string;
+  period: string;
+  domain?: string;
+  responsibilities?: string[];
+}
+
+export interface EducationHistoryItem {
+  institution: string;
+  degree: string;
+  fieldOfStudy: string;
+  period: string;
+  details?: string;
+}
+
 export interface CVAnalysisResult {
   overallScore: number;
   atsScore: number;
+  status?: 'uygundur' | 'uygun_deyil'; // 🎯 "uygundur" və ya "uygun_deyil"
+  score?: number; // 📊 0-100 arası xal
+  qeydler?: string[]; // 📝 AI təhlil qeydləri
+  candidateName?: string; // 👤 Namizədin adı
+  detectedRole?: string; // 💼 Müəyyən edilən vəzifə
+  seniorityLevel?: string; // 📈 Səviyyə (Junior/Mid/Senior)
+  scoreLabel?: string; // 🏷️ Bal statusu mətni
+  suggestedProfileSummary?: string; // ✨ Tövsiyə olunan profil xülasəsi
   candidateSummary?: string; // 📋 Namizədin Ümumi Xülasəsi (Kimdir, faktiki təcrübəsi)
   strengths: string[]; // ✅ Güclü Tərəfləri
   weaknesses: string[]; // ⚠️ Riskli və ya Çatışmayan Məqamlar
+  metrics?: { name: string; score: number; feedback: string }[]; // 📊 Qiymətləndirmə metrikaları
+  skillsFound?: SkillCategory[]; // 🛠️ Aşkarlanan bacarıqlar
+  missingRecommendedSkills?: string[]; // ➕ Tövsiyə olunan bacarıqlar
+  bulletImprovements?: BulletImprovement[]; // 📝 STAR metodu ilə islahlar
+  interviewQuestions?: InterviewQuestionItem[]; // ❓ Müsahibə sualları
+  atsChecks?: ATSCheckList; // 🛡️ ATS yoxlama siyahısı
+  jobMatch?: JobMatchDetails; // 🎯 Vakansiya uyğunluğu
+  careerFit?: CareerFitDetails; // 🧭 Karyera və bazar uyğunluğu
+  experienceHistory?: ExperienceHistoryItem[]; // 💼 Faktiki iş təcrübəsi tarixi
+  educationHistory?: EducationHistoryItem[]; // 🎓 Faktiki təhsil tarixi
   matchAssessment?: {
     matchPercentage: number;
     rationale: string;
@@ -537,6 +722,24 @@ export interface CVAnalysisResult {
   marketCompetitiveness: string;
   suggestedJobTitles: string[];
   summaryFeedback: string;
+  // Bütün CV üzrə genişləndirilmiş real analiz və bölmə xülasələri:
+  sectionAudits?: CVSectionAudit[];
+  metricsBreakdown?: {
+    experienceScore: number;
+    skillsScore: number;
+    educationScore: number;
+    atsFormattingScore: number;
+    contentImpactScore: number;
+  };
+  executiveSummary?: string | {
+    verdict: string;
+    keyTakeaway: string;
+    quickWins: string[];
+  };
+  // Karyera sahəsi və təcrübənin ağırlıq mərkəzi (hansı sahədə staj daha çoxdur, hansı universiteti bitirib)
+  careerDomainAnalysis?: CareerDomainAnalysis;
+  // Faktiki Dəqiqlik və Sıfır Hallüsinasiya 5 Bloklu çıxarış və audit
+  factualBlocks?: FactualCVExtractionBlocks;
 }
 
 export interface InterviewQuestion {

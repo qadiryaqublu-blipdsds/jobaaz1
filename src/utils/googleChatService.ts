@@ -132,7 +132,7 @@ export async function listGoogleChatSpaces(token: string): Promise<GoogleChatSpa
     );
   }
 
-  const data = await response.json();
+  const data = await response.json().catch(() => ({}));
   return data.spaces || [];
 }
 
@@ -164,7 +164,7 @@ export async function createGoogleChatSpace(
     );
   }
 
-  return await response.json();
+  return await response.json().catch(() => ({}));
 }
 
 /**
@@ -193,7 +193,7 @@ export async function listGoogleChatMessages(
     );
   }
 
-  const data = await response.json();
+  const data = await response.json().catch(() => ({}));
   // Messages are returned in chronological order or reverse; normalize for display
   const messages: GoogleChatMessage[] = data.messages || [];
   return messages.reverse(); // oldest first for standard chat stream
@@ -226,5 +226,5 @@ export async function sendGoogleChatMessage(
     );
   }
 
-  return await response.json();
+  return await response.json().catch(() => ({}));
 }

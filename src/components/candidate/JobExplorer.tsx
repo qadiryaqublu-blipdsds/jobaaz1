@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect, useDeferredValue } from 'react';
 import { Vacancy, CVData } from '../../types';
 import { JOB_CATEGORIES, CITIES, SAMPLE_COMPANIES } from '../../data/mockData';
 import { useLanguage } from '../../context/LanguageContext';
+import { safeFetchJson } from '../../utils/apiHelper';
 import { 
   Search, 
   MapPin, 
@@ -608,7 +609,7 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
     setIsAiModeActive(true);
 
     try {
-      const response = await fetch('/api/ai/smart-search-vacancies', {
+      const response = await safeFetchJson<any>('/api/ai/smart-search-vacancies', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -618,11 +619,11 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
         }),
       });
 
-      if (!response.ok) {
-        throw new Error('AI axtarış xətası');
+      if (!response.ok || !response.data) {
+        throw new Error(response.error || 'AI axtarış xətası');
       }
 
-      const data = await response.json();
+      const data = response.data;
       if (data && Array.isArray(data.matchedVacancies)) {
         const mapping: Record<string, AIMatchResult> = {};
         data.matchedVacancies.forEach((m: AIMatchResult) => {

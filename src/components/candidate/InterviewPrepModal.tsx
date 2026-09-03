@@ -10,6 +10,7 @@ import {
   RefreshCw
 } from 'lucide-react';
 import { ModalBottomLogo } from '../ModalBottomLogo';
+import { safeFetchJson } from '../../utils/apiHelper';
 
 interface InterviewPrepModalProps {
   vacancy: Vacancy | null;
@@ -32,7 +33,7 @@ export const InterviewPrepModal: React.FC<InterviewPrepModalProps> = ({ vacancy,
   const fetchInterviewData = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/ai/interview-prep', {
+      const res = await safeFetchJson<any>('/api/ai/interview-prep', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -41,9 +42,10 @@ export const InterviewPrepModal: React.FC<InterviewPrepModalProps> = ({ vacancy,
           requirements: vacancy.requirements,
         }),
       });
-      const data = await res.json();
-      setQuestions(data.questions || []);
-      setTips(data.tips || []);
+      if (res.ok && res.data) {
+        setQuestions(res.data.questions || []);
+        setTips(res.data.tips || []);
+      }
     } catch (err) {
       console.error(err);
     } finally {

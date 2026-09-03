@@ -6,6 +6,7 @@ import {
   ATSKeywordMatch,
   ATSFormattingCheck
 } from '../../utils/atsOptimizer';
+import { safeFetchJson } from '../../utils/apiHelper';
 import { 
   Sparkles, 
   CheckCircle2, 
@@ -103,7 +104,7 @@ export const ATSOptimizationSidebar: React.FC<ATSOptimizationSidebarProps> = ({
       .map((k) => k.keyword);
 
     try {
-      const response = await fetch('/api/ai/generate-cv-content', {
+      const response = await safeFetchJson<any>('/api/ai/generate-cv-content', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -114,9 +115,8 @@ export const ATSOptimizationSidebar: React.FC<ATSOptimizationSidebarProps> = ({
         }),
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        setGeneratedAISnippet(data.content);
+      if (response.ok && response.data?.content) {
+        setGeneratedAISnippet(response.data.content);
       } else {
         // Fallback
         setGeneratedAISnippet(

@@ -112,6 +112,11 @@ service cloud.firestore {
     match /platformSettings/{settingId} {
       allow read, write: if true;
     }
+
+    // Test / Health Check connection
+    match /test/{docId} {
+      allow read, write: if true;
+    }
   }
 }
 

@@ -36,6 +36,7 @@ import {
   Send
 } from 'lucide-react';
 import { ModalBottomLogo } from '../ModalBottomLogo';
+import { safeFetchJson } from '../../utils/apiHelper';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -192,7 +193,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     const cleanEmail = targetEmail.trim().toLowerCase();
 
     try {
-      const res = await fetch('/api/auth/send-otp', {
+      const res = await safeFetchJson<any>('/api/auth/send-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -202,10 +203,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         }),
       });
 
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || 'Təsdiq kodu göndərilərkən xəta baş verdi.');
+      if (!res.ok || !res.data) {
+        throw new Error(res.error || 'Təsdiq kodu göndərilərkən xəta baş verdi.');
       }
+
+      const data = res.data;
 
       setActiveOtpTarget(cleanEmail);
       setMaskedOtpTarget(data.maskedTarget || cleanEmail);
@@ -484,7 +486,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     setLoading(true);
     setErrorMsg(null);
     try {
-      const res = await fetch('/api/auth/send-otp', {
+      const res = await safeFetchJson<any>('/api/auth/send-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -493,10 +495,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           channel: 'email',
         }),
       });
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || 'Kod göndərilərkən xəta baş verdi.');
+      if (!res.ok || !res.data) {
+        throw new Error(res.error || 'Kod göndərilərkən xəta baş verdi.');
       }
+      const data = res.data;
       setSecondsRemaining(data.expiresInSeconds || 300);
       setResendCooldown(30);
       setOtpDigits(['', '', '', '', '', '']);
@@ -524,7 +526,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
     try {
       // 1. Verify OTP with Server
-      const res = await fetch('/api/auth/verify-otp', {
+      const res = await safeFetchJson<any>('/api/auth/verify-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -533,10 +535,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         }),
       });
 
-      const data = await res.json();
-      if (!res.ok || !data.verified) {
+      if (!res.ok || !res.data || !res.data.verified) {
         throw new Error(
-          data.error || 'Daxil etdiyiniz təhlükəsizlik kodu yanlışdır. E-poçtdakı düzgün kodu yazmasanız daxil olmaq və ya qeydiyyat mümkün deyil.'
+          res.error || (res.data && res.data.error) || 'Daxil etdiyiniz təhlükəsizlik kodu yanlışdır. E-poçtdakı düzgün kodu yazmasanız daxil olmaq və ya qeydiyyat mümkün deyil.'
         );
       }
 

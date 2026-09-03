@@ -16,6 +16,7 @@ import { validateOfferBeforeSending, buildOfferEmailContent, sendJobOfferEmail }
 import { downloadJobOfferPDF } from '../../services/offerPdfService';
 import { OfferDocumentView } from './OfferDocumentView';
 import { ModalBottomLogo } from '../ModalBottomLogo';
+import { safeFetchJson } from '../../utils/apiHelper';
 import { 
   X, 
   Sparkles, 
@@ -162,7 +163,7 @@ export const InterviewModal: React.FC<InterviewModalProps> = ({
   const handleGenerateAISummary = async () => {
     setIsGeneratingSummary(true);
     try {
-      const response = await fetch('/api/ai/interview-summary', {
+      const response = await safeFetchJson<any>('/api/ai/interview-summary', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -177,9 +178,10 @@ export const InterviewModal: React.FC<InterviewModalProps> = ({
         }),
       });
 
-      if (!response.ok) throw new Error('AI xidmətindən cavab alına bilmədi.');
-      const data = await response.json();
-      setAiSummary(data.summary);
+      if (!response.ok || !response.data?.summary) {
+        throw new Error(response.error || 'AI xidmətindən cavab alına bilmədi.');
+      }
+      setAiSummary(response.data.summary);
     } catch (err: any) {
       console.warn('Fallback summary generated locally');
       setAiSummary(
@@ -195,7 +197,7 @@ export const InterviewModal: React.FC<InterviewModalProps> = ({
     setIsGeneratingOffer(true);
     try {
       const partialOfferData = buildCurrentOfferData();
-      const response = await fetch('/api/ai/generate-job-offer', {
+      const response = await safeFetchJson<any>('/api/ai/generate-job-offer', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -204,9 +206,10 @@ export const InterviewModal: React.FC<InterviewModalProps> = ({
         }),
       });
 
-      if (!response.ok) throw new Error('AI təklif generatorundan xəta baş verdi.');
-      const data = await response.json();
-      setGeneratedOfferBody(data.content);
+      if (!response.ok || !response.data?.content) {
+        throw new Error(response.error || 'AI təklif generatorundan xəta baş verdi.');
+      }
+      setGeneratedOfferBody(response.data.content);
     } catch (err) {
       // Local fallback with template
       const currentTemplate = templates.find((t) => t.id === selectedTemplateId) || templates[0];

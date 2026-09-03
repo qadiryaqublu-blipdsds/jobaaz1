@@ -1,4 +1,5 @@
 import { JobOffer } from '../types';
+import { safeFetchJson } from '../utils/apiHelper';
 
 export interface SendOfferEmailPayload {
   offerId: string;
@@ -209,7 +210,7 @@ ${offer.companyName}`;
  */
 export async function sendJobOfferEmail(payload: SendOfferEmailPayload): Promise<SendOfferEmailResult> {
   try {
-    const response = await fetch('/api/email/send-job-offer', {
+    const response = await safeFetchJson<SendOfferEmailResult>('/api/email/send-job-offer', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -217,13 +218,11 @@ export async function sendJobOfferEmail(payload: SendOfferEmailPayload): Promise
       body: JSON.stringify(payload),
     });
 
-    if (!response.ok) {
-      const errData = await response.json().catch(() => ({ error: 'E-poçt serverindən cavab alınmadı.' }));
-      throw new Error(errData.error || `Server xətası: HTTP ${response.status}`);
+    if (!response.ok || !response.data) {
+      throw new Error(response.error || `Server xətası: HTTP ${response.status}`);
     }
 
-    const data: SendOfferEmailResult = await response.json();
-    return data;
+    return response.data;
   } catch (error: any) {
     console.error('Email delivery error:', error);
     return {

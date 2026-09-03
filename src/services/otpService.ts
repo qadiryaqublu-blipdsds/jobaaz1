@@ -1,3 +1,5 @@
+import { safeFetchJson } from '../utils/apiHelper';
+
 /**
  * OTP (One-Time Password) & Two-Factor Authentication Service for jobia.az
  * Handles sending and verifying 6-digit security codes via Email and SMS.
@@ -33,14 +35,14 @@ export async function requestSecurityOtp(params: {
   const { email, phone, purpose = 'login', channel = 'email' } = params;
   
   try {
-    const res = await fetch('/api/auth/send-otp', {
+    const res = await safeFetchJson<SendOtpResponse>('/api/auth/send-otp', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, phone, purpose, channel }),
     });
 
-    if (res.ok) {
-      return await res.json();
+    if (res.ok && res.data) {
+      return res.data;
     }
   } catch (err) {
     console.warn('Network error while requesting server OTP, activating resilient client dispatcher:', err);
@@ -89,17 +91,16 @@ export async function verifySecurityOtp(params: {
   const cleanCode = code.trim();
 
   try {
-    const res = await fetch('/api/auth/verify-otp', {
+    const res = await safeFetchJson<VerifyOtpResponse>('/api/auth/verify-otp', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, phone, code: cleanCode }),
     });
 
-    const data = await res.json();
-    if (res.ok) {
-      return data;
+    if (res.ok && res.data) {
+      return res.data;
     } else {
-      throw new Error(data.error || 'Daxil edilmiş kod yanlışdır.');
+      throw new Error(res.error || 'Daxil edilmiş kod yanlışdır.');
     }
   } catch (err: any) {
     // Check client fallback store if server errored
