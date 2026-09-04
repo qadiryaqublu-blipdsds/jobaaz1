@@ -1,6 +1,7 @@
 import React from 'react';
 import { CVData } from '../../types';
 import { Mail, Phone, MapPin, Globe, Linkedin, Github, Award, CheckCircle2 } from 'lucide-react';
+import { getCVTerms, getPhotoClasses } from './cvDictionary';
 
 interface TemplateProps {
   data: CVData;
@@ -8,7 +9,8 @@ interface TemplateProps {
 }
 
 export const TemplateExecutive: React.FC<TemplateProps> = ({ data, showPhoto = true }) => {
-  const { personalInfo, experiences, education, skills, languages, projects, certificates } = data;
+  const { personalInfo, experiences, education, skills, languages, projects, certificates, language } = data;
+  const terms = getCVTerms(language);
   const displayPhoto = showPhoto && !!personalInfo.photoUrl;
 
   return (
@@ -36,7 +38,7 @@ export const TemplateExecutive: React.FC<TemplateProps> = ({ data, showPhoto = t
               <img
                 src={personalInfo.photoUrl}
                 alt={personalInfo.fullName || 'Namizəd'}
-                className="w-24 h-24 rounded-lg object-cover border-2 border-amber-400/80 shadow-md bg-stone-800"
+                className={`${getPhotoClasses(personalInfo.photoSize, personalInfo.photoShape)} border-2 border-amber-400/80 shadow-md bg-stone-800`}
                 referrerPolicy="no-referrer"
               />
             </div>
@@ -76,7 +78,7 @@ export const TemplateExecutive: React.FC<TemplateProps> = ({ data, showPhoto = t
       {personalInfo.summary && (
         <div className="mb-6 bg-stone-50 border-l-4 border-amber-600 p-4 rounded-r-md">
           <h2 className="text-xs font-bold uppercase tracking-widest text-stone-900 mb-1.5 flex items-center gap-1.5">
-            <span className="text-amber-700">❖</span> İcraçı Profili / Haqqımda
+            <span className="text-amber-700">❖</span> {terms.aboutMe || terms.summary}
           </h2>
           <p className="text-xs text-stone-700 leading-relaxed italic">{personalInfo.summary}</p>
         </div>
@@ -90,7 +92,7 @@ export const TemplateExecutive: React.FC<TemplateProps> = ({ data, showPhoto = t
           {experiences && experiences.length > 0 && (
             <div>
               <h2 className="text-xs font-bold uppercase tracking-wider text-rose-950 border-b-2 border-stone-300 pb-1.5 mb-3">
-                Peşəkar İş Təcrübəsi
+                {terms.experience}
               </h2>
               <div className="space-y-4">
                 {experiences.map((exp) => (
@@ -98,7 +100,7 @@ export const TemplateExecutive: React.FC<TemplateProps> = ({ data, showPhoto = t
                     <div className="flex justify-between items-baseline flex-wrap gap-1">
                       <h3 className="text-xs font-bold text-stone-950">{exp.position}</h3>
                       <span className="text-[11px] font-semibold text-rose-900">
-                        {exp.startDate} – {exp.current ? 'İndiyədək' : exp.endDate}
+                        {exp.startDate} – {exp.current ? terms.present : exp.endDate}
                       </span>
                     </div>
                     <div className="text-[11px] font-medium text-stone-600 mb-1.5">
@@ -117,7 +119,7 @@ export const TemplateExecutive: React.FC<TemplateProps> = ({ data, showPhoto = t
           {projects && projects.length > 0 && (
             <div>
               <h2 className="text-xs font-bold uppercase tracking-wider text-rose-950 border-b-2 border-stone-300 pb-1.5 mb-3">
-                Strateji Layihələr & Təşəbbüslər
+                {terms.strategicProjects || terms.projects}
               </h2>
               <div className="space-y-3">
                 {projects.map((proj) => (
@@ -161,7 +163,7 @@ export const TemplateExecutive: React.FC<TemplateProps> = ({ data, showPhoto = t
           {skills && skills.length > 0 && (
             <div>
               <h2 className="text-xs font-bold uppercase tracking-wider text-rose-950 border-b-2 border-stone-300 pb-1.5 mb-3">
-                Əsas Səriştələr
+                {terms.skills}
               </h2>
               <div className="space-y-2">
                 {skills.map((skill) => (
@@ -195,7 +197,7 @@ export const TemplateExecutive: React.FC<TemplateProps> = ({ data, showPhoto = t
           {education && education.length > 0 && (
             <div>
               <h2 className="text-xs font-bold uppercase tracking-wider text-rose-950 border-b-2 border-stone-300 pb-1.5 mb-3">
-                Təhsil
+                {terms.education}
               </h2>
               <div className="space-y-3">
                 {education.map((edu) => (
@@ -217,7 +219,7 @@ export const TemplateExecutive: React.FC<TemplateProps> = ({ data, showPhoto = t
           {languages && languages.length > 0 && (
             <div>
               <h2 className="text-xs font-bold uppercase tracking-wider text-rose-950 border-b-2 border-stone-300 pb-1.5 mb-2">
-                Dil Bilikləri
+                {terms.languages}
               </h2>
               <div className="space-y-1.5">
                 {languages.map((lang) => (
@@ -234,7 +236,7 @@ export const TemplateExecutive: React.FC<TemplateProps> = ({ data, showPhoto = t
           {certificates && certificates.length > 0 && (
             <div>
               <h2 className="text-xs font-bold uppercase tracking-wider text-rose-950 border-b-2 border-stone-300 pb-1.5 mb-2">
-                Sertifikatlar
+                {terms.certificates}
               </h2>
               <div className="space-y-2">
                 {certificates.map((cert) => (

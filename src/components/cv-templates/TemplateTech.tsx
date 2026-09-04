@@ -1,13 +1,15 @@
 import React from 'react';
 import { CVData } from '../../types';
 import { Terminal, Code, Cpu, Link, Briefcase, GraduationCap } from 'lucide-react';
+import { getCVTerms, getPhotoClasses } from './cvDictionary';
 
 interface TemplateProps {
   data: CVData;
 }
 
 export const TemplateTech: React.FC<TemplateProps> = ({ data }) => {
-  const { personalInfo, experiences, education, skills, languages, projects, certificates } = data;
+  const { personalInfo, experiences, education, skills, languages, projects, certificates, language } = data;
+  const terms = getCVTerms(language);
 
   return (
     <div id="cv-preview-tech" className="bg-slate-900 text-slate-100 p-8 rounded-lg shadow-sm border border-slate-700 font-mono max-w-[850px] mx-auto min-h-[1050px]">
@@ -17,8 +19,8 @@ export const TemplateTech: React.FC<TemplateProps> = ({ data }) => {
           {personalInfo.photoUrl && (
             <img
               src={personalInfo.photoUrl}
-              alt={personalInfo.fullName || 'Namizəd'}
-              className="w-16 h-16 rounded-xl object-cover border-2 border-cyan-500 shadow-md shrink-0 bg-slate-800"
+              alt={personalInfo.fullName || 'Candidate'}
+              className={`${getPhotoClasses(personalInfo.photoSize, personalInfo.photoShape)} border-2 border-cyan-500 shadow-md bg-slate-800`}
               referrerPolicy="no-referrer"
             />
           )}
@@ -27,7 +29,7 @@ export const TemplateTech: React.FC<TemplateProps> = ({ data }) => {
               <Terminal className="w-4 h-4" />
               <span>developer_profile.json</span>
             </div>
-            <h1 className="text-3xl font-bold text-white tracking-tight mt-1">{personalInfo.fullName || 'Ad Soyad'}</h1>
+            <h1 className="text-3xl font-bold text-white tracking-tight mt-1">{personalInfo.fullName || 'Full Name'}</h1>
             <p className="text-cyan-300 text-sm font-medium">{personalInfo.jobTitle || 'Full-Stack Developer'}</p>
           </div>
         </div>
@@ -43,7 +45,7 @@ export const TemplateTech: React.FC<TemplateProps> = ({ data }) => {
       {/* Summary */}
       {personalInfo.summary && (
         <div className="mb-6 bg-slate-800/60 p-3.5 rounded-lg border border-slate-700 text-xs font-sans text-slate-300 leading-relaxed">
-          <span className="text-cyan-400 font-mono font-bold block mb-1">// Xülasə</span>
+          <span className="text-cyan-400 font-mono font-bold block mb-1">// {terms.summary}</span>
           {personalInfo.summary}
         </div>
       )}
@@ -53,7 +55,7 @@ export const TemplateTech: React.FC<TemplateProps> = ({ data }) => {
         <div className="mb-6">
           <div className="flex items-center gap-1.5 text-xs text-cyan-400 uppercase font-bold tracking-wider mb-2">
             <Code className="w-3.5 h-3.5" />
-            <span>Tech Stack & Skills</span>
+            <span>{terms.techStack || 'Tech Stack & Skills'}</span>
           </div>
           <div className="flex flex-wrap gap-1.5">
             {skills.map((skill) => (
@@ -73,7 +75,7 @@ export const TemplateTech: React.FC<TemplateProps> = ({ data }) => {
         <div className="mb-6">
           <div className="flex items-center gap-1.5 text-xs text-cyan-400 uppercase font-bold tracking-wider mb-3">
             <Briefcase className="w-3.5 h-3.5" />
-            <span>İş Təcrübəsi</span>
+            <span>{terms.experience}</span>
           </div>
           <div className="space-y-4">
             {experiences.map((exp) => (
@@ -81,7 +83,7 @@ export const TemplateTech: React.FC<TemplateProps> = ({ data }) => {
                 <div className="flex justify-between items-baseline font-sans">
                   <span className="text-xs font-bold text-white">{exp.position}</span>
                   <span className="text-[10px] text-cyan-400 font-mono">
-                    {exp.startDate} ~ {exp.current ? 'NOW' : exp.endDate}
+                    {exp.startDate} ~ {exp.current ? terms.present : exp.endDate}
                   </span>
                 </div>
                 <div className="text-xs text-slate-400 font-sans mb-1">{exp.company}</div>
@@ -103,7 +105,7 @@ export const TemplateTech: React.FC<TemplateProps> = ({ data }) => {
           <div>
             <div className="flex items-center gap-1.5 text-xs text-cyan-400 uppercase font-bold tracking-wider mb-2">
               <Cpu className="w-3.5 h-3.5" />
-              <span>Layihələr</span>
+              <span>{terms.projects}</span>
             </div>
             <div className="space-y-2.5">
               {projects.map((p) => (
@@ -125,7 +127,7 @@ export const TemplateTech: React.FC<TemplateProps> = ({ data }) => {
             <div>
               <div className="flex items-center gap-1.5 text-xs text-cyan-400 uppercase font-bold tracking-wider mb-2 font-mono">
                 <GraduationCap className="w-3.5 h-3.5" />
-                <span>Təhsil</span>
+                <span>{terms.education}</span>
               </div>
               {education.map((edu) => (
                 <div key={edu.id} className="text-slate-300">
@@ -140,7 +142,7 @@ export const TemplateTech: React.FC<TemplateProps> = ({ data }) => {
           {languages && languages.length > 0 && (
             <div>
               <div className="text-xs text-cyan-400 uppercase font-bold tracking-wider mb-1 font-mono">
-                // Dillər
+                // {terms.languages}
               </div>
               <div className="space-y-1">
                 {languages.map((l) => (

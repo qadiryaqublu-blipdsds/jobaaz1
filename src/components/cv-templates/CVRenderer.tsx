@@ -11,6 +11,10 @@ import { TemplateNordic } from './TemplateNordic';
 import { TemplateHorizon } from './TemplateHorizon';
 import { TemplateAcademic } from './TemplateAcademic';
 import { TemplateMetro } from './TemplateMetro';
+import { TemplateSimpleClean } from './TemplateSimpleClean';
+import { TemplateEntryStudent } from './TemplateEntryStudent';
+import { TemplatePrestigeExecutive } from './TemplatePrestigeExecutive';
+import { TemplatePracticalDirect } from './TemplatePracticalDirect';
 
 interface CVRendererProps {
   data: CVData;
@@ -38,6 +42,14 @@ export const CVRenderer: React.FC<CVRendererProps> = ({
 
   const renderTemplate = () => {
     switch (template) {
+      case 'simple-clean':
+        return <TemplateSimpleClean data={effectiveData} showPhoto={showPhoto} />;
+      case 'entry-student':
+        return <TemplateEntryStudent data={effectiveData} showPhoto={showPhoto} />;
+      case 'prestige-executive':
+        return <TemplatePrestigeExecutive data={effectiveData} showPhoto={showPhoto} />;
+      case 'practical-direct':
+        return <TemplatePracticalDirect data={effectiveData} showPhoto={showPhoto} />;
       case 'classic-corporate':
         return <TemplateClassic data={effectiveData} />;
       case 'minimal-indigo':
@@ -70,3 +82,4 @@ export const CVRenderer: React.FC<CVRendererProps> = ({
     </div>
   );
 };
+

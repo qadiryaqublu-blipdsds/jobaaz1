@@ -1,6 +1,7 @@
 import React from 'react';
 import { CVData } from '../../types';
 import { Mail, Phone, MapPin, Globe, Linkedin, Github, Award } from 'lucide-react';
+import { getCVTerms, getPhotoClasses } from './cvDictionary';
 
 interface TemplateProps {
   data: CVData;
@@ -8,7 +9,8 @@ interface TemplateProps {
 }
 
 export const TemplateHorizon: React.FC<TemplateProps> = ({ data, showPhoto = true }) => {
-  const { personalInfo, experiences, education, skills, languages, projects, certificates } = data;
+  const { personalInfo, experiences, education, skills, languages, projects, certificates, language } = data;
+  const terms = getCVTerms(language);
   const displayPhoto = showPhoto && !!personalInfo.photoUrl;
 
   return (
@@ -30,7 +32,7 @@ export const TemplateHorizon: React.FC<TemplateProps> = ({ data, showPhoto = tru
               <img
                 src={personalInfo.photoUrl}
                 alt={personalInfo.fullName || 'Namizəd'}
-                className="w-24 h-24 rounded-2xl object-cover border-4 border-white shadow-lg bg-slate-100 ring-2 ring-blue-400"
+                className={`${getPhotoClasses(personalInfo.photoSize, personalInfo.photoShape)} border-4 border-white shadow-lg bg-slate-100 ring-2 ring-blue-400`}
                 referrerPolicy="no-referrer"
               />
             </div>
@@ -82,7 +84,7 @@ export const TemplateHorizon: React.FC<TemplateProps> = ({ data, showPhoto = tru
       {personalInfo.summary && (
         <div className="mb-6">
           <h2 className="text-xs font-bold uppercase tracking-wider text-blue-800 border-b border-slate-200 pb-1 mb-2">
-            Haqqımda
+            {terms.aboutMe || terms.summary}
           </h2>
           <p className="text-xs text-slate-700 leading-relaxed whitespace-pre-line">{personalInfo.summary}</p>
         </div>
@@ -96,7 +98,7 @@ export const TemplateHorizon: React.FC<TemplateProps> = ({ data, showPhoto = tru
           {experiences && experiences.length > 0 && (
             <div>
               <h2 className="text-xs font-bold uppercase tracking-wider text-blue-800 border-b border-slate-200 pb-1 mb-3">
-                İş Təcrübəsi
+                {terms.experience}
               </h2>
               <div className="space-y-4">
                 {experiences.map((exp) => (
@@ -104,7 +106,7 @@ export const TemplateHorizon: React.FC<TemplateProps> = ({ data, showPhoto = tru
                     <div className="flex justify-between items-baseline flex-wrap gap-1">
                       <h3 className="text-xs font-bold text-slate-900">{exp.position}</h3>
                       <span className="text-[10px] font-semibold text-blue-700 bg-blue-50 px-2 py-0.5 rounded">
-                        {exp.startDate} – {exp.current ? 'İndiyədək' : exp.endDate}
+                        {exp.startDate} – {exp.current ? terms.present : exp.endDate}
                       </span>
                     </div>
                     <div className="text-[11px] font-medium text-slate-600 mb-1">
@@ -123,7 +125,7 @@ export const TemplateHorizon: React.FC<TemplateProps> = ({ data, showPhoto = tru
           {projects && projects.length > 0 && (
             <div>
               <h2 className="text-xs font-bold uppercase tracking-wider text-blue-800 border-b border-slate-200 pb-1 mb-3">
-                Layihələr
+                {terms.projects}
               </h2>
               <div className="space-y-3">
                 {projects.map((proj) => (
@@ -159,7 +161,7 @@ export const TemplateHorizon: React.FC<TemplateProps> = ({ data, showPhoto = tru
           {skills && skills.length > 0 && (
             <div>
               <h2 className="text-xs font-bold uppercase tracking-wider text-blue-800 border-b border-slate-200 pb-1 mb-3">
-                Bacarıqlar
+                {terms.skills}
               </h2>
               <div className="flex flex-wrap gap-1">
                 {skills.map((skill) => (
@@ -178,7 +180,7 @@ export const TemplateHorizon: React.FC<TemplateProps> = ({ data, showPhoto = tru
           {education && education.length > 0 && (
             <div>
               <h2 className="text-xs font-bold uppercase tracking-wider text-blue-800 border-b border-slate-200 pb-1 mb-3">
-                Təhsil
+                {terms.education}
               </h2>
               <div className="space-y-2.5">
                 {education.map((edu) => (
@@ -200,7 +202,7 @@ export const TemplateHorizon: React.FC<TemplateProps> = ({ data, showPhoto = tru
           {languages && languages.length > 0 && (
             <div>
               <h2 className="text-xs font-bold uppercase tracking-wider text-blue-800 border-b border-slate-200 pb-1 mb-2">
-                Dillər
+                {terms.languages}
               </h2>
               <div className="space-y-1 text-xs">
                 {languages.map((lang) => (
@@ -217,7 +219,7 @@ export const TemplateHorizon: React.FC<TemplateProps> = ({ data, showPhoto = tru
           {certificates && certificates.length > 0 && (
             <div>
               <h2 className="text-xs font-bold uppercase tracking-wider text-blue-800 border-b border-slate-200 pb-1 mb-2">
-                Sertifikatlar
+                {terms.certificates}
               </h2>
               <div className="space-y-1.5 text-xs">
                 {certificates.map((cert) => (

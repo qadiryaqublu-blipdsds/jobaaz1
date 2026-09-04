@@ -25,6 +25,7 @@ export async function downloadCVAsPDF(
       targetElement = document.getElementById(elementOrId);
       if (!targetElement) {
         targetElement = document.querySelector(`[id="${elementOrId}"]`) || 
+                        document.querySelector('#cv-live-creator-export') ||
                         document.querySelector('#cv-document-export') ||
                         document.querySelector('#modal-submitted-cv-export') ||
                         document.querySelector('#applicant-cv-export');

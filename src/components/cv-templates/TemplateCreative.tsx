@@ -1,6 +1,7 @@
 import React from 'react';
 import { CVData } from '../../types';
 import { Mail, Phone, MapPin, Globe, Linkedin, Github, Sparkles, Award } from 'lucide-react';
+import { getCVTerms, getPhotoClasses } from './cvDictionary';
 
 interface TemplateProps {
   data: CVData;
@@ -8,7 +9,8 @@ interface TemplateProps {
 }
 
 export const TemplateCreative: React.FC<TemplateProps> = ({ data, showPhoto = true }) => {
-  const { personalInfo, experiences, education, skills, languages, projects, certificates } = data;
+  const { personalInfo, experiences, education, skills, languages, projects, certificates, language } = data;
+  const terms = getCVTerms(language);
   const displayPhoto = showPhoto && !!personalInfo.photoUrl;
 
   return (
@@ -20,7 +22,7 @@ export const TemplateCreative: React.FC<TemplateProps> = ({ data, showPhoto = tr
             <img
               src={personalInfo.photoUrl}
               alt={personalInfo.fullName || 'Namizəd'}
-              className="w-28 h-28 rounded-2xl object-cover border-4 border-white shadow-md ring-2 ring-orange-500 bg-slate-100"
+              className={`${getPhotoClasses(personalInfo.photoSize, personalInfo.photoShape)} border-4 border-white shadow-md ring-2 ring-orange-500 bg-slate-100`}
               referrerPolicy="no-referrer"
             />
             <div className="absolute -bottom-2 -right-2 p-1.5 bg-orange-500 text-white rounded-lg shadow-sm">
@@ -84,7 +86,7 @@ export const TemplateCreative: React.FC<TemplateProps> = ({ data, showPhoto = tr
       {personalInfo.summary && (
         <div className="mb-6 p-4 rounded-xl bg-orange-50/50 border border-orange-100 text-xs text-slate-700 leading-relaxed">
           <h2 className="text-[11px] font-extrabold uppercase tracking-wider text-orange-800 mb-1">
-            Yaradıcı Görüş & Xülasə
+            {terms.summary}
           </h2>
           <p className="whitespace-pre-line">{personalInfo.summary}</p>
         </div>
@@ -100,7 +102,7 @@ export const TemplateCreative: React.FC<TemplateProps> = ({ data, showPhoto = tr
               <div className="flex items-center gap-2 mb-3">
                 <span className="w-2.5 h-2.5 rounded-full bg-orange-500"></span>
                 <h2 className="text-xs font-bold uppercase tracking-wider text-slate-900">
-                  İş Təcrübəsi
+                  {terms.experience}
                 </h2>
               </div>
               <div className="space-y-4">
@@ -109,7 +111,7 @@ export const TemplateCreative: React.FC<TemplateProps> = ({ data, showPhoto = tr
                     <div className="flex justify-between items-baseline flex-wrap gap-1">
                       <h3 className="text-xs font-bold text-slate-900">{exp.position}</h3>
                       <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-orange-100 text-orange-800">
-                        {exp.startDate} – {exp.current ? 'İndiyədək' : exp.endDate}
+                        {exp.startDate} – {exp.current ? terms.present : exp.endDate}
                       </span>
                     </div>
                     <div className="text-[11px] font-semibold text-orange-600 mb-1">
@@ -130,7 +132,7 @@ export const TemplateCreative: React.FC<TemplateProps> = ({ data, showPhoto = tr
               <div className="flex items-center gap-2 mb-3">
                 <span className="w-2.5 h-2.5 rounded-full bg-orange-500"></span>
                 <h2 className="text-xs font-bold uppercase tracking-wider text-slate-900">
-                  Seçilmiş Layihələr & Portfolio
+                  {terms.projects}
                 </h2>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -174,7 +176,7 @@ export const TemplateCreative: React.FC<TemplateProps> = ({ data, showPhoto = tr
               <div className="flex items-center gap-2 mb-3">
                 <span className="w-2.5 h-2.5 rounded-full bg-orange-500"></span>
                 <h2 className="text-xs font-bold uppercase tracking-wider text-slate-900">
-                  Bacarıqlar
+                  {terms.skills}
                 </h2>
               </div>
               <div className="flex flex-wrap gap-1.5">
@@ -197,7 +199,7 @@ export const TemplateCreative: React.FC<TemplateProps> = ({ data, showPhoto = tr
               <div className="flex items-center gap-2 mb-3">
                 <span className="w-2.5 h-2.5 rounded-full bg-orange-500"></span>
                 <h2 className="text-xs font-bold uppercase tracking-wider text-slate-900">
-                  Təhsil
+                  {terms.education}
                 </h2>
               </div>
               <div className="space-y-3">
@@ -222,7 +224,7 @@ export const TemplateCreative: React.FC<TemplateProps> = ({ data, showPhoto = tr
               <div className="flex items-center gap-2 mb-2">
                 <span className="w-2.5 h-2.5 rounded-full bg-orange-500"></span>
                 <h2 className="text-xs font-bold uppercase tracking-wider text-slate-900">
-                  Dillər
+                  {terms.languages}
                 </h2>
               </div>
               <div className="space-y-1.5 text-xs">
@@ -242,7 +244,7 @@ export const TemplateCreative: React.FC<TemplateProps> = ({ data, showPhoto = tr
               <div className="flex items-center gap-2 mb-2">
                 <span className="w-2.5 h-2.5 rounded-full bg-orange-500"></span>
                 <h2 className="text-xs font-bold uppercase tracking-wider text-slate-900">
-                  Sertifikatlar
+                  {terms.certificates}
                 </h2>
               </div>
               <div className="space-y-2 text-xs">

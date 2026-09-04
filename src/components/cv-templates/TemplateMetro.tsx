@@ -1,6 +1,7 @@
 import React from 'react';
 import { CVData } from '../../types';
 import { Mail, Phone, MapPin, Globe, Linkedin, Github, Award, Sparkles } from 'lucide-react';
+import { getCVTerms, getPhotoClasses } from './cvDictionary';
 
 interface TemplateProps {
   data: CVData;
@@ -8,7 +9,8 @@ interface TemplateProps {
 }
 
 export const TemplateMetro: React.FC<TemplateProps> = ({ data, showPhoto = true }) => {
-  const { personalInfo, experiences, education, skills, languages, projects, certificates } = data;
+  const { personalInfo, experiences, education, skills, languages, projects, certificates, language } = data;
+  const terms = getCVTerms(language);
   const displayPhoto = showPhoto && !!personalInfo.photoUrl;
 
   return (
@@ -67,7 +69,7 @@ export const TemplateMetro: React.FC<TemplateProps> = ({ data, showPhoto = true 
             <img
               src={personalInfo.photoUrl}
               alt={personalInfo.fullName || 'Namizəd'}
-              className="w-24 h-24 rounded-2xl object-cover border-2 border-purple-400 shadow-md ring-4 ring-purple-50 bg-slate-100"
+              className={`${getPhotoClasses(personalInfo.photoSize, personalInfo.photoShape)} border-2 border-purple-400 shadow-md ring-4 ring-purple-50 bg-slate-100`}
               referrerPolicy="no-referrer"
             />
           </div>
@@ -78,7 +80,7 @@ export const TemplateMetro: React.FC<TemplateProps> = ({ data, showPhoto = true 
       {personalInfo.summary && (
         <div className="mb-6 p-4 rounded-xl bg-purple-50/50 border border-purple-100">
           <h2 className="text-xs font-bold uppercase tracking-wider text-purple-900 mb-1.5">
-            Xülasə & Məqsəd
+            {terms.aboutMe || terms.summary}
           </h2>
           <p className="text-xs text-slate-700 leading-relaxed whitespace-pre-line">{personalInfo.summary}</p>
         </div>
@@ -92,7 +94,7 @@ export const TemplateMetro: React.FC<TemplateProps> = ({ data, showPhoto = true 
           {experiences && experiences.length > 0 && (
             <div>
               <h2 className="text-xs font-extrabold uppercase tracking-wider text-purple-900 pb-1.5 mb-3 border-b-2 border-purple-600 flex items-center gap-2">
-                <span>İş Təcrübəsi</span>
+                <span>{terms.experience}</span>
               </h2>
               <div className="space-y-4">
                 {experiences.map((exp) => (
@@ -100,7 +102,7 @@ export const TemplateMetro: React.FC<TemplateProps> = ({ data, showPhoto = true 
                     <div className="flex justify-between items-baseline flex-wrap gap-1">
                       <h3 className="text-xs font-bold text-slate-900">{exp.position}</h3>
                       <span className="text-[10px] font-bold text-purple-700 bg-purple-100 px-2 py-0.5 rounded-full">
-                        {exp.startDate} – {exp.current ? 'İndiyədək' : exp.endDate}
+                        {exp.startDate} – {exp.current ? terms.present : exp.endDate}
                       </span>
                     </div>
                     <div className="text-[11px] font-semibold text-purple-800 mb-1">
@@ -119,7 +121,7 @@ export const TemplateMetro: React.FC<TemplateProps> = ({ data, showPhoto = true 
           {projects && projects.length > 0 && (
             <div>
               <h2 className="text-xs font-extrabold uppercase tracking-wider text-purple-900 pb-1.5 mb-3 border-b-2 border-purple-600">
-                Seçilmiş Layihələr
+                {terms.projects}
               </h2>
               <div className="space-y-3">
                 {projects.map((proj) => (
@@ -155,7 +157,7 @@ export const TemplateMetro: React.FC<TemplateProps> = ({ data, showPhoto = true 
           {skills && skills.length > 0 && (
             <div>
               <h2 className="text-xs font-extrabold uppercase tracking-wider text-purple-900 pb-1.5 mb-3 border-b-2 border-purple-600">
-                Bacarıqlar
+                {terms.skills}
               </h2>
               <div className="space-y-1.5">
                 {skills.map((skill) => (
@@ -189,7 +191,7 @@ export const TemplateMetro: React.FC<TemplateProps> = ({ data, showPhoto = true 
           {education && education.length > 0 && (
             <div>
               <h2 className="text-xs font-extrabold uppercase tracking-wider text-purple-900 pb-1.5 mb-3 border-b-2 border-purple-600">
-                Təhsil
+                {terms.education}
               </h2>
               <div className="space-y-2.5">
                 {education.map((edu) => (
@@ -211,7 +213,7 @@ export const TemplateMetro: React.FC<TemplateProps> = ({ data, showPhoto = true 
           {languages && languages.length > 0 && (
             <div>
               <h2 className="text-xs font-extrabold uppercase tracking-wider text-purple-900 pb-1.5 mb-2 border-b-2 border-purple-600">
-                Dillər
+                {terms.languages}
               </h2>
               <div className="space-y-1.5 text-xs">
                 {languages.map((lang) => (
@@ -228,7 +230,7 @@ export const TemplateMetro: React.FC<TemplateProps> = ({ data, showPhoto = true 
           {certificates && certificates.length > 0 && (
             <div>
               <h2 className="text-xs font-extrabold uppercase tracking-wider text-purple-900 pb-1.5 mb-2 border-b-2 border-purple-600">
-                Sertifikatlar
+                {terms.certificates}
               </h2>
               <div className="space-y-1.5 text-xs">
                 {certificates.map((cert) => (

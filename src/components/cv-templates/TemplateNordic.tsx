@@ -1,6 +1,7 @@
 import React from 'react';
 import { CVData } from '../../types';
 import { Mail, Phone, MapPin, Globe, Linkedin, Github, Award, BookOpen } from 'lucide-react';
+import { getCVTerms, getPhotoClasses } from './cvDictionary';
 
 interface TemplateProps {
   data: CVData;
@@ -8,7 +9,8 @@ interface TemplateProps {
 }
 
 export const TemplateNordic: React.FC<TemplateProps> = ({ data, showPhoto = true }) => {
-  const { personalInfo, experiences, education, skills, languages, projects, certificates } = data;
+  const { personalInfo, experiences, education, skills, languages, projects, certificates, language } = data;
+  const terms = getCVTerms(language);
   const displayPhoto = showPhoto && !!personalInfo.photoUrl;
 
   return (
@@ -22,7 +24,7 @@ export const TemplateNordic: React.FC<TemplateProps> = ({ data, showPhoto = true
               <img
                 src={personalInfo.photoUrl}
                 alt={personalInfo.fullName || 'Namizəd'}
-                className="w-24 h-24 rounded-full object-cover mx-auto mb-3 border-2 border-teal-400/80 shadow-md bg-teal-950"
+                className={`${getPhotoClasses(personalInfo.photoSize, personalInfo.photoShape)} mx-auto mb-3 border-2 border-teal-400/80 shadow-md bg-teal-950`}
                 referrerPolicy="no-referrer"
               />
             ) : (
@@ -78,7 +80,7 @@ export const TemplateNordic: React.FC<TemplateProps> = ({ data, showPhoto = true
           {/* Skills with Progress */}
           {skills && skills.length > 0 && (
             <div className="pt-3 border-t border-teal-800/80">
-              <h3 className="text-[10px] font-bold uppercase tracking-widest text-teal-400 mb-2.5">Bacarıqlar</h3>
+              <h3 className="text-[10px] font-bold uppercase tracking-widest text-teal-400 mb-2.5">{terms.skills}</h3>
               <div className="space-y-2">
                 {skills.map((s) => (
                   <div key={s.id} className="text-xs">
@@ -110,7 +112,7 @@ export const TemplateNordic: React.FC<TemplateProps> = ({ data, showPhoto = true
           {/* Languages */}
           {languages && languages.length > 0 && (
             <div className="pt-3 border-t border-teal-800/80">
-              <h3 className="text-[10px] font-bold uppercase tracking-widest text-teal-400 mb-2">Dillər</h3>
+              <h3 className="text-[10px] font-bold uppercase tracking-widest text-teal-400 mb-2">{terms.languages}</h3>
               <div className="space-y-1.5 text-xs">
                 {languages.map((l) => (
                   <div key={l.id} className="flex justify-between py-0.5">
@@ -130,7 +132,7 @@ export const TemplateNordic: React.FC<TemplateProps> = ({ data, showPhoto = true
         {personalInfo.summary && (
           <div>
             <h2 className="text-xs font-bold uppercase tracking-wider text-teal-900 border-b-2 border-teal-500 pb-1 mb-2">
-              Haqqımda
+              {terms.aboutMe || terms.summary}
             </h2>
             <p className="text-xs text-slate-700 leading-relaxed whitespace-pre-line">
               {personalInfo.summary}
@@ -142,7 +144,7 @@ export const TemplateNordic: React.FC<TemplateProps> = ({ data, showPhoto = true
         {experiences && experiences.length > 0 && (
           <div>
             <h2 className="text-xs font-bold uppercase tracking-wider text-teal-900 border-b-2 border-teal-500 pb-1 mb-3">
-              İş Təcrübəsi
+              {terms.experience}
             </h2>
             <div className="space-y-4">
               {experiences.map((exp) => (
@@ -150,7 +152,7 @@ export const TemplateNordic: React.FC<TemplateProps> = ({ data, showPhoto = true
                   <div className="flex justify-between items-baseline flex-wrap gap-1">
                     <h3 className="text-xs font-bold text-slate-900">{exp.position}</h3>
                     <span className="text-[10px] font-bold text-teal-700 bg-teal-50 px-2 py-0.5 rounded">
-                      {exp.startDate} – {exp.current ? 'İndiyədək' : exp.endDate}
+                      {exp.startDate} – {exp.current ? terms.present : exp.endDate}
                     </span>
                   </div>
                   <div className="text-[11px] font-medium text-teal-900 mb-1">
@@ -169,7 +171,7 @@ export const TemplateNordic: React.FC<TemplateProps> = ({ data, showPhoto = true
         {education && education.length > 0 && (
           <div>
             <h2 className="text-xs font-bold uppercase tracking-wider text-teal-900 border-b-2 border-teal-500 pb-1 mb-2.5">
-              Təhsil
+              {terms.education}
             </h2>
             <div className="space-y-2.5">
               {education.map((edu) => (
@@ -191,7 +193,7 @@ export const TemplateNordic: React.FC<TemplateProps> = ({ data, showPhoto = true
         {projects && projects.length > 0 && (
           <div>
             <h2 className="text-xs font-bold uppercase tracking-wider text-teal-900 border-b-2 border-teal-500 pb-1 mb-2.5">
-              Layihələr
+              {terms.projects}
             </h2>
             <div className="space-y-2 text-xs">
               {projects.map((p) => (
@@ -224,7 +226,7 @@ export const TemplateNordic: React.FC<TemplateProps> = ({ data, showPhoto = true
         {certificates && certificates.length > 0 && (
           <div>
             <h2 className="text-xs font-bold uppercase tracking-wider text-teal-900 border-b-2 border-teal-500 pb-1 mb-1.5">
-              Sertifikatlar
+              {terms.certificates}
             </h2>
             <div className="space-y-1 text-xs">
               {certificates.map((c) => (

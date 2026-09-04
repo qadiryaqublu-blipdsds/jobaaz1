@@ -1,5 +1,6 @@
 import React from 'react';
 import { CVData } from '../../types';
+import { getCVTerms, getPhotoClasses } from './cvDictionary';
 
 interface TemplateProps {
   data: CVData;
@@ -7,7 +8,8 @@ interface TemplateProps {
 }
 
 export const TemplateATSCompact: React.FC<TemplateProps> = ({ data, showPhoto = false }) => {
-  const { personalInfo, experiences, education, skills, languages, projects, certificates } = data;
+  const { personalInfo, experiences, education, skills, languages, projects, certificates, language } = data;
+  const terms = getCVTerms(language);
   const displayPhoto = showPhoto && !!personalInfo.photoUrl;
 
   return (
@@ -19,7 +21,7 @@ export const TemplateATSCompact: React.FC<TemplateProps> = ({ data, showPhoto = 
             <img
               src={personalInfo.photoUrl}
               alt={personalInfo.fullName || 'Namizəd'}
-              className="w-20 h-20 rounded-full object-cover border-2 border-slate-800"
+              className={`${getPhotoClasses(personalInfo.photoSize, personalInfo.photoShape)} border-2 border-slate-800`}
               referrerPolicy="no-referrer"
             />
           </div>
@@ -58,48 +60,44 @@ export const TemplateATSCompact: React.FC<TemplateProps> = ({ data, showPhoto = 
               <span>{personalInfo.github.replace(/^https?:\/\//, '')}</span>
             </>
           )}
-          {personalInfo.portfolio && (
-            <>
-              <span>|</span>
-              <span>{personalInfo.portfolio.replace(/^https?:\/\//, '')}</span>
-            </>
-          )}
         </div>
       </div>
 
       {/* Professional Summary */}
       {personalInfo.summary && (
         <div className="mb-5">
-          <h2 className="text-xs font-bold uppercase tracking-wider text-slate-900 border-b border-slate-400 pb-0.5 mb-2">
-            Peşəkar Xülasə (Professional Summary)
+          <h2 className="text-xs font-bold uppercase tracking-wider text-slate-900 border-b border-slate-400 pb-0.5 mb-1.5">
+            {terms.summary}
           </h2>
-          <p className="text-xs text-slate-800 leading-relaxed text-justify">
+          <p className="text-xs text-slate-800 leading-relaxed whitespace-pre-line text-justify">
             {personalInfo.summary}
           </p>
         </div>
       )}
 
-      {/* Work Experience */}
+      {/* Experience Section */}
       {experiences && experiences.length > 0 && (
         <div className="mb-5">
           <h2 className="text-xs font-bold uppercase tracking-wider text-slate-900 border-b border-slate-400 pb-0.5 mb-2.5">
-            İş Təcrübəsi (Work Experience)
+            {terms.experience}
           </h2>
           <div className="space-y-3.5">
             {experiences.map((exp) => (
-              <div key={exp.id} className="text-xs">
-                <div className="flex justify-between items-baseline font-bold text-slate-900">
-                  <span>{exp.position} — {exp.company}</span>
+              <div key={exp.id}>
+                <div className="flex justify-between items-baseline text-xs font-bold text-slate-900">
+                  <span>{exp.position}</span>
                   <span className="font-semibold text-slate-700 text-[11px]">
-                    {exp.startDate} – {exp.current ? 'İndiyədək' : exp.endDate}
+                    {exp.startDate} – {exp.current ? terms.present : exp.endDate}
                   </span>
                 </div>
-                {exp.location && (
-                  <div className="text-[11px] italic text-slate-600 mb-1">{exp.location}</div>
-                )}
-                <div className="text-[11px] text-slate-800 leading-relaxed whitespace-pre-line pl-1 space-y-0.5">
-                  {exp.description}
+                <div className="text-xs font-medium text-slate-700 mb-1">
+                  {exp.company} {exp.location ? `| ${exp.location}` : ''}
                 </div>
+                {exp.description && (
+                  <p className="text-xs text-slate-800 leading-normal whitespace-pre-line">
+                    {exp.description}
+                  </p>
+                )}
               </div>
             ))}
           </div>
@@ -110,17 +108,19 @@ export const TemplateATSCompact: React.FC<TemplateProps> = ({ data, showPhoto = 
       {education && education.length > 0 && (
         <div className="mb-5">
           <h2 className="text-xs font-bold uppercase tracking-wider text-slate-900 border-b border-slate-400 pb-0.5 mb-2">
-            Təhsil (Education)
+            {terms.education}
           </h2>
           <div className="space-y-2">
             {education.map((edu) => (
-              <div key={edu.id} className="flex justify-between items-baseline text-xs">
-                <div>
-                  <span className="font-bold text-slate-900">{edu.institution}</span> — {edu.degree}, {edu.fieldOfStudy}
-                  {edu.gpa && <span className="text-slate-600 font-medium"> (GPA: {edu.gpa})</span>}
+              <div key={edu.id} className="text-xs">
+                <div className="flex justify-between items-baseline font-bold text-slate-900">
+                  <span>{edu.degree} {edu.fieldOfStudy ? `• ${edu.fieldOfStudy}` : ''}</span>
+                  <span className="font-normal text-slate-600 text-[11px]">
+                    {edu.startDate} – {edu.endDate}
+                  </span>
                 </div>
-                <div className="font-semibold text-slate-700 text-[11px] shrink-0">
-                  {edu.startDate} – {edu.endDate}
+                <div className="text-slate-700">
+                  {edu.institution} {edu.gpa ? `| GPA: ${edu.gpa}` : ''}
                 </div>
               </div>
             ))}
@@ -131,37 +131,11 @@ export const TemplateATSCompact: React.FC<TemplateProps> = ({ data, showPhoto = 
       {/* Skills */}
       {skills && skills.length > 0 && (
         <div className="mb-5">
-          <h2 className="text-xs font-bold uppercase tracking-wider text-slate-900 border-b border-slate-400 pb-0.5 mb-2">
-            Bacarıqlar və Kompetensiyalar (Skills)
+          <h2 className="text-xs font-bold uppercase tracking-wider text-slate-900 border-b border-slate-400 pb-0.5 mb-1.5">
+            {terms.skills}
           </h2>
-          <div className="text-xs text-slate-800 space-y-1">
-            <div>
-              <span className="font-bold text-slate-900">Texniki Bacarıqlar: </span>
-              <span>
-                {skills
-                  .filter((s) => s.category === 'Texniki')
-                  .map((s) => s.name)
-                  .join(', ') || skills.slice(0, 6).map((s) => s.name).join(', ')}
-              </span>
-            </div>
-            <div>
-              <span className="font-bold text-slate-900">Alətlər & Proqramlar: </span>
-              <span>
-                {skills
-                  .filter((s) => s.category === 'Alət / Proqram')
-                  .map((s) => s.name)
-                  .join(', ') || 'Git, VS Code, MS Office'}
-              </span>
-            </div>
-            <div>
-              <span className="font-bold text-slate-900">Fərdi / Soft Skills: </span>
-              <span>
-                {skills
-                  .filter((s) => s.category === 'Soft skill')
-                  .map((s) => s.name)
-                  .join(', ') || 'Problem həlli, Komandada iş, Çeviklik'}
-              </span>
-            </div>
+          <div className="text-xs text-slate-800 leading-relaxed">
+            {skills.map((s) => s.name).join(' • ')}
           </div>
         </div>
       )}
@@ -170,10 +144,10 @@ export const TemplateATSCompact: React.FC<TemplateProps> = ({ data, showPhoto = 
       {languages && languages.length > 0 && (
         <div className="mb-5">
           <h2 className="text-xs font-bold uppercase tracking-wider text-slate-900 border-b border-slate-400 pb-0.5 mb-1.5">
-            Dillər (Languages)
+            {terms.languages}
           </h2>
           <div className="text-xs text-slate-800">
-            {languages.map((l) => `${l.language} (${l.proficiency})`).join(' • ')}
+            {languages.map((l) => `${l.name || (l as any).language} (${l.level || (l as any).proficiency})`).join(' • ')}
           </div>
         </div>
       )}
@@ -182,7 +156,7 @@ export const TemplateATSCompact: React.FC<TemplateProps> = ({ data, showPhoto = 
       {projects && projects.length > 0 && (
         <div className="mb-4">
           <h2 className="text-xs font-bold uppercase tracking-wider text-slate-900 border-b border-slate-400 pb-0.5 mb-2">
-            Layihələr (Projects)
+            {terms.projects}
           </h2>
           <div className="space-y-2 text-xs">
             {projects.map((pr) => (
@@ -204,7 +178,7 @@ export const TemplateATSCompact: React.FC<TemplateProps> = ({ data, showPhoto = 
       {certificates && certificates.length > 0 && (
         <div>
           <h2 className="text-xs font-bold uppercase tracking-wider text-slate-900 border-b border-slate-400 pb-0.5 mb-1.5">
-            Sertifikatlar (Certificates)
+            {terms.certificates}
           </h2>
           <div className="text-xs text-slate-800 space-y-0.5">
             {certificates.map((cert) => (

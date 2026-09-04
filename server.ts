@@ -86,7 +86,7 @@ async function callGeminiResilient(
   const effectiveTimeout = config?.timeoutMs || timeoutMs;
 
   // Prioritize Gemini 3.8 Flash as requested, followed by robust standard fallbacks
-  const defaultModels = ['gemini-3.8-flash', 'gemini-flash-latest', 'gemini-2.5-flash', 'gemini-3.1-pro-preview'];
+  const defaultModels = ['gemini-3.8-flash', 'gemini-3.6-flash', 'gemini-flash-latest'];
   const candidateModels = preferredModel
     ? [preferredModel, ...defaultModels.filter(m => m !== preferredModel)]
     : defaultModels;
@@ -223,15 +223,16 @@ Format: hər sətirdə 1 bacarıq. Yalnız Azərbaycan dilində cavab ver.`;
 
 // 2b. Full AI CV Generator Endpoint (Complete Structured CV)
 app.post('/api/ai/generate-full-cv', async (req, res) => {
-  const { jobTitle, experienceLevel, fullName, city, skillsSummary, language, photoUrl } = req.body || {};
+  const { jobTitle, experienceLevel, fullName, city, skillsSummary, language, photoUrl, rawPastedText } = req.body || {};
   const requestPayload = {
-    jobTitle: jobTitle || 'Frontend Developer',
+    jobTitle: jobTitle || (rawPastedText ? '' : 'Frontend Developer'),
     experienceLevel: experienceLevel || 'mid',
-    fullName: fullName || 'Əli Məmmədov',
+    fullName: fullName || (rawPastedText ? '' : 'Əli Məmmədov'),
     city: city || 'Bakı, Azərbaycan',
     skillsSummary,
     language: language || 'az',
-    photoUrl
+    photoUrl,
+    rawPastedText: rawPastedText ? String(rawPastedText).slice(0, 15000) : undefined
   };
 
   try {
@@ -3615,6 +3616,721 @@ Aşağıdakı JSON sxeminə uyğun olaraq DƏQİQ JSON qaytar:
   } catch {
     const fallbackCV = parseRawTextToCVFallback(rawText, targetJobTitle);
     return res.json({ success: true, cvData: fallbackCV });
+  }
+});
+
+// 3.1 AI CV Multi-Language Translator (AZ, EN, RU, TR)
+app.post('/api/ai/translate-cv', async (req, res) => {
+  const { cvData, targetLanguage = 'en' } = req.body;
+
+  if (!cvData) {
+    return res.status(400).json({ error: 'cvData is required' });
+  }
+
+  const langNames: Record<string, string> = {
+    az: 'Azərbaycan dili (Professional rəsmi CV üslubu)',
+    en: 'English (Professional US/UK Resume standard)',
+    ru: 'Русский язык (Деловой профессиональный стиль резюме)',
+    tr: 'Türkçe (Profesyonel kurumsal CV dili)'
+  };
+
+  const targetLangName = langNames[targetLanguage] || 'English';
+
+  // Offline dictionary & automated translation engine for full translation
+  const getOfflineTranslatedCV = async (cv: any, target: string) => {
+    const levelMap: Record<string, Record<string, string>> = {
+      en: {
+        'Başlanğıc': 'Beginner',
+        'Orta': 'Intermediate',
+        'Yaxşı': 'Advanced',
+        'Əla / Ekspert': 'Expert',
+        'Ana dili': 'Native',
+        'Sərbəst': 'Fluent',
+        'İşgüzar': 'Professional Working'
+      },
+      ru: {
+        'Başlanğıc': 'Начальный',
+        'Orta': 'Средний',
+        'Yaxşı': 'Продвинутый',
+        'Əla / Ekspert': 'Эксперт',
+        'Ana dili': 'Родной язык',
+        'Sərbəst': 'Свободно',
+        'İşgüzar': 'Деловой'
+      },
+      tr: {
+        'Başlanğıc': 'Başlangıç',
+        'Orta': 'Orta Düzey',
+        'Yaxşı': 'İleri Düzey',
+        'Əla / Ekspert': 'Uzman',
+        'Ana dili': 'Ana Dil',
+        'Sərbəst': 'Akıcı',
+        'İşgüzar': 'Mesleki'
+      },
+      az: {
+        'Beginner': 'Başlanğıc',
+        'Intermediate': 'Orta',
+        'Advanced': 'Yaxşı',
+        'Expert': 'Əla / Ekspert',
+        'Native': 'Ana dili',
+        'Fluent': 'Sərbəst',
+        'Professional': 'İşgüzar'
+      }
+    };
+
+    const langNameMap: Record<string, Record<string, string>> = {
+      en: {
+        'Azərbaycan dili': 'Azerbaijani',
+        'Azərbaycan': 'Azerbaijani',
+        'İngilis dili': 'English',
+        'İngilis': 'English',
+        'Rus dili': 'Russian',
+        'Rus': 'Russian',
+        'Türk dili': 'Turkish',
+        'Türk': 'Turkish',
+        'Alman dili': 'German',
+        'Fransız dili': 'French'
+      },
+      ru: {
+        'Azərbaycan dili': 'Азербайджанский',
+        'Azərbaycan': 'Азербайджанский',
+        'İngilis dili': 'Английский',
+        'İngilis': 'Английский',
+        'Rus dili': 'Русский',
+        'Rus': 'Русский',
+        'Türk dili': 'Турецкий',
+        'Türk': 'Турецкий',
+        'Alman dili': 'Немецкий',
+        'Fransız dili': 'Французский'
+      },
+      tr: {
+        'Azərbaycan dili': 'Azerbaycan Türkçesi',
+        'Azərbaycan': 'Azerbaycan Türkçesi',
+        'İngilis dili': 'İngilizce',
+        'İngilis': 'İngilizce',
+        'Rus dili': 'Rusça',
+        'Rus': 'Rusça',
+        'Türk dili': 'Türkçe',
+        'Türk': 'Türkçe',
+        'Alman dili': 'Almanca',
+        'Fransız dili': 'Fransızca'
+      },
+      az: {
+        'English': 'İngilis dili',
+        'Russian': 'Rus dili',
+        'Turkish': 'Türk dili',
+        'Azerbaijani': 'Azərbaycan dili'
+      }
+    };
+
+    const degreeMap: Record<string, Record<string, string>> = {
+      en: {
+        'Bakalavr': "Bachelor's Degree",
+        'Magistr': "Master's Degree",
+        'Doktorantura': 'Doctorate / Ph.D.',
+        'Orta ixtisas (Kollec)': 'Associate Degree / College',
+        'Tam orta təhsil': 'High School Diploma'
+      },
+      ru: {
+        'Bakalavr': 'Бакалавр',
+        'Magistr': 'Магистр',
+        'Doktorantura': 'Докторантура / Ph.D.',
+        'Orta ixtisas (Kollec)': 'Среднее специальное (Колледж)',
+        'Tam orta təhsil': 'Полное среднее образование'
+      },
+      tr: {
+        'Bakalavr': 'Lisans',
+        'Magistr': 'Yüksek Lisans',
+        'Doktorantura': 'Doktora',
+        'Orta ixtisas (Kollec)': 'Ön Lisans / Meslek Yüksekokulu',
+        'Tam orta təhsil': 'Lise Diploması'
+      },
+      az: {
+        "Bachelor's": 'Bakalavr',
+        "Master's": 'Magistr',
+        'Bachelor': 'Bakalavr',
+        'Master': 'Magistr',
+        'Бакалавр': 'Bakalavr',
+        'Магистр': 'Magistr',
+        'Lisans': 'Bakalavr',
+        'Yüksek Lisans': 'Magistr'
+      }
+    };
+
+    const addressMap: Record<string, Record<string, string>> = {
+      en: {
+        'Bakı, Azərbaycan': 'Baku, Azerbaijan',
+        'Bakı': 'Baku',
+        'Azərbaycan': 'Azerbaijan',
+        'Sumqayıt': 'Sumgait',
+        'Gəncə': 'Ganja'
+      },
+      ru: {
+        'Bakı, Azərbaycan': 'Баку, Азербайджан',
+        'Bakı': 'Баку',
+        'Azərbaycan': 'Азербайджан',
+        'Sumqayıt': 'Сумгаит',
+        'Gəncə': 'Гянджа'
+      },
+      tr: {
+        'Bakı, Azərbaycan': 'Bakü, Azerbaycan',
+        'Bakı': 'Bakü',
+        'Azərbaycan': 'Azerbaycan',
+        'Sumqayıt': 'Sumgayıt',
+        'Gəncə': 'Gence'
+      },
+      az: {
+        'Baku, Azerbaijan': 'Bakı, Azərbaycan',
+        'Баку, Азербайджан': 'Bakı, Azərbaycan',
+        'Bakü, Azerbaycan': 'Bakı, Azərbaycan'
+      }
+    };
+
+    const targetLevel = levelMap[target] || {};
+    const targetLangs = langNameMap[target] || {};
+    const targetDegrees = degreeMap[target] || {};
+    const targetAddr = addressMap[target] || {};
+
+    const jobTitleMap: Record<string, Record<string, string>> = {
+      en: {
+        'Baş Mühasib': 'Chief Accountant',
+        'Mühasib': 'Accountant',
+        'Satış Meneceri': 'Sales Manager',
+        'Layihə Meneceri': 'Project Manager',
+        'Məhsul Meneceri': 'Product Manager',
+        'Proqramçı': 'Software Developer',
+        'Frontend Proqramçı': 'Frontend Developer',
+        'Backend Proqramçı': 'Backend Developer',
+        'Full Stack Proqramçı': 'Full Stack Developer',
+        'İnsan Resursları Mütəxəssisi': 'HR Specialist',
+        'İnsan Resursları Meneceri': 'HR Manager',
+        'Marketinq Mütəxəssisi': 'Marketing Specialist',
+        'Qrafik Dizayner': 'Graphic Designer',
+        'UI/UX Dizayner': 'UI/UX Designer',
+        'Müştəri Xidmətləri Mütəxəssisi': 'Customer Service Specialist',
+        'Sistem Administratoru': 'System Administrator',
+        'Data Analitik': 'Data Analyst',
+        'Hüquqşünas': 'Legal Counsel / Lawyer'
+      },
+      ru: {
+        'Baş Mühasib': 'Главный бухгалтер',
+        'Mühasib': 'Бухгалтер',
+        'Satış Meneceri': 'Менеджер по продажам',
+        'Layihə Meneceri': 'Менеджер проектов',
+        'Məhsul Meneceri': 'Продуктовый менеджер',
+        'Proqramçı': 'Разработчик ПО',
+        'Frontend Proqramçı': 'Frontend-разработчик',
+        'Backend Proqramçı': 'Backend-разработчик',
+        'Full Stack Proqramçı': 'Full Stack-разработчик',
+        'İnsan Resursları Mütəxəssisi': 'HR-специалист',
+        'İnsan Resursları Meneceri': 'HR-менеджер',
+        'Marketinq Mütəxəssisi': 'Маркетолог',
+        'Qrafik Dizayner': 'Графический дизайнер',
+        'UI/UX Dizayner': 'UI/UX дизайнер',
+        'Müştəri Xidmətləri Mütəxəssisi': 'Специалист по работе с клиентами',
+        'Sistem Administratoru': 'Системный администратор',
+        'Data Analitik': 'Аналитик данных',
+        'Hüquqşünas': 'Юрист'
+      },
+      tr: {
+        'Baş Mühasib': 'Baş Muhasebeci',
+        'Mühasib': 'Muhasebeci',
+        'Satış Meneceri': 'Satış Müdürü',
+        'Layihə Meneceri': 'Proje Yöneticisi',
+        'Məhsul Meneceri': 'Ürün Yöneticisi',
+        'Proqramçı': 'Yazılım Geliştirici',
+        'Frontend Proqramçı': 'Frontend Geliştirici',
+        'Backend Proqramçı': 'Backend Geliştirici',
+        'Full Stack Proqramçı': 'Full Stack Geliştirici',
+        'İnsan Resursları Mütəxəssisi': 'İnsan Kaynakları Uzmanı',
+        'İnsan Resursları Meneceri': 'İnsan Kaynakları Müdürü',
+        'Marketinq Mütəxəssisi': 'Pazarlama Uzmanı',
+        'Qrafik Dizayner': 'Grafik Tasarımcı',
+        'UI/UX Dizayner': 'UI/UX Tasarımcı',
+        'Müştəri Xidmətləri Mütəxəssisi': 'Müşteri Hizmetleri Uzmanı',
+        'Sistem Administratoru': 'Sistem Yöneticisi',
+        'Data Analitik': 'Veri Analisti',
+        'Hüquqşünas': 'Avukat'
+      },
+      az: {
+        'Chief Accountant': 'Baş Mühasib',
+        'Accountant': 'Mühasib',
+        'Sales Manager': 'Satış Meneceri',
+        'Project Manager': 'Layihə Meneceri',
+        'Product Manager': 'Məhsul Meneceri',
+        'Software Developer': 'Proqramçı',
+        'Frontend Developer': 'Frontend Proqramçı',
+        'Backend Developer': 'Backend Proqramçı',
+        'Full Stack Developer': 'Full Stack Proqramçı',
+        'HR Specialist': 'İnsan Resursları Mütəxəssisi',
+        'HR Manager': 'İnsan Resursları Meneceri',
+        'Marketing Specialist': 'Marketinq Mütəxəssisi',
+        'Graphic Designer': 'Qrafik Dizayner',
+        'UI/UX Designer': 'UI/UX Dizayner',
+        'Data Analyst': 'Data Analitik',
+        'Legal Counsel': 'Hüquqşünas'
+      }
+    };
+
+    const fieldOfStudyMap: Record<string, Record<string, string>> = {
+      en: {
+        'Kompüter elmləri': 'Computer Science',
+        'Kompüter mühəndisliyi': 'Computer Engineering',
+        'İnformasiya texnologiyaları': 'Information Technology',
+        'İqtisadiyyat': 'Economics',
+        'Maliyyə': 'Finance',
+        'Biznesin idarə edilməsi': 'Business Administration',
+        'Menecment': 'Management',
+        'Marketinq': 'Marketing',
+        'Hüquq': 'Law',
+        'Beynəlxalq münasibətlər': 'International Relations',
+        'Riyaziyyat': 'Mathematics',
+        'Tibb': 'Medicine'
+      },
+      ru: {
+        'Kompüter elmləri': 'Компьютерные науки',
+        'Kompüter mühəndisliyi': 'Компьютерная инженерия',
+        'İnformasiya texnologiyaları': 'Информационные технологии',
+        'İqtisadiyyat': 'Экономика',
+        'Maliyyə': 'Финансы',
+        'Biznesin idarə edilməsi': 'Деловое администрирование',
+        'Menecment': 'Менеджмент',
+        'Marketinq': 'Маркетинг',
+        'Hüquq': 'Юриспруденция',
+        'Beynəlxalq münasibətlər': 'Международные отношения',
+        'Riyaziyyat': 'Математика',
+        'Tibb': 'Медицина'
+      },
+      tr: {
+        'Kompüter elmləri': 'Bilgisayar Bilimleri',
+        'Kompüter mühəndisliyi': 'Bilgisayar Mühendisliği',
+        'İnformasiya texnologiyaları': 'Bilişim Teknolojileri',
+        'İqtisadiyyat': 'İktisat',
+        'Maliyyə': 'Finans',
+        'Biznesin idarə edilməsi': 'İşletme',
+        'Menecment': 'Yönetim',
+        'Marketinq': 'Pazarlama',
+        'Hüquq': 'Hukuk',
+        'Beynəlxalq münasibətlər': 'Uluslararası İlişkiler',
+        'Riyaziyyat': 'Matematik',
+        'Tibb': 'Tıp'
+      },
+      az: {
+        'Computer Science': 'Kompüter elmləri',
+        'Computer Engineering': 'Kompüter mühəndisliyi',
+        'Information Technology': 'İnformasiya texnologiyaları',
+        'Economics': 'İqtisadiyyat',
+        'Finance': 'Maliyyə',
+        'Business Administration': 'Biznesin idarə edilməsi',
+        'Management': 'Menecment',
+        'Marketing': 'Marketinq',
+        'Law': 'Hüquq'
+      }
+    };
+
+    const skillNameMap: Record<string, Record<string, string>> = {
+      en: {
+        'Komanda işi': 'Teamwork',
+        'Liderlik': 'Leadership',
+        'Problem həlli': 'Problem Solving',
+        'Vaxtın idarə edilməsi': 'Time Management',
+        'Analitik düşüncə': 'Analytical Thinking',
+        'Ünsiyyət bacarıqları': 'Communication Skills',
+        'Layihə idarəetməsi': 'Project Management',
+        'Tənqidi təfəkkür': 'Critical Thinking',
+        'Təqdimat bacarığı': 'Presentation Skills'
+      },
+      ru: {
+        'Komanda işi': 'Работа в команде',
+        'Liderlik': 'Лидерство',
+        'Problem həlli': 'Решение проблем',
+        'Vaxtın idarə edilməsi': 'Тайм-менеджмент',
+        'Analitik düşüncə': 'Аналитическое мышление',
+        'Ünsiyyət bacarıqları': 'Коммуникабельность',
+        'Layihə idarəetməsi': 'Управление проектами',
+        'Tənqidi təfəkkür': 'Критическое мышление',
+        'Təqdimat bacarığı': 'Навыки презентации'
+      },
+      tr: {
+        'Komanda işi': 'Takım Çalışması',
+        'Liderlik': 'Liderlik',
+        'Problem həlli': 'Problem Çözme',
+        'Vaxtın idarə edilməsi': 'Zaman Yönetimi',
+        'Analitik düşüncə': 'Analitik Düşünme',
+        'Ünsiyyət bacarıqları': 'İletişim Becerileri',
+        'Layihə idarəetməsi': 'Proje Yönetimi',
+        'Tənqidi təfəkkür': 'Eleştirel Düşünme',
+        'Təqdimat bacarığı': 'Sunum Becerisi'
+      },
+      az: {
+        'Teamwork': 'Komanda işi',
+        'Leadership': 'Liderlik',
+        'Problem Solving': 'Problem həlli',
+        'Time Management': 'Vaxtın idarə edilməsi',
+        'Analytical Thinking': 'Analitik düşüncə',
+        'Communication Skills': 'Ünsiyyət bacarıqları',
+        'Project Management': 'Layihə idarəetməsi'
+      }
+    };
+
+    const targetJobs = jobTitleMap[target] || {};
+    const targetFields = fieldOfStudyMap[target] || {};
+    const targetSkills = skillNameMap[target] || {};
+
+    const translateJob = (job: string) => targetJobs[job] || job;
+    const translateField = (field: string) => targetFields[field] || field;
+    const translateSkill = (skill: string) => targetSkills[skill] || skill;
+
+    // Collect all unique pieces of text needing translation into a single batched array
+    const textsToTranslate: { key: string; text: string }[] = [];
+    const addText = (key: string, text: string) => {
+      if (text && typeof text === 'string' && text.trim()) {
+        textsToTranslate.push({ key, text: text.trim() });
+      }
+    };
+
+    if (cv.personalInfo?.summary) addText('summary', cv.personalInfo.summary);
+    if (cv.personalInfo?.jobTitle && !targetJobs[cv.personalInfo.jobTitle]) {
+      addText('jobTitle', cv.personalInfo.jobTitle);
+    }
+    if (cv.personalInfo?.address && !targetAddr[cv.personalInfo.address]) {
+      addText('address', cv.personalInfo.address);
+    }
+
+    (cv.experiences || []).forEach((exp: any, i: number) => {
+      if (exp.position && !targetJobs[exp.position]) {
+        addText(`exp_pos_${i}`, exp.position);
+      }
+      if (exp.location && !targetAddr[exp.location]) {
+        addText(`exp_loc_${i}`, exp.location);
+      }
+      if (exp.description) {
+        addText(`exp_desc_${i}`, exp.description);
+      }
+    });
+
+    (cv.education || []).forEach((edu: any, i: number) => {
+      if (edu.degree && !targetDegrees[edu.degree]) {
+        addText(`edu_deg_${i}`, edu.degree);
+      }
+      if (edu.fieldOfStudy && !targetFields[edu.fieldOfStudy]) {
+        addText(`edu_field_${i}`, edu.fieldOfStudy);
+      }
+      if (edu.institution) {
+        addText(`edu_inst_${i}`, edu.institution);
+      }
+    });
+
+    (cv.skills || []).forEach((s: any, i: number) => {
+      if (s.name && !targetSkills[s.name]) {
+        addText(`skill_${i}`, s.name);
+      }
+    });
+
+    (cv.languages || []).forEach((l: any, i: number) => {
+      const orig = l.language || l.name || '';
+      if (orig && !targetLangs[orig]) {
+        addText(`lang_${i}`, orig);
+      }
+    });
+
+    (cv.projects || []).forEach((p: any, i: number) => {
+      if (p.title) addText(`proj_title_${i}`, p.title);
+      if (p.description) addText(`proj_desc_${i}`, p.description);
+    });
+
+    (cv.certificates || []).forEach((c: any, i: number) => {
+      if (c.name) addText(`cert_name_${i}`, c.name);
+      if (c.issuer) addText(`cert_issuer_${i}`, c.issuer);
+    });
+
+    const translationsMap: Record<string, string> = {};
+    if (textsToTranslate.length > 0) {
+      const DELIMITER = "\n=====\n";
+      const targetCode = target.toLowerCase().slice(0, 2);
+      try {
+        const joined = textsToTranslate.map(t => t.text).join(DELIMITER);
+        const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${targetCode}&dt=t&q=${encodeURIComponent(joined)}`;
+        const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
+        if (res.ok) {
+          const data: any = await res.json();
+          if (Array.isArray(data) && Array.isArray(data[0])) {
+            const fullTranslated = data[0].map((item: any) => item[0]).join('');
+            const parts = fullTranslated.split(/\s*=====\s*/);
+            textsToTranslate.forEach((item, idx) => {
+              if (parts[idx] && parts[idx].trim()) {
+                translationsMap[item.key] = parts[idx].trim();
+              }
+            });
+          }
+        }
+      } catch (batchErr) {
+        console.warn('Batch translation warning:', batchErr);
+      }
+
+      // If any critical key missed translation due to split mismatch, resolve individually
+      for (const item of textsToTranslate) {
+        if (!translationsMap[item.key]) {
+          try {
+            const indUrl = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${targetCode}&dt=t&q=${encodeURIComponent(item.text)}`;
+            const indRes = await fetch(indUrl, { signal: AbortSignal.timeout(3000) });
+            if (indRes.ok) {
+              const indData: any = await indRes.json();
+              if (Array.isArray(indData) && Array.isArray(indData[0])) {
+                const singleTrans = indData[0].map((it: any) => it[0]).join('');
+                if (singleTrans && singleTrans.trim()) {
+                  translationsMap[item.key] = singleTrans.trim();
+                }
+              }
+            }
+          } catch (_) {}
+        }
+      }
+    }
+
+    return {
+      ...cv,
+      language: target,
+      personalInfo: {
+        ...cv.personalInfo,
+        jobTitle: targetJobs[cv.personalInfo?.jobTitle] || translationsMap['jobTitle'] || cv.personalInfo?.jobTitle || '',
+        summary: translationsMap['summary'] || cv.personalInfo?.summary || '',
+        address: targetAddr[cv.personalInfo?.address] || translationsMap['address'] || cv.personalInfo?.address || ''
+      },
+      experiences: (cv.experiences || []).map((exp: any, i: number) => ({
+        ...exp,
+        position: targetJobs[exp.position] || translationsMap[`exp_pos_${i}`] || exp.position || '',
+        location: targetAddr[exp.location] || translationsMap[`exp_loc_${i}`] || exp.location || '',
+        description: translationsMap[`exp_desc_${i}`] || exp.description || ''
+      })),
+      education: (cv.education || []).map((edu: any, i: number) => ({
+        ...edu,
+        degree: targetDegrees[edu.degree] || translationsMap[`edu_deg_${i}`] || edu.degree || '',
+        fieldOfStudy: targetFields[edu.fieldOfStudy] || translationsMap[`edu_field_${i}`] || edu.fieldOfStudy || '',
+        institution: translationsMap[`edu_inst_${i}`] || edu.institution || ''
+      })),
+      skills: (cv.skills || []).map((s: any, i: number) => {
+        let mappedLevel = s.level;
+        for (const [k, v] of Object.entries(targetLevel)) {
+          if (s.level?.includes(k)) {
+            mappedLevel = v;
+            break;
+          }
+        }
+        return {
+          ...s,
+          name: targetSkills[s.name] || translationsMap[`skill_${i}`] || s.name || '',
+          level: mappedLevel
+        };
+      }),
+      languages: (cv.languages || []).map((l: any, i: number) => {
+        const origLang = l.language || l.name || '';
+        const mappedLang = targetLangs[origLang] || translationsMap[`lang_${i}`] || origLang;
+        let mappedProf = l.proficiency || l.level || '';
+        for (const [k, v] of Object.entries(targetLevel)) {
+          if (mappedProf.includes(k)) {
+            mappedProf = v;
+            break;
+          }
+        }
+        return {
+          ...l,
+          language: mappedLang,
+          name: mappedLang,
+          proficiency: mappedProf,
+          level: mappedProf
+        };
+      }),
+      projects: (cv.projects || []).map((p: any, i: number) => ({
+        ...p,
+        title: translationsMap[`proj_title_${i}`] || p.title || '',
+        description: translationsMap[`proj_desc_${i}`] || p.description || ''
+      })),
+      certificates: (cv.certificates || []).map((c: any, i: number) => ({
+        ...c,
+        name: translationsMap[`cert_name_${i}`] || c.name || '',
+        issuer: translationsMap[`cert_issuer_${i}`] || c.issuer || ''
+      }))
+    };
+  };
+
+  try {
+    const prompt = `You are an expert multilingual HR translator and CV localization professional.
+Translate EVERY SINGLE FIELD of this CV into ${targetLangName} (Language code: ${targetLanguage}).
+Ensure standard, high-impact resume phrasing appropriate for top-tier hiring managers.
+
+MANDATORY TRANSLATION INSTRUCTIONS:
+1. personalInfo:
+   - "jobTitle": Translate to professional ${targetLangName} (e.g. "Baş Mühasib" -> "Chief Accountant", "Senior Software Engineer", etc.)
+   - "summary": Fully translate the entire biography/summary into fluent, professional ${targetLangName}.
+   - "address": Localize city and country names (e.g. "Bakı, Azərbaycan" -> "Baku, Azerbaijan" / "Баку, Азербайджан" / "Bakü, Azerbaycan").
+   - Keep "fullName", "email", "phone", "linkedin", "github", "portfolio" intact.
+
+2. experiences:
+   - "position": Translate job titles accurately (e.g. "Satış Meneceri" -> "Sales Manager").
+   - "description": Fully translate the entire work description, accomplishments, and bullet points into ${targetLangName}.
+   - "location": Localize city/country if present.
+   - Keep "startDate", "endDate", "current" exactly as they are.
+
+3. education:
+   - "degree": Translate degree title into ${targetLangName} (e.g. "Bakalavr" -> "Bachelor's Degree", "Magistr" -> "Master's Degree").
+   - "fieldOfStudy": Translate field of study (e.g. "Kompüter elmləri" -> "Computer Science", "Maliyyə" -> "Finance").
+   - "institution": Standardize/localize institution name into ${targetLangName}.
+   - Keep "startDate", "endDate", "current", "gpa".
+
+4. skills:
+   - "name": Translate soft skills & domain concepts into ${targetLangName} (e.g. "Layihə idarəetməsi" -> "Project Management", "Komanda işi" -> "Teamwork"). Keep programming languages/tools intact (e.g. "React", "Python", "SQL", "Docker").
+   - "level": Translate skill proficiency level into ${targetLangName} (e.g. Beginner/Intermediate/Advanced/Expert).
+
+5. languages:
+   - "language": Translate language name into ${targetLangName} (e.g. "Azərbaycan dili" -> "Azerbaijani", "English", "Russian", "Turkish").
+   - "proficiency": Translate proficiency level into ${targetLangName} (e.g. "Native / Bilingual", "Fluent", "Professional", "Elementary").
+   - Provide both "language" and "name", as well as "proficiency" and "level".
+
+6. projects:
+   - "title": Translate project title if descriptive.
+   - "description": Fully translate project details and outcomes.
+   - Keep "technologies" array.
+
+7. certificates:
+   - "name": Translate or preserve certification title.
+   - "issuer": Translate issuer if applicable.
+   - Keep "issueDate".
+
+INPUT CV JSON:
+${JSON.stringify(cvData)}
+
+RETURN STRICTLY A SINGLE VALID JSON OBJECT matching this exact structure:
+{
+  "personalInfo": {
+    "fullName": string,
+    "jobTitle": string,
+    "summary": string,
+    "address": string,
+    "email": string,
+    "phone": string,
+    "linkedin": string,
+    "github": string,
+    "portfolio": string
+  },
+  "experiences": [
+    { "id": string, "company": string, "position": string, "location": string, "startDate": string, "endDate": string, "current": boolean, "description": string }
+  ],
+  "education": [
+    { "id": string, "institution": string, "degree": string, "fieldOfStudy": string, "startDate": string, "endDate": string, "current": boolean, "gpa": string }
+  ],
+  "skills": [
+    { "id": string, "name": string, "level": string, "category": string }
+  ],
+  "languages": [
+    { "id": string, "language": string, "proficiency": string, "name": string, "level": string }
+  ],
+  "projects": [
+    { "id": string, "title": string, "description": string, "technologies": string[], "link": string }
+  ],
+  "certificates": [
+    { "id": string, "name": string, "issuer": string, "issueDate": string }
+  ]
+}`;
+
+    let parsed: any = null;
+    try {
+      const rawResponse = await callGeminiResilient(prompt, {
+        responseMimeType: 'application/json',
+        temperature: 0.1,
+        timeoutMs: 12000
+      });
+
+      let cleanJson = (rawResponse || '').trim();
+      if (cleanJson.startsWith('```json')) {
+        cleanJson = cleanJson.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+      } else if (cleanJson.startsWith('```')) {
+        cleanJson = cleanJson.replace(/^```\s*/, '').replace(/\s*```$/, '');
+      }
+
+      parsed = JSON.parse(cleanJson);
+    } catch {
+      parsed = null;
+    }
+
+    console.log('[translate-cv route] Gemini parsed present:', !!parsed);
+    const hasValidGeminiTranslation = parsed && 
+      ((parsed.personalInfo?.summary && parsed.personalInfo.summary !== cvData.personalInfo?.summary) ||
+       (parsed.personalInfo?.jobTitle && parsed.personalInfo.jobTitle !== cvData.personalInfo?.jobTitle));
+
+    if (hasValidGeminiTranslation) {
+      const translatedCV = {
+        ...cvData,
+        language: targetLanguage,
+        personalInfo: {
+          ...cvData.personalInfo,
+          jobTitle: parsed.personalInfo?.jobTitle || cvData.personalInfo.jobTitle,
+          summary: parsed.personalInfo?.summary || cvData.personalInfo.summary,
+          address: parsed.personalInfo?.address || cvData.personalInfo.address,
+        },
+        experiences: Array.isArray(parsed.experiences) && parsed.experiences.length > 0 
+          ? parsed.experiences.map((exp: any, i: number) => ({
+              ...cvData.experiences?.[i],
+              ...exp,
+              id: exp.id || cvData.experiences?.[i]?.id || `exp-${i}`
+            }))
+          : cvData.experiences,
+        education: Array.isArray(parsed.education) && parsed.education.length > 0 
+          ? parsed.education.map((edu: any, i: number) => ({
+              ...cvData.education?.[i],
+              ...edu,
+              id: edu.id || cvData.education?.[i]?.id || `edu-${i}`
+            }))
+          : cvData.education,
+        skills: Array.isArray(parsed.skills) && parsed.skills.length > 0 
+          ? parsed.skills.map((s: any, i: number) => ({
+              ...cvData.skills?.[i],
+              ...s,
+              id: s.id || cvData.skills?.[i]?.id || `skill-${i}`
+            }))
+          : cvData.skills,
+        languages: Array.isArray(parsed.languages) && parsed.languages.length > 0 
+          ? parsed.languages.map((l: any, i: number) => {
+              const langName = l.language || l.name || cvData.languages?.[i]?.language || cvData.languages?.[i]?.name || '';
+              const prof = l.proficiency || l.level || cvData.languages?.[i]?.proficiency || cvData.languages?.[i]?.level || '';
+              return {
+                id: l.id || cvData.languages?.[i]?.id || `lang-${i}`,
+                language: langName,
+                name: langName,
+                proficiency: prof,
+                level: prof
+              };
+            })
+          : cvData.languages,
+        projects: Array.isArray(parsed.projects) && parsed.projects.length > 0 
+          ? parsed.projects.map((p: any, i: number) => ({
+              ...cvData.projects?.[i],
+              ...p,
+              id: p.id || cvData.projects?.[i]?.id || `proj-${i}`
+            }))
+          : cvData.projects,
+        certificates: Array.isArray(parsed.certificates) && parsed.certificates.length > 0 
+          ? parsed.certificates.map((c: any, i: number) => ({
+              ...cvData.certificates?.[i],
+              ...c,
+              id: c.id || cvData.certificates?.[i]?.id || `cert-${i}`
+            }))
+          : cvData.certificates,
+      };
+      return res.json({ success: true, cvData: translatedCV });
+    }
+
+    const fullCV = await getOfflineTranslatedCV(cvData, targetLanguage);
+    return res.json({
+      success: true,
+      cvData: fullCV
+    });
+  } catch (err: any) {
+    console.error('CV Translation engine executing comprehensive fallback:', err?.message || err);
+    const fullCV = await getOfflineTranslatedCV(cvData, targetLanguage);
+    return res.json({
+      success: true,
+      cvData: fullCV
+    });
   }
 });
 

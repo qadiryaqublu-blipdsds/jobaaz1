@@ -1,5 +1,6 @@
 import React from 'react';
 import { CVData } from '../../types';
+import { getCVTerms, getPhotoClasses } from './cvDictionary';
 
 interface TemplateProps {
   data: CVData;
@@ -7,7 +8,8 @@ interface TemplateProps {
 }
 
 export const TemplateAcademic: React.FC<TemplateProps> = ({ data, showPhoto = true }) => {
-  const { personalInfo, experiences, education, skills, languages, projects, certificates } = data;
+  const { personalInfo, experiences, education, skills, languages, projects, certificates, language } = data;
+  const terms = getCVTerms(language);
   const displayPhoto = showPhoto && !!personalInfo.photoUrl;
 
   return (
@@ -19,7 +21,7 @@ export const TemplateAcademic: React.FC<TemplateProps> = ({ data, showPhoto = tr
             <img
               src={personalInfo.photoUrl}
               alt={personalInfo.fullName || 'Namizəd'}
-              className="w-20 h-20 rounded-md object-cover border border-stone-400 shadow-2xs bg-stone-100"
+              className={`${getPhotoClasses(personalInfo.photoSize, personalInfo.photoShape)} border border-stone-400 shadow-2xs bg-stone-100`}
               referrerPolicy="no-referrer"
             />
           </div>
@@ -65,7 +67,7 @@ export const TemplateAcademic: React.FC<TemplateProps> = ({ data, showPhoto = tr
       {personalInfo.summary && (
         <div className="mb-6">
           <h2 className="text-xs font-bold uppercase tracking-widest text-stone-900 border-b border-stone-300 pb-1 mb-2 font-sans">
-            Tədqiqat Sahəsi & Bioqrafiya
+            {terms.aboutMe || terms.summary}
           </h2>
           <p className="text-xs text-stone-800 leading-relaxed text-justify italic">
             {personalInfo.summary}
@@ -77,7 +79,7 @@ export const TemplateAcademic: React.FC<TemplateProps> = ({ data, showPhoto = tr
       {education && education.length > 0 && (
         <div className="mb-6">
           <h2 className="text-xs font-bold uppercase tracking-widest text-stone-900 border-b border-stone-300 pb-1 mb-3 font-sans">
-            Akademik Təhsil
+            {terms.academicEducation || terms.education}
           </h2>
           <div className="space-y-3 font-sans">
             {education.map((edu) => (
@@ -87,7 +89,7 @@ export const TemplateAcademic: React.FC<TemplateProps> = ({ data, showPhoto = tr
                   <span className="font-sans text-[11px] text-stone-600">{edu.startDate} – {edu.endDate}</span>
                 </div>
                 <div className="text-stone-700 italic text-[11px]">
-                  {edu.institution} {edu.gpa ? `(Orta bal / GPA: ${edu.gpa})` : ''}
+                  {edu.institution} {edu.gpa ? `(GPA: ${edu.gpa})` : ''}
                 </div>
               </div>
             ))}
@@ -99,7 +101,7 @@ export const TemplateAcademic: React.FC<TemplateProps> = ({ data, showPhoto = tr
       {experiences && experiences.length > 0 && (
         <div className="mb-6">
           <h2 className="text-xs font-bold uppercase tracking-widest text-stone-900 border-b border-stone-300 pb-1 mb-3 font-sans">
-            Peşəkar və Pedaqoji Fəaliyyət
+            {terms.experience}
           </h2>
           <div className="space-y-4 font-sans">
             {experiences.map((exp) => (
@@ -107,7 +109,7 @@ export const TemplateAcademic: React.FC<TemplateProps> = ({ data, showPhoto = tr
                 <div className="flex justify-between items-baseline font-serif">
                   <h3 className="font-bold text-stone-950 text-sm">{exp.position}</h3>
                   <span className="font-sans text-[11px] text-stone-600">
-                    {exp.startDate} – {exp.current ? 'İndiyədək' : exp.endDate}
+                    {exp.startDate} – {exp.current ? terms.present : exp.endDate}
                   </span>
                 </div>
                 <div className="text-stone-700 font-medium italic text-[11px] mb-1">
@@ -126,7 +128,7 @@ export const TemplateAcademic: React.FC<TemplateProps> = ({ data, showPhoto = tr
       {projects && projects.length > 0 && (
         <div className="mb-6">
           <h2 className="text-xs font-bold uppercase tracking-widest text-stone-900 border-b border-stone-300 pb-1 mb-3 font-sans">
-            Elmi və Tətbiqi Layihələr
+            {terms.scientificProjects || terms.projects}
           </h2>
           <div className="space-y-2.5 font-sans">
             {projects.map((proj) => (
@@ -157,7 +159,7 @@ export const TemplateAcademic: React.FC<TemplateProps> = ({ data, showPhoto = tr
         {skills && skills.length > 0 && (
           <div>
             <h2 className="text-xs font-bold uppercase tracking-widest text-stone-900 border-b border-stone-300 pb-1 mb-2">
-              Səriştələr & Ekspertiza
+              {terms.skills}
             </h2>
             <div className="text-xs text-stone-800 space-y-1">
               {skills.map((s) => (
@@ -175,7 +177,7 @@ export const TemplateAcademic: React.FC<TemplateProps> = ({ data, showPhoto = tr
           {languages && languages.length > 0 && (
             <div>
               <h2 className="text-xs font-bold uppercase tracking-widest text-stone-900 border-b border-stone-300 pb-1 mb-2">
-                Dil Bilikləri
+                {terms.languages}
               </h2>
               <div className="text-xs text-stone-800 space-y-1">
                 {languages.map((l) => (
@@ -191,7 +193,7 @@ export const TemplateAcademic: React.FC<TemplateProps> = ({ data, showPhoto = tr
           {certificates && certificates.length > 0 && (
             <div>
               <h2 className="text-xs font-bold uppercase tracking-widest text-stone-900 border-b border-stone-300 pb-1 mb-2">
-                Sertifikatlar & Mükafatlar
+                {terms.honorsAndCertificates || terms.certificates}
               </h2>
               <div className="text-xs text-stone-800 space-y-1">
                 {certificates.map((c) => (

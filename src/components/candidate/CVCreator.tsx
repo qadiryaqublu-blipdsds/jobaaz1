@@ -2,6 +2,9 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
   CVData, 
   CVTemplateType, 
+  CVLanguage,
+  CVPhotoSize,
+  CVPhotoShape,
   ExperienceItem, 
   EducationItem, 
   SkillItem, 
@@ -14,6 +17,7 @@ import { CVRenderer } from '../cv-templates/CVRenderer';
 import { downloadCVAsPDF } from '../../utils/pdfExport';
 import {
   Download,
+  Save,
   Wand2,
   Sparkles,
   Eye,
@@ -37,12 +41,81 @@ import {
   Check,
   Camera,
   Loader2,
-  FileDown
+  FileDown,
+  Clipboard,
+  FileText,
+  Languages,
+  Maximize2,
+  ChevronDown
 } from 'lucide-react';
 
-const INITIAL_CV_DATA: CVData = {
+const SAMPLE_PASTE_TEXT = `Rəşad Quliyev
+Senior Java & Backend Developer
+Email: reshad.quliyev@example.com
+Telefon: +994 50 345 67 89
+Şəhər: Bakı, Azərbaycan
+LinkedIn: linkedin.com/in/reshadquliyev
+GitHub: github.com/reshadquliyev
+
+Haqqımda:
+Bank və maliyyə sektorunda yüksək yüklü mikroxidmət arxitekturalarının qurulması, Spring Boot və Kafka texnologiyaları üzrə 6 ildən artıq praktiki təcrübəyə malik Mühəndis. Verilənlər bazası sorğularının optimallaşdırılması və təhlükəsiz ödəniş sistemlərinin inteqrasiyası sahəsində ixtisaslaşmışam.
+
+İş Təcrübəsi:
+1. Kapital Bank ASC — Senior Java Developer (04.2021 – İndiyədək, Bakı)
+• Birbank korporativ backend arxitekturasının hazırlanmasında iştirak etdim, gündəlik 1.5M tranzaksiyanı emal edən xidmətin gecikmə müddətini 45% azaltdım.
+• Spring Cloud, Docker və Kubernetes ilə 12 mikroxidmətin problemsiz miqrasiyasını həyata keçirdim.
+• PostgreSQL sorğularının indekslənməsi ilə hesabat generasiyasını 3 dəfə sürətləndirdim.
+
+2. AccessBank Azerbaijan — Java Developer (09.2018 – 03.2021, Bakı)
+• Daxili kredit və depozit uçot sistemlərinin RESTful API modullarını tərtib etdim.
+• JUnit və Mockito ilə vahid test örtüyünü 80%-ə yüksəldərək xətaları minimuma endirdim.
+
+Təhsil:
+• Bakı Ali Neft Məktəbi (BANM) — İnformasiya Təhlükəsizliyi, Bakalavr (2014 – 2018, GPA: 3.8 / 4.0)
+
+Bacarıqlar:
+Java, Spring Boot, Spring Cloud, PostgreSQL, Apache Kafka, Redis, Docker, Kubernetes, CI/CD, Git, RESTful API, Problem həlli, Komandada iş
+
+Dillər:
+• Azərbaycan dili — Ana dili
+• İngilis dili — C1-C2 (Sərbəst)
+• Rus dili — B1-B2 (Orta/İşgüzar)
+
+Sertifikatlar:
+• Oracle Certified Professional: Java SE 11 Developer (2022)
+• AWS Certified Solutions Architect – Associate (2023)`;
+
+const EMPTY_BLANK_CV_DATA: CVData = {
   id: 'my-custom-cv',
   title: 'Mənim CV-im',
+  language: 'az',
+  lastUpdated: new Date().toISOString(),
+  personalInfo: {
+    fullName: '',
+    jobTitle: '',
+    email: '',
+    phone: '',
+    address: '',
+    linkedin: '',
+    github: '',
+    portfolio: '',
+    summary: '',
+    photoUrl: undefined,
+    photoSize: '112px',
+    photoShape: 'circle'
+  },
+  experiences: [],
+  education: [],
+  skills: [],
+  languages: [],
+  projects: [],
+  certificates: []
+};
+
+const SAMPLE_DEMO_CV_DATA: CVData = {
+  id: 'my-custom-cv',
+  title: 'Mənim CV-im',
+  language: 'az',
   lastUpdated: new Date().toISOString(),
   personalInfo: {
     fullName: 'Fərid Həsənov',
@@ -54,7 +127,9 @@ const INITIAL_CV_DATA: CVData = {
     github: 'github.com/faridhasanov',
     portfolio: 'faridhasanov.dev',
     summary: 'Müasir web tətbiqləri, React ekosistemi və yüksək yüklü frontend sistemlərin yaradılmasında 5+ il təcrübəyə malik Mühəndis. Performans optimallaşdırılması, təmiz kod və komanda rəhbərliyi üzrə güclü təcrübəyə sahibəm. ATS uyğunluğu və yüksək keyfiyyətli istifadəçi təcrübəsinə fokuslanıram.',
-    photoUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80'
+    photoUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80',
+    photoSize: '112px',
+    photoShape: 'circle'
   },
   experiences: [
     {
@@ -124,21 +199,36 @@ const INITIAL_CV_DATA: CVData = {
 
 const STORAGE_KEY = 'jobia_cv_creator_data';
 const STORAGE_TEMPLATE_KEY = 'jobia_cv_creator_template';
+const STORAGE_LAST_SAVED_KEY = 'jobia_cv_last_saved_time';
 
 interface CVCreatorProps {
   onBackToPortal?: () => void;
+  onApplyWithCV?: (cv: CVData) => void;
+  initialData?: CVData;
 }
 
-export const CVCreator: React.FC<CVCreatorProps> = ({ onBackToPortal }) => {
-  // Load initial data
+export const CVCreator: React.FC<CVCreatorProps> = ({ 
+  onBackToPortal, 
+  onApplyWithCV, 
+  initialData 
+}) => {
+  // Load initial data:
+  // If stored in this device's browser cache, load it (offline persistent!).
+  // If opened on another device/fresh browser, start blank so no personal data leaks!
   const [cvData, setCvData] = useState<CVData>(() => {
+    if (initialData) return initialData;
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) return JSON.parse(saved);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && typeof parsed === 'object' && parsed.personalInfo) {
+          return parsed;
+        }
+      }
     } catch (e) {
       console.error('Failed to load cached CV data', e);
     }
-    return INITIAL_CV_DATA;
+    return EMPTY_BLANK_CV_DATA;
   });
 
   const [selectedTemplate, setSelectedTemplate] = useState<CVTemplateType>(() => {
@@ -150,8 +240,29 @@ export const CVCreator: React.FC<CVCreatorProps> = ({ onBackToPortal }) => {
   });
 
   const [showPhoto, setShowPhoto] = useState<boolean>(true);
-  const [activeTab, setActiveTab] = useState<'editor' | 'templates' | 'preview'>('editor');
+  const [activeTab, setActiveTab] = useState<'paste' | 'editor' | 'templates' | 'preview'>('paste');
   const [editorSection, setEditorSection] = useState<'personal' | 'experience' | 'education' | 'skills' | 'languages' | 'projects' | 'certificates'>('personal');
+
+  // Manual Save & Persistence States
+  const [saveSuccess, setSaveSuccess] = useState(false);
+  const [lastSavedTime, setLastSavedTime] = useState<string | null>(() => {
+    try {
+      return localStorage.getItem(STORAGE_LAST_SAVED_KEY);
+    } catch {
+      return null;
+    }
+  });
+
+  // Clear All Data Modal & Notification
+  const [isClearModalOpen, setIsClearModalOpen] = useState(false);
+  const [clearSuccess, setClearSuccess] = useState(false);
+  const [demoLoadedNotice, setDemoLoadedNotice] = useState(false);
+
+  // Paste Text AI Auto-generation states
+  const [pastedText, setPastedText] = useState('');
+  const [isPastingAiLoading, setIsPastingAiLoading] = useState(false);
+  const [pasteStatusMsg, setPasteStatusMsg] = useState('');
+  const [pasteErrorMsg, setPasteErrorMsg] = useState('');
 
   // AI Modal States
   const [isAiModalOpen, setIsAiModalOpen] = useState(false);
@@ -171,10 +282,141 @@ export const CVCreator: React.FC<CVCreatorProps> = ({ onBackToPortal }) => {
   // Template filter category
   const [templateCategoryFilter, setTemplateCategoryFilter] = useState<string>('Hamısı');
 
+  // Translation States (Multi-language az, en, ru, tr)
+  const [isTranslating, setIsTranslating] = useState(false);
+  const [translateNotification, setTranslateNotification] = useState<string | null>(null);
+
   // File upload ref
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Auto-save
+  const currentLanguage: CVLanguage = cvData.language || 'az';
+
+  const handleTranslateContentWithAI = async (targetLang: CVLanguage) => {
+    setIsTranslating(true);
+    const langNames: Record<CVLanguage, string> = {
+      az: 'Azərbaycan dili',
+      en: 'İngilis dili (English)',
+      ru: 'Rus dili (Русский)',
+      tr: 'Türk dili (Türkçe)'
+    };
+    const targetName = langNames[targetLang] || targetLang.toUpperCase();
+    setTranslateNotification(`AI bütün CV məlumatlarını başdan-başa ${targetName} dilinə tərcümə edir...`);
+
+    // Immediate optimistic language update so templates react instantly
+    setCvData((prev) => ({
+      ...prev,
+      language: targetLang
+    }));
+
+    try {
+      const res = await fetch('/api/ai/translate-cv', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          cvData: {
+            ...cvData,
+            language: targetLang
+          },
+          targetLanguage: targetLang
+        })
+      });
+      const data = await res.json();
+      if (data.success && data.cvData) {
+        const fullTranslated = {
+          ...data.cvData,
+          language: targetLang
+        };
+        setCvData(fullTranslated);
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(fullTranslated));
+        } catch (_) {}
+        setTranslateNotification(`✅ Bütün CV məzmunu uğurla ${targetName} dilinə tam tərcümə edildi!`);
+      } else {
+        setTranslateNotification(`Şablon dili ${targetName} olaraq təyin edildi.`);
+      }
+    } catch (err) {
+      console.error('AI translation error:', err);
+      setTranslateNotification(`Şablon dili ${targetName} olaraq yeniləndi.`);
+    } finally {
+      setIsTranslating(false);
+      setTimeout(() => setTranslateNotification(null), 4000);
+    }
+  };
+
+  const handleLanguageSwitch = (lang: CVLanguage) => {
+    setCvData((prev) => ({
+      ...prev,
+      language: lang
+    }));
+    const langNames: Record<CVLanguage, string> = {
+      az: 'Azərbaycan dili',
+      en: 'İngilis dili (English)',
+      ru: 'Rus dili (Русский)',
+      tr: 'Türk dili (Türkçe)'
+    };
+    setTranslateNotification(`Dil "${langNames[lang]}" seçildi. Bütün CV-ni bu dilə tərcümə etmək üçün "AI Mətni Tərcümə Et" düyməsini sıxın.`);
+    setTimeout(() => setTranslateNotification(null), 3500);
+  };
+
+  const handlePhotoSizeChange = (size: CVPhotoSize) => {
+    setCvData((prev) => ({
+      ...prev,
+      personalInfo: {
+        ...prev.personalInfo,
+        photoSize: size
+      }
+    }));
+  };
+
+  const handlePhotoShapeChange = (shape: CVPhotoShape) => {
+    setCvData((prev) => ({
+      ...prev,
+      personalInfo: {
+        ...prev.personalInfo,
+        photoShape: shape
+      }
+    }));
+  };
+
+  // Manual Save to Local Storage Cache
+  const handleSaveData = () => {
+    try {
+      const updated = {
+        ...cvData,
+        lastUpdated: new Date().toISOString()
+      };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+      const timeStr = new Date().toLocaleTimeString('az-AZ', { hour: '2-digit', minute: '2-digit' });
+      localStorage.setItem(STORAGE_LAST_SAVED_KEY, timeStr);
+      setLastSavedTime(timeStr);
+      setSaveSuccess(true);
+      setTimeout(() => setSaveSuccess(false), 3500);
+    } catch (e) {
+      console.error('Failed to save CV data to local storage', e);
+    }
+  };
+
+  // Clear all CV data completely
+  const handleClearAllData = () => {
+    try {
+      localStorage.removeItem(STORAGE_KEY);
+      localStorage.removeItem(STORAGE_LAST_SAVED_KEY);
+    } catch {}
+    setCvData(EMPTY_BLANK_CV_DATA);
+    setLastSavedTime(null);
+    setIsClearModalOpen(false);
+    setClearSuccess(true);
+    setTimeout(() => setClearSuccess(false), 4000);
+  };
+
+  // Load sample demo data
+  const handleLoadSampleData = () => {
+    setCvData(SAMPLE_DEMO_CV_DATA);
+    setDemoLoadedNotice(true);
+    setTimeout(() => setDemoLoadedNotice(false), 3500);
+  };
+
+  // Auto-save to local storage cache so it persists even if internet goes down
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(cvData));
@@ -186,6 +428,48 @@ export const CVCreator: React.FC<CVCreatorProps> = ({ onBackToPortal }) => {
       localStorage.setItem(STORAGE_TEMPLATE_KEY, selectedTemplate);
     } catch {}
   }, [selectedTemplate]);
+
+  // Handler for AI CV generation from pasted text
+  const handleGenerateFromPastedText = async (customText?: string) => {
+    const textToProcess = (typeof customText === 'string' ? customText : pastedText).trim();
+    if (!textToProcess || textToProcess.length < 15) {
+      setPasteErrorMsg('Zəhmət olmasa ən azı bir neçə cümlə mətn daxil edin və ya "Nümunə mətn qoy" düyməsindən istifadə edin.');
+      return;
+    }
+
+    setIsPastingAiLoading(true);
+    setPasteStatusMsg('AI mətni oxuyur və strukturlaşdırılmış CV-ni hazırlayır...');
+    setPasteErrorMsg('');
+
+    try {
+      const res = await fetch('/api/ai/generate-full-cv', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          rawPastedText: textToProcess,
+          photoUrl: cvData.personalInfo.photoUrl
+        })
+      });
+
+      const data = await res.json();
+      if (data && data.cvData) {
+        setCvData(data.cvData);
+        setPasteStatusMsg('🎉 CV uğurla hazırlandı! Məlumatlar formaya yerləşdirildi.');
+        // Switch to preview tab automatically
+        setTimeout(() => {
+          setActiveTab('preview');
+          setPasteStatusMsg('');
+        }, 1200);
+      } else {
+        throw new Error('CV məlumatları emal edilə bilmədi.');
+      }
+    } catch (err: any) {
+      console.error('Paste AI generation error:', err);
+      setPasteErrorMsg('Xəta baş verdi: ' + (err?.message || 'Zəhmət olmasa yenidən cəhd edin.'));
+    } finally {
+      setIsPastingAiLoading(false);
+    }
+  };
 
   // Handle Profile Photo Upload
   const handlePhotoFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -455,7 +739,7 @@ export const CVCreator: React.FC<CVCreatorProps> = ({ onBackToPortal }) => {
   };
 
   // Filter templates
-  const categories = ['Hamısı', 'Modern', 'Klassik', 'ATS', 'Kreativ', 'Texnoloji', 'Akademik'];
+  const categories = ['Hamısı', 'Sadə', 'Rəhbər', 'Xidmət & Texniki', 'Modern', 'Klassik', 'ATS', 'Kreativ', 'Texnoloji', 'Akademik'];
   const filteredTemplates = templateCategoryFilter === 'Hamısı'
     ? CV_TEMPLATES
     : CV_TEMPLATES.filter((t) => t.category === templateCategoryFilter);
@@ -479,64 +763,88 @@ export const CVCreator: React.FC<CVCreatorProps> = ({ onBackToPortal }) => {
             <div>
               <div className="flex items-center gap-2">
                 <span className="font-extrabold text-base sm:text-lg text-slate-900 tracking-tight">
-                  Jobia CV Yaradıcı
+                  CV yaradıcı
                 </span>
                 <span className="hidden sm:inline-block px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold">
-                  11 Şablon & AI
+                  AI Dəstəkli
                 </span>
               </div>
               <p className="text-[11px] text-slate-500 hidden md:block">
-                Məlumatları daxil edin, AI ilə zənginləşdirin və bir kliklə PDF endirin
+                Mətni yapışdırın və ya daxil edin, AI ilə avtomatik CV yaradın və bir kliklə PDF endirin
               </p>
             </div>
           </div>
 
           {/* Action Buttons */}
-          <div className="flex items-center gap-2 sm:gap-3">
-            {/* AI Auto-generate button */}
+          <div className="flex items-center gap-2 sm:gap-2.5">
+            {/* Clear All Data Button */}
             <button
-              onClick={() => {
-                setAiJobTitle(cvData.personalInfo.jobTitle || 'Frontend Developer');
-                setAiFullName(cvData.personalInfo.fullName || '');
-                setIsAiModalOpen(true);
-              }}
-              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white text-xs font-bold shadow-sm transition-all active:scale-95"
+              type="button"
+              onClick={() => setIsClearModalOpen(true)}
+              className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-2 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 hover:text-rose-800 border border-rose-200 text-xs font-bold transition-all shadow-2xs"
+              title="Bütün daxil edilmiş məlumatları sıfırlayıb təmizlə"
             >
-              <Wand2 className="w-4 h-4" />
-              <span className="hidden sm:inline">AI ilə Avtomatik Yarat</span>
-              <span className="sm:hidden">AI Yarat</span>
+              <Trash2 className="w-3.5 h-3.5 text-rose-600 shrink-0" />
+              <span className="hidden sm:inline">Bütün Məlumatları Təmizlə</span>
+              <span className="sm:hidden">Təmizlə</span>
             </button>
 
-            {/* Direct One-Click PDF Download Button */}
+            {/* Quick Paste / AI Button */}
             <button
-              onClick={handleDownloadPDF}
-              disabled={isDownloadingPdf}
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white text-xs font-extrabold shadow-sm transition-all disabled:opacity-50"
+              type="button"
+              onClick={() => setActiveTab('paste')}
+              className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition-all ${
+                activeTab === 'paste'
+                  ? 'bg-purple-700 text-white shadow-xs'
+                  : 'bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-200'
+              }`}
             >
-              {isDownloadingPdf ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  <span className="hidden sm:inline">{pdfProgressText || 'PDF hazırlanır...'}</span>
-                  <span className="sm:hidden">Gözləyin...</span>
-                </>
-              ) : pdfSuccess ? (
+              <Clipboard className="w-3.5 h-3.5 shrink-0" />
+              <span className="hidden md:inline">Mətni Yapışdır (AI)</span>
+              <span className="md:hidden">Mətn AI</span>
+            </button>
+
+            {/* Manual Save Data Button (Keşdə Yadda Saxla) */}
+            <button
+              type="button"
+              onClick={handleSaveData}
+              className={`inline-flex items-center gap-1.5 px-3.5 sm:px-4 py-2 rounded-lg text-xs font-extrabold shadow-sm transition-all ${
+                saveSuccess
+                  ? 'bg-emerald-700 text-white'
+                  : 'bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white'
+              }`}
+              title="Məlumatları kompüterin keşində yadda saxla (internet kəsilsə də qalır)"
+            >
+              {saveSuccess ? (
                 <>
                   <Check className="w-4 h-4 text-white" />
-                  <span>Endirildi!</span>
+                  <span>Yadda Saxlanıldı!</span>
                 </>
               ) : (
                 <>
-                  <Download className="w-4 h-4" />
-                  <span>PDF Endir (1 Klik)</span>
+                  <Save className="w-4 h-4" />
+                  <span>Məlumatları Yadda Saxla</span>
                 </>
               )}
             </button>
           </div>
         </div>
 
-        {/* View Switcher Tabs (Editor, 11 Templates, Live Preview) */}
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between border-t border-slate-100 bg-slate-50/70">
-          <div className="flex gap-1 py-1.5">
+        {/* View Switcher Tabs (Paste Text, Editor, Templates, Live Preview) */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between border-t border-slate-100 bg-slate-50/70 overflow-x-auto">
+          <div className="flex gap-1 py-1.5 min-w-max">
+            <button
+              onClick={() => setActiveTab('paste')}
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                activeTab === 'paste'
+                  ? 'bg-white text-purple-700 shadow-xs border border-purple-200 ring-1 ring-purple-400/20'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
+              }`}
+            >
+              <Clipboard className="w-3.5 h-3.5 text-purple-600" />
+              <span>Mətni yapışdır (Avtomatik CV)</span>
+            </button>
+
             <button
               onClick={() => setActiveTab('editor')}
               className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
@@ -546,7 +854,7 @@ export const CVCreator: React.FC<CVCreatorProps> = ({ onBackToPortal }) => {
               }`}
             >
               <Edit3 className="w-3.5 h-3.5" />
-              <span>Redaktə et</span>
+              <span>Məlumatları redaktə et</span>
             </button>
 
             <button
@@ -558,10 +866,7 @@ export const CVCreator: React.FC<CVCreatorProps> = ({ onBackToPortal }) => {
               }`}
             >
               <Layers className="w-3.5 h-3.5" />
-              <span>Şablonlar (11 Forma)</span>
-              <span className="ml-0.5 px-1.5 py-0.2 rounded-full bg-slate-200 text-slate-700 text-[10px]">
-                {CV_TEMPLATES.length}
-              </span>
+              <span>Şablonlar</span>
             </button>
 
             <button
@@ -573,30 +878,253 @@ export const CVCreator: React.FC<CVCreatorProps> = ({ onBackToPortal }) => {
               }`}
             >
               <Eye className="w-3.5 h-3.5" />
-              <span>Tam Baxış & Çap</span>
+              <span>Tam baxış & PDF</span>
             </button>
           </div>
 
-          <div className="hidden sm:flex items-center gap-3 text-xs text-slate-500">
-            <span className="flex items-center gap-1">
-              <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: currentTemplateMeta.colorTheme }} />
-              <span className="font-semibold text-slate-700">{currentTemplateMeta.name}</span>
-            </span>
-            <label className="flex items-center gap-1.5 cursor-pointer select-none">
+          <div className="flex items-center gap-3 text-xs text-slate-500 shrink-0">
+            {/* 4 Language Selector (AZ, EN, RU, TR) */}
+            <div className="flex items-center bg-white border border-slate-200 rounded-lg p-0.5 shadow-2xs">
+              <span className="text-[11px] font-bold text-slate-400 px-1.5 hidden md:inline flex items-center gap-1">
+                <Languages className="w-3 h-3 text-slate-500" /> Dil:
+              </span>
+              {(['az', 'en', 'ru', 'tr'] as CVLanguage[]).map((langCode) => {
+                const isActive = currentLanguage === langCode;
+                const langLabels: Record<CVLanguage, { label: string; flag: string; title: string }> = {
+                  az: { label: 'AZ', flag: '🇦🇿', title: 'Azərbaycan dili' },
+                  en: { label: 'EN', flag: '🇬🇧', title: 'English' },
+                  ru: { label: 'RU', flag: '🇷🇺', title: 'Русский' },
+                  tr: { label: 'TR', flag: '🇹🇷', title: 'Türkçe' }
+                };
+                const info = langLabels[langCode];
+
+                return (
+                  <button
+                    key={langCode}
+                    type="button"
+                    title={info.title}
+                    onClick={() => handleLanguageSwitch(langCode)}
+                    className={`px-2 py-1 rounded text-xs font-bold transition-all flex items-center gap-1 ${
+                      isActive
+                        ? 'bg-emerald-600 text-white shadow-xs'
+                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                    }`}
+                  >
+                    <span>{info.flag}</span>
+                    <span>{info.label}</span>
+                  </button>
+                );
+              })}
+
+              {/* AI Auto-Translate Content Button (Translates directly to currently selected language) */}
+              <button
+                type="button"
+                onClick={() => handleTranslateContentWithAI(currentLanguage)}
+                disabled={isTranslating}
+                title={`Bütün CV məzmununu başdan-başa ${currentLanguage.toUpperCase()} dilinə AI ilə tərcümə et`}
+                className="ml-1.5 px-3 py-1.5 rounded-md bg-purple-600 hover:bg-purple-700 active:bg-purple-800 text-white text-xs font-bold transition-all flex items-center gap-1.5 disabled:opacity-50 shadow-xs cursor-pointer select-none"
+              >
+                {isTranslating ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin text-white" />
+                ) : (
+                  <Sparkles className="w-3.5 h-3.5 text-yellow-300" />
+                )}
+                <span>AI Mətni Tərcümə Et</span>
+                <span className="text-[10px] bg-purple-800 text-purple-100 px-1.5 py-0.5 rounded font-black tracking-wider">
+                  {currentLanguage.toUpperCase()}
+                </span>
+              </button>
+            </div>
+
+            <div className="hidden lg:flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full" style={{ backgroundColor: currentTemplateMeta.colorTheme }} />
+              <span className="font-semibold text-slate-700 text-[11px] truncate max-w-[120px]">{currentTemplateMeta.name}</span>
+            </div>
+
+            <label className="hidden sm:flex items-center gap-1.5 cursor-pointer select-none">
               <input
                 type="checkbox"
                 checked={showPhoto}
                 onChange={(e) => setShowPhoto(e.target.checked)}
                 className="w-3.5 h-3.5 rounded text-emerald-600 focus:ring-emerald-500"
               />
-              <span className="text-[11px] font-medium text-slate-600">Şəkli göstər</span>
+              <span className="text-[11px] font-medium text-slate-600">Şəkil</span>
             </label>
           </div>
         </div>
+
+        {/* Global Notification banner for Translation / Actions */}
+        {translateNotification && (
+          <div className="bg-purple-600 text-white text-xs py-2 px-4 text-center font-medium shadow-sm flex items-center justify-center gap-2 animate-fadeIn">
+            <Sparkles className="w-3.5 h-3.5" />
+            <span>{translateNotification}</span>
+          </div>
+        )}
       </header>
 
       {/* Main Container */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
+        {/* TAB 0: PASTE TEXT AUTO-GENERATION */}
+        {activeTab === 'paste' && (
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+              {/* Left Form: Paste Area (7 cols) */}
+              <div className="lg:col-span-7 bg-white p-5 sm:p-6 rounded-2xl border border-slate-200 shadow-xs space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-100">
+                  <div>
+                    <h2 className="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2">
+                      <Clipboard className="w-5 h-5 text-purple-600" />
+                      Mətni Yapışdırın — Avtomatik CV Hazırlansın
+                    </h2>
+                    <p className="text-xs text-slate-500 mt-1">
+                      LinkedIn profilinizi, köhnə CV mətninizi və ya qeydlərinizi bura yapışdırın. AI saniyələr içində tam CV hazırlayacaq.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Quick actions bar */}
+                <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+                  <span className="font-semibold text-slate-700">Mətn sahəsi:</span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPastedText(SAMPLE_PASTE_TEXT);
+                        setPasteErrorMsg('');
+                      }}
+                      className="px-2.5 py-1 rounded-md bg-purple-50 hover:bg-purple-100 text-purple-700 font-medium transition-colors border border-purple-200 flex items-center gap-1"
+                    >
+                      <Sparkles className="w-3.5 h-3.5" />
+                      <span>Nümunə mətn qoy</span>
+                    </button>
+                    {pastedText && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setPastedText('');
+                          setPasteStatusMsg('');
+                          setPasteErrorMsg('');
+                        }}
+                        className="px-2 py-1 rounded-md text-slate-500 hover:text-red-600 hover:bg-red-50 transition-colors"
+                      >
+                        Təmizlə
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Textarea */}
+                <div className="relative">
+                  <textarea
+                    rows={12}
+                    value={pastedText}
+                    onChange={(e) => {
+                      setPastedText(e.target.value);
+                      if (pasteErrorMsg) setPasteErrorMsg('');
+                    }}
+                    placeholder={`Köhnə CV mətninizi, LinkedIn profilinizi və ya qeydlərinizi bura yapışdırın (Ctrl+V)...\n\nMəsələn:\nAd və Soyad: Rəşad Quliyev\nVəzifə: Senior Java & Backend Developer\nƏlaqə: +994 50 345 67 89, reshad@example.com\nTəcrübə: Kapital Bank ASC — Senior Java Developer (2021 – İndiyədək)...\nTəhsil: Bakı Ali Neft Məktəbi — Kompüter Mühəndisliyi...\nBacarıqlar: Java, Spring Boot, PostgreSQL, Docker, Kafka...`}
+                    className="w-full p-3.5 rounded-xl border border-slate-300 focus:border-purple-500 focus:ring-2 focus:ring-purple-200 text-xs sm:text-sm font-mono leading-relaxed bg-slate-50/50 text-slate-800 resize-y"
+                  />
+                  <div className="text-[11px] text-slate-400 mt-1 flex justify-between">
+                    <span>{pastedText.length} simvol daxil edilib</span>
+                    <span>İstənilən sərbəst mətndən CV tərtib edilir</span>
+                  </div>
+                </div>
+
+                {/* Status or Error Notifications */}
+                {pasteErrorMsg && (
+                  <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs flex items-start gap-2">
+                    <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                    <span>{pasteErrorMsg}</span>
+                  </div>
+                )}
+
+                {pasteStatusMsg && (
+                  <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600" />
+                    <span className="font-semibold">{pasteStatusMsg}</span>
+                  </div>
+                )}
+
+                {/* Big Action Submit Button */}
+                <button
+                  type="button"
+                  onClick={() => handleGenerateFromPastedText()}
+                  disabled={isPastingAiLoading || !pastedText.trim()}
+                  className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-purple-600 via-indigo-600 to-emerald-600 hover:from-purple-700 hover:to-emerald-700 text-white font-extrabold text-sm shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.99]"
+                >
+                  {isPastingAiLoading ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      <span>Süni intellekt CV-ni tərtib edir... Zəhmət olmasa gözləyin</span>
+                    </>
+                  ) : (
+                    <>
+                      <Wand2 className="w-5 h-5" />
+                      <span>Avtomatik CV Hazırla (AI)</span>
+                    </>
+                  )}
+                </button>
+
+                <div className="pt-2 flex items-center justify-between text-xs text-slate-500 border-t border-slate-100">
+                  <span>Hazırlanan CV dərhal sağ tərəfdə canlı görünəcək.</span>
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('editor')}
+                    className="text-purple-600 hover:text-purple-800 font-semibold"
+                  >
+                    Əl ilə redaktəyə keç →
+                  </button>
+                </div>
+              </div>
+
+              {/* Right Column: Live A4 Preview & Template Selector (5 cols) */}
+              <div className="lg:col-span-5 space-y-4">
+                <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex items-center justify-between">
+                  <div>
+                    <span className="text-xs font-bold text-slate-800">Cari Şablon:</span>
+                    <span className="text-xs font-semibold text-emerald-700 ml-1.5">{currentTemplateMeta.name}</span>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab('templates')}
+                      className="px-2.5 py-1 rounded-lg border border-slate-200 hover:bg-slate-50 text-xs font-semibold text-slate-700"
+                    >
+                      Dəyişdir
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab('preview')}
+                      className="px-3 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs flex items-center gap-1.5"
+                    >
+                      <Eye className="w-3.5 h-3.5" />
+                      <span>Tam Baxış & PDF</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Scaled Preview Box */}
+                <div className="bg-slate-100 p-2 sm:p-3 rounded-2xl border border-slate-200 overflow-hidden shadow-inner flex flex-col items-center">
+                  <div className="w-full text-center pb-2 text-[11px] font-semibold text-slate-500">
+                    Canlı A4 Önbaxış
+                  </div>
+                  <div className="w-full max-h-[640px] overflow-y-auto rounded-lg bg-white shadow-sm border border-slate-200 p-2">
+                    <div className="transform scale-[0.68] sm:scale-[0.72] origin-top-left w-[138%] sm:w-[138%]">
+                      <CVRenderer
+                        data={cvData}
+                        template={selectedTemplate}
+                        showPhoto={showPhoto}
+                        id="cv-live-creator-export"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* TAB 1: TEMPLATES PICKER */}
         {activeTab === 'templates' && (
           <div className="space-y-6">
@@ -604,7 +1132,7 @@ export const CVCreator: React.FC<CVCreatorProps> = ({ onBackToPortal }) => {
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
                 <div>
                   <h2 className="text-base font-bold text-slate-900">
-                    CV Dizayn Şablonları (11 Fərqli Forma)
+                    CV Şablonları
                   </h2>
                   <p className="text-xs text-slate-500 mt-0.5">
                     İstədiyiniz formanı seçin — məlumatlarınız avtomatik olaraq həmin şablona tətbiq olunur.
@@ -749,6 +1277,88 @@ export const CVCreator: React.FC<CVCreatorProps> = ({ onBackToPortal }) => {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
             {/* Left Column: Section Navigation & Forms (7 Cols) */}
             <div className="lg:col-span-7 space-y-5">
+              {/* Data Cache & Management Toolbar */}
+              <div className="bg-white border border-slate-200/90 rounded-xl p-3 shadow-2xs flex flex-wrap items-center justify-between gap-2.5">
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span>
+                  <div className="text-[11px] text-slate-600">
+                    <span className="font-bold text-slate-800">Cihazın Lokal Keşi: </span>
+                    {lastSavedTime ? (
+                      <span className="text-emerald-700 font-semibold">Yadda saxlanılıb ({lastSavedTime})</span>
+                    ) : (
+                      <span className="text-slate-500">Məlumatlar kompüterinizin keşində qorunur</span>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  {/* Load Demo Data */}
+                  <button
+                    type="button"
+                    onClick={handleLoadSampleData}
+                    className="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition-colors flex items-center gap-1"
+                    title="Hazır nümunə CV məlumatlarını yüklə"
+                  >
+                    <Sparkles className="w-3.5 h-3.5 text-purple-600" />
+                    <span>Nümunə CV</span>
+                  </button>
+
+                  {/* Clear All Data */}
+                  <button
+                    type="button"
+                    onClick={() => setIsClearModalOpen(true)}
+                    className="px-2.5 py-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-semibold transition-colors flex items-center gap-1"
+                    title="Bütün məlumatları silib sıfırdan başla"
+                  >
+                    <Trash2 className="w-3.5 h-3.5 text-rose-600" />
+                    <span>Bütün Məlumatları Təmizlə</span>
+                  </button>
+
+                  {/* Save Data */}
+                  <button
+                    type="button"
+                    onClick={handleSaveData}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all shadow-2xs flex items-center gap-1 ${
+                      saveSuccess
+                        ? 'bg-emerald-700 text-white'
+                        : 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                    }`}
+                    title="Məlumatları kompüterin keşində dərhal yadda saxla"
+                  >
+                    {saveSuccess ? (
+                      <>
+                        <Check className="w-3.5 h-3.5" />
+                        <span>Saxlanıldı!</span>
+                      </>
+                    ) : (
+                      <>
+                        <Save className="w-3.5 h-3.5" />
+                        <span>Məlumatları Yadda Saxla</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              {/* Quick Paste Prompt Banner */}
+              <div className="bg-purple-50/70 border border-purple-200/80 rounded-xl p-3.5 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="p-2 bg-purple-100 text-purple-700 rounded-lg shrink-0">
+                    <Clipboard className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-purple-900">Mətniniz hazırdır?</h4>
+                    <p className="text-[11px] text-purple-700">Mətni birbaşa yapışdırın, AI saniyələr içində bütün bölmələri doldursun.</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('paste')}
+                  className="shrink-0 px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-xs font-bold transition-colors"
+                >
+                  Mətni Yapışdır →
+                </button>
+              </div>
               {/* Section Sub-Navigation Tabs */}
               <div className="bg-white p-2 rounded-xl border border-slate-200 shadow-xs flex flex-wrap gap-1">
                 {[
@@ -796,57 +1406,144 @@ export const CVCreator: React.FC<CVCreatorProps> = ({ onBackToPortal }) => {
                     </div>
                   </div>
 
-                  {/* Profile Photo Uploader */}
-                  <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 flex flex-col sm:flex-row items-center gap-4">
-                    <div className="relative group shrink-0">
-                      {cvData.personalInfo.photoUrl ? (
-                        <img
-                          src={cvData.personalInfo.photoUrl}
-                          alt="Profil"
-                          className="w-20 h-20 rounded-full object-cover border-2 border-emerald-500 shadow-sm"
+                  {/* Profile Photo Uploader & Sizing Customization */}
+                  <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-4">
+                    <div className="flex flex-col sm:flex-row items-center gap-4">
+                      <div className="relative group shrink-0">
+                        {cvData.personalInfo.photoUrl ? (
+                          <img
+                            src={cvData.personalInfo.photoUrl}
+                            alt="Profil"
+                            className={`object-cover border-2 border-emerald-500 shadow-sm transition-all ${
+                              cvData.personalInfo.photoSize === '168px' || cvData.personalInfo.photoSize === 'xl' ? 'w-[168px] h-[168px]' :
+                              cvData.personalInfo.photoSize === '140px' || cvData.personalInfo.photoSize === 'lg' ? 'w-[140px] h-[140px]' :
+                              'w-28 h-28'
+                            } ${
+                              cvData.personalInfo.photoShape === 'square' ? 'rounded-lg' :
+                              cvData.personalInfo.photoShape === 'rounded' ? 'rounded-2xl' : 'rounded-full'
+                            }`}
+                          />
+                        ) : (
+                          <div className={`bg-slate-200 text-slate-400 flex items-center justify-center border-2 border-dashed border-slate-300 transition-all ${
+                            cvData.personalInfo.photoSize === '168px' || cvData.personalInfo.photoSize === 'xl' ? 'w-[168px] h-[168px]' :
+                            cvData.personalInfo.photoSize === '140px' || cvData.personalInfo.photoSize === 'lg' ? 'w-[140px] h-[140px]' :
+                            'w-28 h-28'
+                          } ${
+                            cvData.personalInfo.photoShape === 'square' ? 'rounded-lg' :
+                            cvData.personalInfo.photoShape === 'rounded' ? 'rounded-2xl' : 'rounded-full'
+                          }`}>
+                            <Camera className="w-7 h-7" />
+                          </div>
+                        )}
+                        <input
+                          type="file"
+                          ref={fileInputRef}
+                          onChange={handlePhotoFileChange}
+                          accept="image/*"
+                          className="hidden"
                         />
-                      ) : (
-                        <div className="w-20 h-20 rounded-full bg-slate-200 text-slate-400 flex items-center justify-center border-2 border-dashed border-slate-300">
-                          <Camera className="w-6 h-6" />
-                        </div>
-                      )}
-                      <input
-                        type="file"
-                        ref={fileInputRef}
-                        onChange={handlePhotoFileChange}
-                        accept="image/*"
-                        className="hidden"
-                      />
-                    </div>
+                      </div>
 
-                    <div className="flex-1 text-center sm:text-left space-y-2">
-                      <div className="font-bold text-xs text-slate-900">Profil Fotoşəkli</div>
-                      <p className="text-[11px] text-slate-500">
-                        PNG, JPG və ya WebP formatında peşəkar şəklinizi yükləyin (maksimum 5MB).
-                      </p>
-                      <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 pt-1">
-                        <button
-                          type="button"
-                          onClick={() => fileInputRef.current?.click()}
-                          className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs inline-flex items-center gap-1.5"
-                        >
-                          <Upload className="w-3.5 h-3.5" />
-                          <span>Şəkil Yüklə</span>
-                        </button>
-                        {cvData.personalInfo.photoUrl && (
+                      <div className="flex-1 text-center sm:text-left space-y-2">
+                        <div className="flex items-center justify-between flex-wrap gap-2">
+                          <div className="font-bold text-xs text-slate-900">Profil Fotoşəkli</div>
+                          <span className="text-[11px] text-slate-500 font-medium">PNG, JPG və ya WebP (maks. 5MB)</span>
+                        </div>
+                        <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 pt-1">
                           <button
                             type="button"
-                            onClick={() => {
-                              setCvData((prev) => ({
-                                ...prev,
-                                personalInfo: { ...prev.personalInfo, photoUrl: undefined }
-                              }));
-                            }}
-                            className="px-2.5 py-1.5 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 text-xs font-medium"
+                            onClick={() => fileInputRef.current?.click()}
+                            className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs inline-flex items-center gap-1.5"
                           >
-                            Şəkli sil
+                            <Upload className="w-3.5 h-3.5" />
+                            <span>{cvData.personalInfo.photoUrl ? 'Şəkli dəyiş' : 'Şəkil Yüklə'}</span>
                           </button>
-                        )}
+                          {cvData.personalInfo.photoUrl && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setCvData((prev) => ({
+                                  ...prev,
+                                  personalInfo: { ...prev.personalInfo, photoUrl: undefined }
+                                }));
+                              }}
+                              className="px-2.5 py-1.5 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 text-xs font-medium"
+                            >
+                              Şəkli sil
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Photo Size & Shape Fine-Tuning Controls for Candidates */}
+                    <div className="pt-3 border-t border-slate-200/70 grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                      {/* Photo Size selection */}
+                      <div className="space-y-1.5">
+                        <label className="font-bold text-slate-700 flex items-center gap-1 text-[11px]">
+                          <Maximize2 className="w-3.5 h-3.5 text-emerald-600" />
+                          Şəkil Ölçüsü:
+                        </label>
+                        <div className="grid grid-cols-3 gap-1.5">
+                          {[
+                            { id: '112px', label: 'Standart', px: '112px', desc: '112 × 112' },
+                            { id: '140px', label: 'Böyük', px: '140px', desc: '140 × 140' },
+                            { id: '168px', label: 'İri Portret', px: '168px', desc: '168 × 168' }
+                          ].map((sz) => {
+                            const current = cvData.personalInfo.photoSize || '112px';
+                            const isCurrent = current === sz.id || 
+                              (sz.id === '112px' && (current === 'sm' || current === 'md')) ||
+                              (sz.id === '140px' && current === 'lg') ||
+                              (sz.id === '168px' && current === 'xl');
+                            return (
+                              <button
+                                key={sz.id}
+                                type="button"
+                                onClick={() => handlePhotoSizeChange(sz.id as CVPhotoSize)}
+                                className={`py-1.5 px-2 rounded-lg text-[11px] font-bold text-center transition-all border ${
+                                  isCurrent
+                                    ? 'bg-emerald-600 text-white border-emerald-600 shadow-2xs ring-1 ring-emerald-500'
+                                    : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
+                                }`}
+                              >
+                                <div>{sz.label}</div>
+                                <div className={`text-[10px] ${isCurrent ? 'text-emerald-100' : 'text-slate-400'}`}>{sz.px}</div>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      {/* Photo Shape selection */}
+                      <div className="space-y-1.5">
+                        <label className="font-bold text-slate-700 flex items-center gap-1 text-[11px]">
+                          <Camera className="w-3.5 h-3.5 text-emerald-600" />
+                          Şəkil Forması:
+                        </label>
+                        <div className="grid grid-cols-3 gap-1">
+                          {[
+                            { id: 'circle', label: 'Dairəvi', shapeDesc: 'Tam dairə' },
+                            { id: 'rounded', label: 'Yuvarlaq', shapeDesc: 'Yumru künc' },
+                            { id: 'square', label: 'Kvadrat', shapeDesc: 'Düzbucaqlı' }
+                          ].map((shp) => {
+                            const isCurrent = (cvData.personalInfo.photoShape || 'circle') === shp.id;
+                            return (
+                              <button
+                                key={shp.id}
+                                type="button"
+                                onClick={() => handlePhotoShapeChange(shp.id as CVPhotoShape)}
+                                className={`py-1 px-1.5 rounded text-[11px] font-semibold text-center transition-all border ${
+                                  isCurrent
+                                    ? 'bg-emerald-600 text-white border-emerald-600 shadow-2xs'
+                                    : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100'
+                                }`}
+                              >
+                                <div>{shp.label}</div>
+                                <div className={`text-[9px] ${isCurrent ? 'text-emerald-100' : 'text-slate-400'}`}>{shp.shapeDesc}</div>
+                              </button>
+                            );
+                          })}
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -1431,36 +2128,53 @@ export const CVCreator: React.FC<CVCreatorProps> = ({ onBackToPortal }) => {
                         <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-2">
                           <input
                             type="text"
-                            value={lang.language}
+                            placeholder="Dilin adı (məs: İngilis, English, Rus)"
+                            value={lang.language || (lang as any).name || ''}
                             onChange={(e) => {
                               const val = e.target.value;
                               setCvData((prev) => ({
                                 ...prev,
                                 languages: prev.languages.map((l) =>
-                                  l.id === lang.id ? { ...l, language: val } : l
+                                  l.id === lang.id ? { ...l, language: val, name: val } : l
                                 )
                               }));
                             }}
                             className="px-2.5 py-1.5 rounded border border-slate-300 bg-white font-medium"
                           />
-                          <select
-                            value={lang.proficiency}
+                          <input
+                            type="text"
+                            placeholder="Səviyyə (məs: C1-C2, Sərbəst, Fluent, Native)"
+                            value={lang.proficiency || (lang as any).level || ''}
                             onChange={(e) => {
                               const val = e.target.value;
                               setCvData((prev) => ({
                                 ...prev,
                                 languages: prev.languages.map((l) =>
-                                  l.id === lang.id ? { ...l, proficiency: val } : l
+                                  l.id === lang.id ? { ...l, proficiency: val, level: val } : l
                                 )
                               }));
                             }}
                             className="px-2.5 py-1.5 rounded border border-slate-300 bg-white"
-                          >
-                            <option value="Ana dili">Ana dili</option>
-                            <option value="C1-C2 (Sərbəst)">C1-C2 (Sərbəst / Peşəkar)</option>
-                            <option value="B1-B2 (Orta/İşgüzar)">B1-B2 (Orta / İşgüzar)</option>
-                            <option value="A1-A2 (Başlanğıc)">A1-A2 (Başlanğıc)</option>
-                          </select>
+                            list={`proficiency-suggestions-${lang.id}`}
+                          />
+                          <datalist id={`proficiency-suggestions-${lang.id}`}>
+                            <option value="Ana dili" />
+                            <option value="C1-C2 (Sərbəst)" />
+                            <option value="B1-B2 (Orta/İşgüzar)" />
+                            <option value="A1-A2 (Başlanğıc)" />
+                            <option value="Native / Bilingual" />
+                            <option value="Fluent (C1-C2)" />
+                            <option value="Professional Working (B1-B2)" />
+                            <option value="Elementary (A1-A2)" />
+                            <option value="Родной язык" />
+                            <option value="Свободно (C1-C2)" />
+                            <option value="Деловой (B1-B2)" />
+                            <option value="Базовый (A1-A2)" />
+                            <option value="Ana Dil" />
+                            <option value="İleri Düzey (C1-C2)" />
+                            <option value="Orta Düzey (B1-B2)" />
+                            <option value="Temel Düzey (A1-A2)" />
+                          </datalist>
                         </div>
                         <button
                           type="button"
@@ -1678,10 +2392,10 @@ export const CVCreator: React.FC<CVCreatorProps> = ({ onBackToPortal }) => {
             <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-4">
               <div>
                 <h2 className="text-sm font-bold text-slate-900">
-                  CV Çap və İxrac Səhifəsi ({currentTemplateMeta.name})
+                  CV Önbaxışı ({currentTemplateMeta.name})
                 </h2>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  CV birbaşa A4 formatında tərtib olunub. "PDF Endir (1 Klik)" düyməsi ilə dərhal yükləyin.
+                  CV birbaşa A4 formatında tərtib olunub. "PDF Endir" düyməsi ilə dərhal yükləyə bilərsiniz.
                 </p>
               </div>
 
@@ -1705,7 +2419,7 @@ export const CVCreator: React.FC<CVCreatorProps> = ({ onBackToPortal }) => {
                   ) : (
                     <>
                       <FileDown className="w-4 h-4" />
-                      <span>PDF Kimi Endir (1 Klik)</span>
+                      <span>PDF Kimi Endir</span>
                     </>
                   )}
                 </button>
@@ -1908,6 +2622,72 @@ export const CVCreator: React.FC<CVCreatorProps> = ({ onBackToPortal }) => {
                 )}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Clear All CV Data Confirmation Modal */}
+      {isClearModalOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 animate-in fade-in zoom-in-95 duration-200">
+            <div className="w-12 h-12 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center mx-auto mb-4 shadow-2xs">
+              <Trash2 className="w-6 h-6" />
+            </div>
+            <h3 className="text-lg font-bold text-slate-900 text-center mb-2">
+              Bütün Məlumatları Təmizləmək İstəyirsiniz?
+            </h3>
+            <p className="text-xs text-slate-600 text-center leading-relaxed mb-6">
+              Bu əməliyyat daxil etdiyiniz bütün iş təcrübələrini, təhsilləri, bacarıqları və şəxsi məlumatları sıfırlayacaq və yeni boş CV vərəqi açacaq. Kompüterinizdəki keş məlumatları da təmizlənəcək.
+            </p>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setIsClearModalOpen(false)}
+                className="flex-1 py-2.5 px-4 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-bold transition-all"
+              >
+                İmtina
+              </button>
+              <button
+                type="button"
+                onClick={handleClearAllData}
+                className="flex-1 py-2.5 px-4 rounded-xl bg-rose-600 hover:bg-rose-700 active:bg-rose-800 text-white text-xs font-bold shadow-sm transition-all"
+              >
+                Bəli, Təmizlə
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Floating Save Data Notification Toast */}
+      {saveSuccess && (
+        <div className="fixed bottom-6 right-6 z-50 bg-emerald-900 text-white px-4 py-3 rounded-xl shadow-xl flex items-center gap-3 border border-emerald-700 animate-in slide-in-from-bottom-4">
+          <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
+          <div className="text-xs">
+            <div className="font-bold text-white">Məlumatlar brauzer keşində saxlanıldı!</div>
+            <div className="text-emerald-200 text-[11px]">İnternet kəsilsə belə bu kompüterdə saxlanacaq.</div>
+          </div>
+        </div>
+      )}
+
+      {/* Floating Clear Data Notification Toast */}
+      {clearSuccess && (
+        <div className="fixed bottom-6 right-6 z-50 bg-slate-900 text-white px-4 py-3 rounded-xl shadow-xl flex items-center gap-3 border border-slate-700 animate-in slide-in-from-bottom-4">
+          <Trash2 className="w-5 h-5 text-rose-400 shrink-0" />
+          <div className="text-xs">
+            <div className="font-bold text-white">Bütün məlumatlar təmizləndi</div>
+            <div className="text-slate-300 text-[11px]">Yeni və təmiz boş CV vərəqi yaradıldı.</div>
+          </div>
+        </div>
+      )}
+
+      {/* Floating Demo Loaded Toast */}
+      {demoLoadedNotice && (
+        <div className="fixed bottom-6 right-6 z-50 bg-blue-900 text-white px-4 py-3 rounded-xl shadow-xl flex items-center gap-3 border border-blue-700 animate-in slide-in-from-bottom-4">
+          <Sparkles className="w-5 h-5 text-blue-300 shrink-0" />
+          <div className="text-xs">
+            <div className="font-bold text-white">Nümunə məlumatlar yükləndi</div>
+            <div className="text-blue-200 text-[11px]">İstədiyiniz sahələri sərbəst redaktə edə bilərsiniz.</div>
           </div>
         </div>
       )}

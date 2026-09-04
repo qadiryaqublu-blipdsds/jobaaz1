@@ -4,13 +4,47 @@ export interface CVTemplateMeta {
   id: CVTemplateType;
   name: string;
   description: string;
-  category: 'Modern' | 'Klassik' | 'ATS' | 'Kreativ' | 'Texnoloji' | 'Akademik';
+  category: 'Modern' | 'Klassik' | 'ATS' | 'Kreativ' | 'Texnoloji' | 'Akademik' | 'Sadə' | 'Rəhbər' | 'Xidmət & Texniki';
   colorTheme: string;
   badge?: string;
   isPopular?: boolean;
 }
 
 export const CV_TEMPLATES: CVTemplateMeta[] = [
+  {
+    id: 'simple-clean',
+    name: 'Sadə Təmiz Ağ',
+    description: 'Heç bir artıq bəzək olmadan ultra-sadə, hər kəs üçün universal və asan oxunan ən rahat forma.',
+    category: 'Sadə',
+    colorTheme: '#475569',
+    badge: 'Ultra-Sadə',
+    isPopular: true
+  },
+  {
+    id: 'entry-student',
+    name: 'Başlanğıc & Tələbə',
+    description: 'Tələbələr, stajorlar və karyerasına yeni başlayan gənclər üçün təhsil və potensial yönümlü forma.',
+    category: 'Sadə',
+    colorTheme: '#0284c7',
+    badge: 'Tələbə & Junior'
+  },
+  {
+    id: 'prestige-executive',
+    name: 'Prestige Executive',
+    description: 'Yuxarı vəzifələr, C-Level rəhbərlər (CEO, CFO, CTO), idarə heyəti və direktorlar üçün nüfuzlu dizayn.',
+    category: 'Rəhbər',
+    colorTheme: '#090d16',
+    badge: 'C-Level & Direktor',
+    isPopular: true
+  },
+  {
+    id: 'practical-direct',
+    name: 'Praktik İşçi & Xidmət',
+    description: 'Xidmət sektoru, ticarət, sürücü, anbar, kuryer, operator və texniki işlər üçün aydın və dərhal anlaşılan forma.',
+    category: 'Xidmət & Texniki',
+    colorTheme: '#d97706',
+    badge: 'Xidmət & Əməli'
+  },
   {
     id: 'modern-emerald',
     name: 'Müasir Zümrüd',
@@ -47,7 +81,7 @@ export const CV_TEMPLATES: CVTemplateMeta[] = [
     id: 'executive-burgundy',
     name: 'Lüks İcraçı Bordo',
     description: 'Rəhbərlər, direktorlar və menecerlər üçün dəbdəbəli tünd şərab qırmızı və qızılı zolaqlar.',
-    category: 'Klassik',
+    category: 'Rəhbər',
     colorTheme: '#881337',
     badge: 'VIP Rəhbər'
   },

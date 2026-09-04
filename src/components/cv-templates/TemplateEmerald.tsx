@@ -1,13 +1,15 @@
 import React from 'react';
 import { CVData } from '../../types';
-import { Mail, Phone, MapPin, Globe, Linkedin, Github, Calendar, Award } from 'lucide-react';
+import { Mail, Phone, MapPin, Globe, Linkedin, Github } from 'lucide-react';
+import { getCVTerms, getPhotoClasses } from './cvDictionary';
 
 interface TemplateProps {
   data: CVData;
 }
 
 export const TemplateEmerald: React.FC<TemplateProps> = ({ data }) => {
-  const { personalInfo, experiences, education, skills, languages, projects, certificates } = data;
+  const { personalInfo, experiences, education, skills, languages, projects, certificates, language } = data;
+  const terms = getCVTerms(language);
 
   return (
     <div id="cv-preview-emerald" className="bg-white text-slate-800 p-8 rounded-lg shadow-sm border border-slate-200 font-sans max-w-[850px] mx-auto min-h-[1050px]">
@@ -19,7 +21,7 @@ export const TemplateEmerald: React.FC<TemplateProps> = ({ data }) => {
               <img
                 src={personalInfo.photoUrl}
                 alt={personalInfo.fullName || 'Namizəd'}
-                className="w-20 h-20 rounded-xl object-cover border-2 border-emerald-500 shadow-sm shrink-0 bg-slate-50"
+                className={`${getPhotoClasses(personalInfo.photoSize, personalInfo.photoShape)} border-2 border-emerald-500 shadow-sm bg-slate-50`}
                 referrerPolicy="no-referrer"
               />
             )}
@@ -75,7 +77,7 @@ export const TemplateEmerald: React.FC<TemplateProps> = ({ data }) => {
       {personalInfo.summary && (
         <div className="mb-6">
           <h2 className="text-sm font-bold uppercase tracking-wider text-emerald-800 border-b border-slate-200 pb-1 mb-2">
-            Haqqımda
+            {terms.summary}
           </h2>
           <p className="text-xs text-slate-700 leading-relaxed whitespace-pre-line">{personalInfo.summary}</p>
         </div>
@@ -89,7 +91,7 @@ export const TemplateEmerald: React.FC<TemplateProps> = ({ data }) => {
           {experiences && experiences.length > 0 && (
             <div>
               <h2 className="text-sm font-bold uppercase tracking-wider text-emerald-800 border-b border-slate-200 pb-1 mb-3">
-                İş Təcrübəsi
+                {terms.experience}
               </h2>
               <div className="space-y-4">
                 {experiences.map((exp) => (
@@ -97,7 +99,7 @@ export const TemplateEmerald: React.FC<TemplateProps> = ({ data }) => {
                     <div className="flex justify-between items-baseline">
                       <h3 className="text-xs font-bold text-slate-900">{exp.position}</h3>
                       <span className="text-[11px] font-medium text-emerald-700 whitespace-nowrap">
-                        {exp.startDate} - {exp.current ? 'İndiyədək' : exp.endDate}
+                        {exp.startDate} - {exp.current ? terms.present : exp.endDate}
                       </span>
                     </div>
                     <div className="text-xs font-medium text-slate-600 mb-1">
@@ -118,7 +120,7 @@ export const TemplateEmerald: React.FC<TemplateProps> = ({ data }) => {
           {projects && projects.length > 0 && (
             <div>
               <h2 className="text-sm font-bold uppercase tracking-wider text-emerald-800 border-b border-slate-200 pb-1 mb-3">
-                Layihələr
+                {terms.projects}
               </h2>
               <div className="space-y-3">
                 {projects.map((prj) => (
@@ -154,13 +156,13 @@ export const TemplateEmerald: React.FC<TemplateProps> = ({ data }) => {
           {skills && skills.length > 0 && (
             <div>
               <h2 className="text-sm font-bold uppercase tracking-wider text-emerald-800 border-b border-slate-200 pb-1 mb-3">
-                Bacarıqlar
+                {terms.skills}
               </h2>
               <div className="flex flex-wrap gap-1.5">
                 {skills.map((skill) => (
                   <span
                     key={skill.id}
-                    className="text-[10px] font-medium bg-slate-100 text-slate-800 border border-slate-200 px-2 py-0.5 rounded"
+                    className="px-2 py-0.5 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded text-[11px] font-medium"
                   >
                     {skill.name}
                   </span>
@@ -173,15 +175,15 @@ export const TemplateEmerald: React.FC<TemplateProps> = ({ data }) => {
           {education && education.length > 0 && (
             <div>
               <h2 className="text-sm font-bold uppercase tracking-wider text-emerald-800 border-b border-slate-200 pb-1 mb-3">
-                Təhsil
+                {terms.education}
               </h2>
               <div className="space-y-3">
                 {education.map((edu) => (
                   <div key={edu.id} className="text-xs">
-                    <h3 className="font-bold text-slate-900">{edu.institution}</h3>
-                    <p className="text-emerald-700 font-medium">{edu.degree} {edu.fieldOfStudy ? `• ${edu.fieldOfStudy}` : ''}</p>
+                    <h3 className="font-bold text-slate-900">{edu.degree}</h3>
+                    <p className="text-emerald-700 font-medium">{edu.institution} {edu.fieldOfStudy ? `• ${edu.fieldOfStudy}` : ''}</p>
                     <div className="flex justify-between text-[11px] text-slate-500 mt-0.5">
-                      <span>{edu.startDate} - {edu.current ? 'Davam edir' : edu.endDate}</span>
+                      <span>{edu.startDate} - {edu.endDate}</span>
                       {edu.gpa && <span>GPA: {edu.gpa}</span>}
                     </div>
                   </div>
@@ -194,13 +196,13 @@ export const TemplateEmerald: React.FC<TemplateProps> = ({ data }) => {
           {languages && languages.length > 0 && (
             <div>
               <h2 className="text-sm font-bold uppercase tracking-wider text-emerald-800 border-b border-slate-200 pb-1 mb-3">
-                Dillər
+                {terms.languages}
               </h2>
               <div className="space-y-1.5">
                 {languages.map((lng) => (
                   <div key={lng.id} className="flex justify-between text-xs">
-                    <span className="font-medium text-slate-800">{lng.language}</span>
-                    <span className="text-slate-500 text-[11px]">{lng.proficiency}</span>
+                    <span className="font-medium text-slate-800">{lng.name || (lng as any).language}</span>
+                    <span className="text-slate-500 text-[11px]">{lng.level || (lng as any).proficiency}</span>
                   </div>
                 ))}
               </div>
@@ -211,7 +213,7 @@ export const TemplateEmerald: React.FC<TemplateProps> = ({ data }) => {
           {certificates && certificates.length > 0 && (
             <div>
               <h2 className="text-sm font-bold uppercase tracking-wider text-emerald-800 border-b border-slate-200 pb-1 mb-3">
-                Sertifikatlar
+                {terms.certificates}
               </h2>
               <div className="space-y-2">
                 {certificates.map((cert) => (

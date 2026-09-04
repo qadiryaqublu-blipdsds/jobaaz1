@@ -1,19 +1,96 @@
 import { CVData, ExperienceItem, EducationItem, SkillItem, LanguageItem, ProjectItem, CertificateItem } from '../src/types';
 
 export interface GenerateCVRequest {
-  jobTitle: string;
+  jobTitle?: string;
   experienceLevel?: 'junior' | 'mid' | 'senior' | 'lead';
   fullName?: string;
   city?: string;
   skillsSummary?: string;
   language?: 'az' | 'en' | 'ru';
   photoUrl?: string;
+  rawPastedText?: string;
 }
 
 /**
  * Builds a comprehensive system & user prompt for Gemini to generate an ATS-optimized, high-impact CV
  */
 export function buildGeminiCVPrompt(req: GenerateCVRequest): string {
+  if (req.rawPastedText && req.rawPastedText.trim().length > 10) {
+    return `Sən ən yüksək səviyyəli peşəkar HR mütəxəssisi və CV tərtibatçısısan.
+Aşağıda istifadəçinin sərbəst şəkildə yapışdırdığı (LinkedIn profili, köhnə CV, qeydlər, bioqrafiya və ya qarışıq mətn) məlumatlar verilmişdir:
+
+--- İSTİFADƏÇİNİN YAPIŞDIRDIĞI MƏTN ---
+${req.rawPastedText.trim()}
+--- MƏTNİN SONU ---
+
+SƏNİN TAPŞIRIĞIN:
+Bu mətni dərindən analiz et və hər bir hissəni (Ad, Soyad, Əlaqə məlumatları, Şəhər, Peşə/Vəzifə, Haqqında/Xülasə, İş Təcrübələri, Təhsil, Bacarıqlar, Dillər, Layihələr, Sertifikatlar) təmiz, ardıcıl və qüsursuz CV formatına sal.
+
+Vacib qaydalar:
+1. Əgər mətndə ad-soyad tapılmazsa, mətndəki kontekstə uyğun layiqli bir ad və ya 'Namizəd' təyin et.
+2. İş təcrübələrini ardıcıl tarixlərlə (başlama-bitmə) düz, vəzifə öhdəliklərini isə ölçülə bilən nailiyyətlərlə zənginləşdirilmiş güclü maddə bəndləri (•) halında yaz.
+3. Bacarıqları fərdi şəkildə kateqoriyalara ('Texniki', 'Soft skill', 'Alət / Proqram') böl.
+4. Dilləri və səviyyələrini ('Ana dili', 'C1-C2 (Sərbəst)', 'B1-B2 (Orta/İşgüzar)', 'A1-A2 (Başlanğıc)') dəqiqləşdir.
+5. Mətndə hər hansı zəruri bölmə (məsələn güclü xülasə və ya təcrübə bəndləri) qeyd edilməyibsə, mətndəki ixtisasa tam uyğun şəkildə peşəkarca tamamla ki, nəticə tam və mükəmməl CV olsun.
+
+ÇIXIŞ FORMATI:
+YALNIZ AŞAĞIDAKI JSON STRUKTURUNDA CAVAB VER. HEÇ BİR İZAH VƏ YA ARTIQ SÖZ YAZMA:
+{
+  "personalInfo": {
+    "fullName": "Ad Soyad",
+    "jobTitle": "Vəzifə / İxtisas",
+    "email": "email@example.com",
+    "phone": "+994 ...",
+    "address": "Bakı, Azərbaycan",
+    "linkedin": "linkedin.com/in/...",
+    "github": "",
+    "portfolio": "",
+    "summary": "Güclü və peşəkar 3-4 cümləlik xülasə..."
+  },
+  "experiences": [
+    {
+      "id": "exp-1",
+      "company": "Şirkət",
+      "position": "Vəzifə",
+      "location": "Şəhər",
+      "startDate": "2021",
+      "endDate": "İndiyədək",
+      "current": true,
+      "description": "• Vəzifə və nailiyyət 1\\n• Vəzifə və nailiyyət 2"
+    }
+  ],
+  "education": [
+    {
+      "id": "edu-1",
+      "institution": "Təhsil müəssisəsi",
+      "degree": "Bakalavr",
+      "fieldOfStudy": "İxtisas",
+      "startDate": "2016",
+      "endDate": "2020",
+      "current": false,
+      "gpa": ""
+    }
+  ],
+  "skills": [
+    {
+      "id": "sk-1",
+      "name": "Bacarıq",
+      "level": "Yaxşı",
+      "category": "Texniki"
+    }
+  ],
+  "languages": [
+    {
+      "id": "lang-1",
+      "language": "Azərbaycan dili",
+      "proficiency": "Ana dili"
+    }
+  ],
+  "projects": [],
+  "certificates": []
+}`;
+  }
+
   const jobTitle = req.jobTitle?.trim() || 'Frontend Developer';
   const level = req.experienceLevel || 'mid';
   const fullName = req.fullName?.trim() || 'Əli Məmmədov';
@@ -357,10 +434,64 @@ const PRESETS: Record<string, ProfessionPreset> = {
  * Generates an ultra-realistic, detailed fallback CV tailored to user inputs
  */
 export function generateRealisticFallbackCV(req: GenerateCVRequest): CVData {
-  const jobTitle = req.jobTitle?.trim() || 'Mütəxəssis';
-  const fullName = req.fullName?.trim() || 'Əli Məmmədov';
-  const city = req.city?.trim() || 'Bakı, Azərbaycan';
+  let jobTitle = req.jobTitle?.trim() || '';
+  let fullName = req.fullName?.trim() || '';
+  let city = req.city?.trim() || 'Bakı, Azərbaycan';
+  let email = '';
+  let phone = '';
+  let linkedin = '';
+  let github = '';
+  let extractedSummary = '';
   const now = new Date().toISOString();
+
+  // If raw pasted text is present, extract rich factual details from it
+  if (req.rawPastedText && req.rawPastedText.trim().length > 10) {
+    const text = req.rawPastedText.trim();
+    
+    // Email regex
+    const emailMatch = text.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
+    if (emailMatch) email = emailMatch[0];
+
+    // Phone regex
+    const phoneMatch = text.match(/(?:\+?994|0)?\s*(?:50|51|55|70|77|99|12)\s*\d{3}[\s-]?\d{2}[\s-]?\d{2}/);
+    if (phoneMatch) phone = phoneMatch[0].trim();
+
+    // LinkedIn regex
+    const liMatch = text.match(/(?:https?:\/\/)?(?:www\.)?linkedin\.com\/in\/[a-zA-Z0-9_-]+/);
+    if (liMatch) linkedin = liMatch[0];
+
+    // GitHub regex
+    const ghMatch = text.match(/(?:https?:\/\/)?(?:www\.)?github\.com\/[a-zA-Z0-9_-]+/);
+    if (ghMatch) github = ghMatch[0];
+
+    // Lines analysis
+    const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+    if (lines.length > 0) {
+      // Often first non-empty line without colons or emails is candidate name
+      const firstLine = lines[0];
+      if (!fullName && firstLine.length < 40 && !firstLine.includes('@') && !firstLine.includes(':')) {
+        fullName = firstLine;
+      }
+    }
+    if (lines.length > 1 && !jobTitle) {
+      const secondLine = lines[1];
+      if (secondLine.length < 50 && !secondLine.includes('@') && !secondLine.includes(':')) {
+        jobTitle = secondLine;
+      }
+    }
+
+    // Try finding summary paragraph
+    const paragraphs = text.split(/\n\s*\n/).map(p => p.trim()).filter(Boolean);
+    for (const p of paragraphs) {
+      if (p.length > 60 && !p.includes('@') && !p.startsWith('•') && !p.startsWith('-')) {
+        extractedSummary = p;
+        break;
+      }
+    }
+  }
+
+  if (!fullName) fullName = 'Əli Məmmədov';
+  if (!jobTitle) jobTitle = 'Mütəxəssis';
 
   const titleLower = jobTitle.toLowerCase();
   let presetKey = 'developer';
@@ -380,13 +511,13 @@ export function generateRealisticFallbackCV(req: GenerateCVRequest): CVData {
     personalInfo: {
       fullName,
       jobTitle,
-      email: `${username || 'namized'}@example.com`,
-      phone: '+994 50 234 56 78',
+      email: email || `${username || 'namized'}@example.com`,
+      phone: phone || '+994 50 234 56 78',
       address: city,
-      linkedin: `linkedin.com/in/${username || 'profil'}`,
-      github: presetKey === 'developer' ? `github.com/${username || 'code'}` : undefined,
+      linkedin: linkedin || `linkedin.com/in/${username || 'profil'}`,
+      github: github || (presetKey === 'developer' ? `github.com/${username || 'code'}` : undefined),
       portfolio: `portfolio-${username || 'namized'}.az`,
-      summary: preset.summary.replace(/Mühəndis|Mütəxəssis|Menecer/, jobTitle),
+      summary: extractedSummary || preset.summary.replace(/Mühəndis|Mütəxəssis|Menecer/, jobTitle),
       photoUrl: req.photoUrl || undefined
     },
     experiences: preset.experiences.map((exp, idx) => ({

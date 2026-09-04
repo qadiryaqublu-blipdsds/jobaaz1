@@ -268,7 +268,9 @@ export interface SkillItem {
 export interface LanguageItem {
   id: string;
   language: string;
-  proficiency: 'A1-A2 (Başlanğıc)' | 'B1-B2 (Orta/İşgüzar)' | 'C1-C2 (Sərbəst)' | 'Ana dili';
+  proficiency: 'A1-A2 (Başlanğıc)' | 'B1-B2 (Orta/İşgüzar)' | 'C1-C2 (Sərbəst)' | 'Ana dili' | string;
+  name?: string;
+  level?: string;
 }
 
 export interface ProjectItem {
@@ -287,9 +289,14 @@ export interface CertificateItem {
   credentialUrl?: string;
 }
 
+export type CVLanguage = 'az' | 'en' | 'ru' | 'tr';
+export type CVPhotoSize = '112px' | '140px' | '168px' | 'sm' | 'md' | 'lg' | 'xl';
+export type CVPhotoShape = 'circle' | 'rounded' | 'square';
+
 export interface CVData {
   id: string;
   title: string;
+  language?: CVLanguage;
   lastUpdated: string;
   personalInfo: {
     fullName: string;
@@ -302,6 +309,8 @@ export interface CVData {
     portfolio?: string;
     summary: string;
     photoUrl?: string;
+    photoSize?: CVPhotoSize;
+    photoShape?: CVPhotoShape;
   };
   experiences: ExperienceItem[];
   education: EducationItem[];
@@ -322,7 +331,11 @@ export type CVTemplateType =
   | 'nordic-teal'
   | 'horizon-blue'
   | 'academic-serif'
-  | 'metro-violet';
+  | 'metro-violet'
+  | 'simple-clean'
+  | 'entry-student'
+  | 'prestige-executive'
+  | 'practical-direct';
 
 export interface Application {
   id: string;

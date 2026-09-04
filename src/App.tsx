@@ -70,6 +70,7 @@ import { getOfferTemplates, saveOfferTemplates } from './services/offerTemplateS
 import { calculateNetSalary } from './services/salaryCalculator';
 import { SalariaCalculator } from './components/candidate/SalariaCalculator';
 import { DeepCVAnalyzerView } from './components/candidate/cv-analyzer/DeepCVAnalyzerView';
+import { CVCreator } from './components/candidate/CVCreator';
 import { AuthModal } from './components/auth/AuthModal';
 import { VerifyAccountModal } from './components/auth/VerifyAccountModal';
 import { PricingPage } from './components/subscription/PricingPage';
@@ -174,7 +175,7 @@ function mergeVacancyLists(remoteVacancies: Vacancy[], localVacancies: Vacancy[]
 export default function App() {
   // Navigation & Role State
   const [currentRole, setCurrentRole] = useState<UserRole>('candidate');
-  const [candidateTab, setCandidateTab] = useState<'jobs' | 'nearby-map' | 'my-applications' | 'salary-trends' | 'calculia' | 'google-chat' | 'cv-analyzer'>('jobs');
+  const [candidateTab, setCandidateTab] = useState<'jobs' | 'nearby-map' | 'my-applications' | 'salary-trends' | 'calculia' | 'google-chat' | 'cv-analyzer' | 'cv-creator'>('jobs');
   const [calculiaSubTab, setCalculiaSubTab] = useState<'calculia' | 'vacatia'>('calculia');
   const [selectedCompanyFilter, setSelectedCompanyFilter] = useState<string>('Hamısı');
   const [isPricingViewOpen, setIsPricingViewOpen] = useState(false);
@@ -1433,6 +1434,14 @@ export default function App() {
 
                 {candidateTab === 'cv-analyzer' && (
                   <DeepCVAnalyzerView />
+                )}
+
+                {candidateTab === 'cv-creator' && (
+                  <CVCreator
+                    onApplyWithCV={() => {
+                      setCandidateTab('jobs');
+                    }}
+                  />
                 )}
 
                 {candidateTab === 'my-applications' && (

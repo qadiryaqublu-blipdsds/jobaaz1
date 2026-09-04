@@ -31,8 +31,8 @@ import {
 interface SidebarProps {
   currentRole: UserRole;
   onRoleChange: (role: UserRole) => void;
-  candidateTab: 'jobs' | 'nearby-map' | 'my-applications' | 'salary-trends' | 'calculia' | 'google-chat' | 'cv-analyzer';
-  onCandidateTabChange: (tab: 'jobs' | 'nearby-map' | 'my-applications' | 'salary-trends' | 'calculia' | 'google-chat' | 'cv-analyzer') => void;
+  candidateTab: 'jobs' | 'nearby-map' | 'my-applications' | 'salary-trends' | 'calculia' | 'google-chat' | 'cv-analyzer' | 'cv-creator';
+  onCandidateTabChange: (tab: 'jobs' | 'nearby-map' | 'my-applications' | 'salary-trends' | 'calculia' | 'google-chat' | 'cv-analyzer' | 'cv-creator') => void;
   applicationsCount?: number;
   activeVacanciesCount?: number;
   pendingApprovalsCount?: number;
@@ -77,7 +77,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const planTier = currentSubscription?.tier || 'FREE';
   const isPaidPlan = planTier !== 'FREE';
 
-  const handleTabClick = (tab: 'jobs' | 'nearby-map' | 'my-applications' | 'salary-trends' | 'calculia' | 'google-chat' | 'cv-analyzer') => {
+  const handleTabClick = (tab: 'jobs' | 'nearby-map' | 'my-applications' | 'salary-trends' | 'calculia' | 'google-chat' | 'cv-analyzer' | 'cv-creator') => {
     onCandidateTabChange(tab);
     onCloseMobile();
   };
@@ -94,6 +94,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
       icon: Search,
       badge: null,
       color: 'blue',
+    },
+    {
+      id: 'cv-creator' as const,
+      label: 'CV yaradıcı',
+      icon: FileText,
+      badge: null,
+      color: 'emerald',
     },
     {
       id: 'cv-analyzer' as const,
