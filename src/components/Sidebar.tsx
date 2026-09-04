@@ -25,7 +25,8 @@ import {
   Briefcase,
   Crown,
   PanelLeftClose,
-  PanelLeftOpen
+  PanelLeftOpen,
+  Settings
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -42,6 +43,7 @@ interface SidebarProps {
   onOpenIntroTour?: () => void;
   onOpenPricing?: () => void;
   onOpenAuthModal?: (mode?: 'login' | 'register', role?: UserRole) => void;
+  onOpenProfileModal?: (initialTab?: 'profile' | 'settings' | 'security') => void;
   onLogout?: () => void;
   currentUser: User | null;
   currentSubscription: UserSubscription | null;
@@ -65,6 +67,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onOpenIntroTour,
   onOpenPricing,
   onOpenAuthModal,
+  onOpenProfileModal,
   onLogout,
   currentUser,
   currentSubscription,
@@ -151,6 +154,22 @@ export const Sidebar: React.FC<SidebarProps> = ({
       onClick: () => {
         if (onOpenGoogleChat) onOpenGoogleChat();
         else handleTabClick('google-chat');
+      }
+    },
+    {
+      id: 'settings' as any,
+      label: 'Tənzimləmələr',
+      icon: Settings,
+      badge: 'YENİ',
+      badgeClass: 'bg-blue-100 text-blue-700 font-bold text-[9px]',
+      color: 'blue',
+      onClick: () => {
+        if (onOpenProfileModal) {
+          onOpenProfileModal('settings');
+          onCloseMobile();
+        } else {
+          handleTabClick('settings' as any);
+        }
       }
     },
   ];
@@ -742,15 +761,20 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <div className={`flex items-center bg-white rounded-xl border border-slate-200 shadow-2xs ${
               isCollapsed ? 'justify-center p-1.5' : 'justify-between gap-2 p-2'
             }`}>
-              <div className="flex items-center gap-2 min-w-0">
+              <button
+                type="button"
+                onClick={() => onOpenProfileModal?.('settings')}
+                className="flex items-center gap-2 min-w-0 text-left cursor-pointer focus:outline-hidden group"
+                title="Profil və Bildiriş Tənzimləmələri"
+              >
                 <img
                   src={currentUser.avatarUrl || `https://api.dicebear.com/7.x/initials/svg?seed=${currentUser.fullName}`}
                   alt={currentUser.fullName}
-                  className="w-8 h-8 rounded-lg object-cover border border-slate-200 shrink-0"
+                  className="w-8 h-8 rounded-lg object-cover border border-slate-200 shrink-0 group-hover:border-blue-400 transition-colors"
                 />
                 {!isCollapsed && (
                   <div className="min-w-0">
-                    <div className="text-xs font-bold text-slate-900 truncate">
+                    <div className="text-xs font-bold text-slate-900 group-hover:text-blue-600 truncate transition-colors">
                       {currentUser.fullName}
                     </div>
                     <div className="text-[10px] text-slate-500 truncate">
@@ -758,16 +782,33 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     </div>
                   </div>
                 )}
-              </div>
+              </button>
 
-              {onLogout && !isCollapsed && (
-                <button
-                  onClick={onLogout}
-                  className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer shrink-0"
-                  title={dict.nav.logout}
-                >
-                  <LogOut className="w-4 h-4" />
-                </button>
+              {!isCollapsed && (
+                <div className="flex items-center gap-1 shrink-0">
+                  {onOpenProfileModal && (
+                    <button
+                      id="sidebar-settings-btn"
+                      type="button"
+                      onClick={() => onOpenProfileModal('settings')}
+                      className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors cursor-pointer"
+                      title="Bildiriş Tənzimləmələri"
+                    >
+                      <Settings className="w-4 h-4" />
+                    </button>
+                  )}
+                  {onLogout && (
+                    <button
+                      id="sidebar-logout-btn"
+                      type="button"
+                      onClick={onLogout}
+                      className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
+                      title={dict.nav.logout}
+                    >
+                      <LogOut className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
               )}
             </div>
           ) : (

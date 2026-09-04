@@ -86,7 +86,7 @@ async function callGeminiResilient(
   const effectiveTimeout = config?.timeoutMs || timeoutMs;
 
   // Prioritize Gemini 3.8 Flash as requested, followed by robust standard fallbacks
-  const defaultModels = ['gemini-3.8-flash', 'gemini-3.6-flash', 'gemini-flash-latest'];
+  const defaultModels = ['gemini-3.8-flash', 'gemini-3.1-flash-lite', 'gemini-flash-latest'];
   const candidateModels = preferredModel
     ? [preferredModel, ...defaultModels.filter(m => m !== preferredModel)]
     : defaultModels;
@@ -140,7 +140,7 @@ async function callGeminiResilient(
         throw new Error('AI_UNAVAILABLE');
       }
 
-      // Check if 429 / quota limit was reached on this specific model
+      // Check if 429 / quota limit was reached
       const isQuotaOrRateLimit =
         errMsg.includes('429') ||
         errMsg.includes('RESOURCE_EXHAUSTED') ||
@@ -149,14 +149,20 @@ async function callGeminiResilient(
         errMsg.includes('quota');
 
       if (isQuotaOrRateLimit) {
+        if (errMsg.includes('depleted') || errMsg.includes('prepayment')) {
+          geminiQuotaDepletedUntil = Date.now() + 5 * 60 * 1000;
+          console.log('[Gemini AI Engine] Account prepayment credits depleted. Fast-failing to robust HR translation engine.');
+          throw new Error('AI_QUOTA_DEPLETED');
+        }
+
         // If there are other candidate models to try, try the next model after a brief pause
         if (i < candidateModels.length - 1) {
-          await new Promise((r) => setTimeout(r, 400));
+          await new Promise((r) => setTimeout(r, 300));
           continue;
         }
 
-        // All models exhausted or hit quota: set brief 30s cooldown and switch to offline HR fallback
-        geminiQuotaDepletedUntil = Date.now() + 30 * 1000;
+        // All models exhausted or hit quota: set brief cooldown and switch to offline fallback
+        geminiQuotaDepletedUntil = Date.now() + 60 * 1000;
         console.log('[Gemini AI Engine] Rate limit/quota reached on AI provider. Seamlessly applying intelligent offline HR fallback.');
         throw new Error('AI_QUOTA_DEPLETED');
       }
@@ -4049,8 +4055,13 @@ app.post('/api/ai/translate-cv', async (req, res) => {
       const targetCode = target.toLowerCase().slice(0, 2);
       try {
         const joined = textsToTranslate.map(t => t.text).join(DELIMITER);
-        const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${targetCode}&dt=t&q=${encodeURIComponent(joined)}`;
-        const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
+        const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${targetCode}&dt=t`;
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: new URLSearchParams({ q: joined }).toString(),
+          signal: AbortSignal.timeout(5000)
+        });
         if (res.ok) {
           const data: any = await res.json();
           if (Array.isArray(data) && Array.isArray(data[0])) {
@@ -4067,23 +4078,31 @@ app.post('/api/ai/translate-cv', async (req, res) => {
         console.warn('Batch translation warning:', batchErr);
       }
 
-      // If any critical key missed translation due to split mismatch, resolve individually
-      for (const item of textsToTranslate) {
-        if (!translationsMap[item.key]) {
-          try {
-            const indUrl = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${targetCode}&dt=t&q=${encodeURIComponent(item.text)}`;
-            const indRes = await fetch(indUrl, { signal: AbortSignal.timeout(3000) });
-            if (indRes.ok) {
-              const indData: any = await indRes.json();
-              if (Array.isArray(indData) && Array.isArray(indData[0])) {
-                const singleTrans = indData[0].map((it: any) => it[0]).join('');
-                if (singleTrans && singleTrans.trim()) {
-                  translationsMap[item.key] = singleTrans.trim();
+      // If any critical key missed translation, resolve missing ones concurrently (max 2.5s)
+      const missing = textsToTranslate.filter(item => !translationsMap[item.key]);
+      if (missing.length > 0) {
+        await Promise.all(
+          missing.map(async (item) => {
+            try {
+              const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${targetCode}&dt=t`;
+              const indRes = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: new URLSearchParams({ q: item.text }).toString(),
+                signal: AbortSignal.timeout(2500)
+              });
+              if (indRes.ok) {
+                const indData: any = await indRes.json();
+                if (Array.isArray(indData) && Array.isArray(indData[0])) {
+                  const singleTrans = indData[0].map((it: any) => it[0]).join('');
+                  if (singleTrans && singleTrans.trim()) {
+                    translationsMap[item.key] = singleTrans.trim();
+                  }
                 }
               }
-            }
-          } catch (_) {}
-        }
+            } catch (_) {}
+          })
+        );
       }
     }
 
@@ -4233,23 +4252,25 @@ RETURN STRICTLY A SINGLE VALID JSON OBJECT matching this exact structure:
 }`;
 
     let parsed: any = null;
-    try {
-      const rawResponse = await callGeminiResilient(prompt, {
-        responseMimeType: 'application/json',
-        temperature: 0.1,
-        timeoutMs: 12000
-      });
+    if (Date.now() >= geminiQuotaDepletedUntil) {
+      try {
+        const rawResponse = await callGeminiResilient(prompt, {
+          responseMimeType: 'application/json',
+          temperature: 0.1,
+          timeoutMs: 4000
+        });
 
-      let cleanJson = (rawResponse || '').trim();
-      if (cleanJson.startsWith('```json')) {
-        cleanJson = cleanJson.replace(/^```json\s*/, '').replace(/\s*```$/, '');
-      } else if (cleanJson.startsWith('```')) {
-        cleanJson = cleanJson.replace(/^```\s*/, '').replace(/\s*```$/, '');
+        let cleanJson = (rawResponse || '').trim();
+        if (cleanJson.startsWith('```json')) {
+          cleanJson = cleanJson.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+        } else if (cleanJson.startsWith('```')) {
+          cleanJson = cleanJson.replace(/^```\s*/, '').replace(/\s*```$/, '');
+        }
+
+        parsed = JSON.parse(cleanJson);
+      } catch {
+        parsed = null;
       }
-
-      parsed = JSON.parse(cleanJson);
-    } catch {
-      parsed = null;
     }
 
     console.log('[translate-cv route] Gemini parsed present:', !!parsed);

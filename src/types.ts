@@ -1,5 +1,20 @@
 export type UserRole = 'candidate' | 'business' | 'admin';
 
+export type EmailAlertFrequency = 'instant' | 'daily' | 'weekly' | 'disabled';
+
+export interface UserEmailPreferences {
+  jobAlertFrequency: EmailAlertFrequency;
+  categories: string[];
+  preferredLocation?: string;
+  minSalary?: number;
+  remoteOnly?: boolean;
+  minMatchScore?: number; // e.g. 70, 80
+  applicationStatusUpdates: boolean;
+  interviewAndOfferAlerts: boolean;
+  newsletterDigest: boolean;
+  updatedAt?: string;
+}
+
 export interface User {
   id: string;
   email: string;
@@ -19,6 +34,7 @@ export interface User {
   verificationAttempts?: number;
   createdAt: string;
   lastLoginAt?: string;
+  emailPreferences?: UserEmailPreferences;
 }
 
 export interface AuthSession {

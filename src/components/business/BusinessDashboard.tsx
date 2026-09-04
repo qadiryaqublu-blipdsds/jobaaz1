@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { Vacancy, Application, Company, ApplicationStatus, JobOffer, JobOfferTemplate, OfferAuditLog, User, UserRole } from '../../types';
 import { CVRenderer } from '../cv-templates/CVRenderer';
 import { downloadCVAsPDF, generateCVFileName } from '../../utils/pdfExport';
@@ -166,11 +166,18 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
     (v.companyName && currentUser?.companyName && v.companyName.toLowerCase().trim() === currentUser.companyName.toLowerCase().trim())
   );
 
-  const companyApplications = applications.filter((a) => 
-    a.companyId === activeCompany.id || 
-    (a.companyName && activeCompany.name && a.companyName.toLowerCase().trim() === activeCompany.name.toLowerCase().trim()) ||
-    companyJobs.some((j) => j.id === a.vacancyId || j.id === a.jobId || (j.title === a.vacancyTitle && j.companyName === a.companyName))
-  );
+  const companyApplications = useMemo(() => {
+    if (!currentUser || currentUser.role !== 'business') return [];
+    const validCompanyId = currentUser.companyId || (activeCompany.id !== 'comp-default' ? activeCompany.id : null);
+    const validCompanyName = (currentUser.companyName || (activeCompany.name !== 'Müəssisə' ? activeCompany.name : '')).toLowerCase().trim();
+
+    return applications.filter((a) => {
+      if (validCompanyId && a.companyId === validCompanyId) return true;
+      if (validCompanyName && a.companyName && a.companyName.toLowerCase().trim() === validCompanyName) return true;
+      if (companyJobs.some((j) => j.id === a.vacancyId || (a.jobId && j.id === a.jobId))) return true;
+      return false;
+    });
+  }, [currentUser, activeCompany, applications, companyJobs]);
 
   const companyOffers = offers.filter((o) => 
     o.companyId === activeCompany.id || 
@@ -1207,6 +1214,46 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
                   />
                 </div>
               </div>
+
+              {/* ATS Evaluation & Match Score Breakdown */}
+              {selectedApplicant.matchScore !== undefined && (
+                <div className={`p-4 rounded-xl border ${
+                  selectedApplicant.matchScore >= 75
+                    ? 'bg-emerald-50/70 border-emerald-200'
+                    : selectedApplicant.matchScore >= 45
+                    ? 'bg-blue-50/70 border-blue-200'
+                    : 'bg-amber-50/70 border-amber-200'
+                } space-y-2`}>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Sparkles className={`w-4 h-4 ${
+                        selectedApplicant.matchScore >= 75 ? 'text-emerald-600' : selectedApplicant.matchScore >= 45 ? 'text-blue-600' : 'text-amber-600'
+                      }`} />
+                      <span className="font-bold text-slate-900 text-sm">
+                        ATS Uyğunluq Dərəcəsi: {selectedApplicant.matchScore}%
+                      </span>
+                    </div>
+                    <span className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full ${
+                      selectedApplicant.matchScore >= 75
+                        ? 'bg-emerald-100 text-emerald-800'
+                        : selectedApplicant.matchScore >= 45
+                        ? 'bg-blue-100 text-blue-800'
+                        : 'bg-amber-100 text-amber-800'
+                    }`}>
+                      {selectedApplicant.matchScore >= 80 ? 'Mükəmməl Uyğunluq' : selectedApplicant.matchScore >= 50 ? 'Kafi / Yaxşı Uyğunluq' : 'Kritik Uyğunsuzluq (Boş və ya zəif CV)'}
+                    </span>
+                  </div>
+                  {selectedApplicant.matchHighlights && selectedApplicant.matchHighlights.length > 0 && (
+                    <ul className="space-y-1 mt-2 text-xs text-slate-700">
+                      {selectedApplicant.matchHighlights.map((h, i) => (
+                        <li key={i} className="flex items-start gap-1.5">
+                          <span>{h}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              )}
 
               {/* Cover Note if provided */}
               {selectedApplicant.coverNote && (

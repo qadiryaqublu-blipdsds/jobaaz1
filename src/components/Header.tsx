@@ -14,7 +14,8 @@ import {
   PanelLeftOpen,
   Sparkles,
   Bell,
-  User as UserIcon
+  User as UserIcon,
+  Settings
 } from 'lucide-react';
 
 interface HeaderProps {
@@ -38,6 +39,7 @@ interface HeaderProps {
   onNavigateNotification?: (notification: AppNotification) => void;
   onOpenAuthModal?: (mode?: 'login' | 'register', role?: UserRole) => void;
   onOpenVerifyModal?: (user: User) => void;
+  onOpenProfileModal?: (initialTab?: 'profile' | 'settings' | 'security') => void;
   onOpenPricing?: () => void;
   onLogout?: () => void;
   selectedCompany?: string;
@@ -59,6 +61,7 @@ export const Header: React.FC<HeaderProps> = ({
   onNavigateNotification,
   onOpenAuthModal,
   onOpenVerifyModal,
+  onOpenProfileModal,
   onOpenPricing,
   onLogout,
   onPostJobClick,
@@ -259,32 +262,59 @@ export const Header: React.FC<HeaderProps> = ({
             {/* 4. Eye-Pleasing Interactive Auth Button / User Profile (Visible on Desktop / Tablet md+) */}
             {currentUser ? (
               <div className="hidden md:flex items-center gap-1.5 bg-slate-100/90 hover:bg-slate-200/80 p-1 pl-1.5 rounded-xl border border-slate-200/90 transition-all">
-                <div className="relative">
-                  <img
-                    src={currentUser.avatarUrl || `https://api.dicebear.com/7.x/initials/svg?seed=${currentUser.fullName}`}
-                    alt={currentUser.fullName}
-                    className="w-6 h-6 rounded-lg object-cover border border-slate-300"
-                  />
-                  {currentUser.emailVerified ? (
-                    <span className="absolute -bottom-1 -right-1 w-2.5 h-2.5 bg-emerald-500 rounded-full border border-white" title="E-poçt Təsdiqlənib" />
-                  ) : (
-                    <span className="absolute -bottom-1 -right-1 w-2.5 h-2.5 bg-amber-500 rounded-full border border-white" title="E-poçt Təsdiqlənməyib" />
-                  )}
-                </div>
-                <div className="flex flex-col text-left">
-                  <span className="text-xs font-bold text-slate-800 max-w-[90px] truncate leading-none">
-                    {currentUser.fullName.split(' ')[0]}
-                  </span>
-                  {!currentUser.emailVerified && onOpenVerifyModal && (
-                    <button
-                      type="button"
-                      onClick={() => onOpenVerifyModal(currentUser)}
-                      className="text-[9px] font-bold text-amber-600 hover:text-amber-700 hover:underline cursor-pointer leading-tight mt-0.5"
-                    >
-                      Təsdiqlə ⚡
-                    </button>
-                  )}
-                </div>
+                <button
+                  type="button"
+                  onClick={() => onOpenProfileModal?.('settings')}
+                  className="flex items-center gap-1.5 cursor-pointer text-left focus:outline-hidden"
+                  title="Profil və Bildiriş Tənzimləmələri"
+                >
+                  <div className="relative">
+                    <img
+                      src={currentUser.avatarUrl || `https://api.dicebear.com/7.x/initials/svg?seed=${currentUser.fullName}`}
+                      alt={currentUser.fullName}
+                      className="w-6 h-6 rounded-lg object-cover border border-slate-300"
+                    />
+                    {currentUser.emailVerified ? (
+                      <span className="absolute -bottom-1 -right-1 w-2.5 h-2.5 bg-emerald-500 rounded-full border border-white" title="E-poçt Təsdiqlənib" />
+                    ) : (
+                      <span className="absolute -bottom-1 -right-1 w-2.5 h-2.5 bg-amber-500 rounded-full border border-white" title="E-poçt Təsdiqlənməyib" />
+                    )}
+                  </div>
+                  <div className="flex flex-col text-left">
+                    <span className="text-xs font-bold text-slate-800 max-w-[90px] truncate leading-none">
+                      {currentUser.fullName.split(' ')[0]}
+                    </span>
+                    {!currentUser.emailVerified && onOpenVerifyModal ? (
+                      <span
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onOpenVerifyModal(currentUser);
+                        }}
+                        className="text-[9px] font-bold text-amber-600 hover:text-amber-700 hover:underline cursor-pointer leading-tight mt-0.5"
+                      >
+                        Təsdiqlə ⚡
+                      </span>
+                    ) : (
+                      <span className="text-[9px] text-slate-500 font-medium leading-tight mt-0.5">
+                        Tənzimləmələr
+                      </span>
+                    )}
+                  </div>
+                </button>
+
+                {/* Direct Settings Gear button */}
+                {onOpenProfileModal && (
+                  <button
+                    id="header-settings-btn"
+                    type="button"
+                    onClick={() => onOpenProfileModal('settings')}
+                    className="p-1 rounded-lg text-slate-500 hover:text-blue-600 hover:bg-blue-50 transition-colors cursor-pointer"
+                    title="Bildiriş Tənzimləmələri"
+                  >
+                    <Settings className="w-3.5 h-3.5" />
+                  </button>
+                )}
+
                 {onLogout && (
                   <button
                     id="header-logout-btn"

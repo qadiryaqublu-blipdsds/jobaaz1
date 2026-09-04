@@ -48,8 +48,13 @@ import {
   updateCompanyProfile,
   saveApplicationDirectToFirestore,
   subscribeToUserNotifications,
-  subscribeToAllVacancies
+  subscribeToAllVacancies,
+  subscribeToAllCompanies,
+  subscribeToCompanyApplications,
+  subscribeToCandidateApplications,
+  getVacancyByIdFromFirestore
 } from './services/firestoreService';
+import { calculateApplicationMatchScore } from './utils/applicationMatcher';
 import { Header } from './components/Header';
 import { LiveNotificationToast } from './components/notifications/LiveNotificationToast';
 import { JobiaLogo, HireMeLogo } from './components/JobiaLogo';
@@ -77,6 +82,7 @@ import { PricingPage } from './components/subscription/PricingPage';
 import { CheckoutModal } from './components/subscription/CheckoutModal';
 import { PaywallModal } from './components/subscription/PaywallModal';
 import { IntroTourModal } from './components/IntroTourModal';
+import { UserProfileModal } from './components/profile/UserProfileModal';
 import { Sidebar } from './components/Sidebar';
 import { Footer } from './components/Footer';
 import { MobileFrozenBottomBar } from './components/MobileFrozenBottomBar';
@@ -86,7 +92,7 @@ import {
   checkAndSyncVerificationStatus, 
   checkVerificationRateLimit 
 } from './services/firebaseAuth';
-import { ShieldAlert, RefreshCw, Mail } from 'lucide-react';
+import { ShieldAlert, ShieldCheck, RefreshCw, Mail } from 'lucide-react';
 import { 
   X, 
   CheckCircle, 
@@ -202,6 +208,17 @@ export default function App() {
   const [authModalRole, setAuthModalRole] = useState<UserRole>('candidate');
   const [isVerifyModalOpen, setIsVerifyModalOpen] = useState(false);
   const [userToVerify, setUserToVerify] = useState<User | null>(null);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [profileModalTab, setProfileModalTab] = useState<'profile' | 'settings' | 'security'>('settings');
+
+  const handleOpenProfileModal = (initialTab: 'profile' | 'settings' | 'security' = 'settings') => {
+    if (!currentUser) {
+      handleOpenAuth('login', currentRole);
+      return;
+    }
+    setProfileModalTab(initialTab);
+    setIsProfileModalOpen(true);
+  };
 
   // Subscription & Monetization State
   const [currentSubscription, setCurrentSubscription] = useState<UserSubscription | null>(() => {
@@ -280,7 +297,33 @@ export default function App() {
       const saved = localStorage.getItem('jobia_applications');
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) return parsed;
+        if (Array.isArray(parsed)) {
+          const sessionUser = getCurrentSession()?.user;
+          if (sessionUser?.role === 'admin') return parsed;
+          if (sessionUser?.role === 'candidate') {
+            const userEmail = sessionUser.email?.toLowerCase().trim();
+            return parsed.filter(
+              (a) =>
+                a.candidateId === sessionUser.id ||
+                (userEmail && a.candidateEmail && a.candidateEmail.toLowerCase().trim() === userEmail)
+            );
+          }
+          if (sessionUser?.role === 'business') {
+            const compId = sessionUser.companyId;
+            const compName = sessionUser.companyName?.toLowerCase().trim();
+            return parsed.filter(
+              (a) =>
+                (compId && a.companyId === compId) ||
+                (compName && a.companyName && a.companyName.toLowerCase().trim() === compName)
+            );
+          }
+          // Unauthenticated Guest: only show guest applications created by this browser
+          const guestIdsRaw = localStorage.getItem('jobia_guest_application_ids');
+          const guestIds: string[] = guestIdsRaw ? JSON.parse(guestIdsRaw) : [];
+          if (guestIds.length > 0) {
+            return parsed.filter((a) => guestIds.includes(a.id) && (a.isGuestApplication || !a.candidateId));
+          }
+        }
       }
     } catch (e) {}
     return [];
@@ -342,14 +385,39 @@ export default function App() {
     return [];
   });
 
-  // Sync initial data from Firestore
+  // Automatically sync activeCompany when currentUser logs in as business
+  useEffect(() => {
+    if (currentUser?.role === 'business' && currentUser.companyId) {
+      const existing = companies.find(
+        (c) => c.id === currentUser.companyId || 
+               (currentUser.companyName && c.name?.toLowerCase().trim() === currentUser.companyName.toLowerCase().trim())
+      );
+      if (existing) {
+        setActiveCompany(existing);
+      } else {
+        setActiveCompany({
+          id: currentUser.companyId,
+          name: currentUser.companyName || 'Müəssisə',
+          logo: currentUser.avatarUrl || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(currentUser.companyName || 'Company')}`,
+          verified: false,
+          industry: 'İnformasiya Texnologiyaları',
+          location: 'Bakı, Azərbaycan',
+          email: currentUser.email || '',
+          description: currentUser.companyDescription || 'Şirkət haqqında rəsmi məlumat',
+          employeeCount: '1-10',
+          activeJobsCount: 0,
+        });
+      }
+    }
+  }, [currentUser, companies]);
+
+  // Sync initial data from Firestore with role-based security
   useEffect(() => {
     async function loadInitialFirestoreData() {
       try {
-        const [allJobs, allComps, allApps] = await Promise.all([
+        const [allJobs, allComps] = await Promise.all([
           getAllVacanciesFromFirestore(),
           getAllCompaniesFromFirestore(),
-          getAllApplicationsFromFirestore(),
         ]);
 
         // Merge Firestore vacancies with local vacancies so newly posted/edited jobs are always retained
@@ -364,14 +432,53 @@ export default function App() {
 
         if (Array.isArray(allComps)) setCompanies(allComps);
 
-        // Merge Firestore applications with local applications so nothing is ever lost
+        // Strict Role-Isolated Application Fetching:
+        // Regular candidates only get their own applications; employers only get their company's applications; guests get none from Firestore.
+        let roleApps: Application[] = [];
+        if (currentUser?.role === 'admin') {
+          roleApps = await getAllApplicationsFromFirestore();
+        } else if (currentUser?.role === 'candidate') {
+          roleApps = await getCandidateApplications(currentUser.id, currentUser.email);
+        } else if (currentUser?.role === 'business' && (currentUser.companyId || currentUser.companyName)) {
+          roleApps = await getCompanyApplications(currentUser.companyId || '', currentUser.companyName);
+        } else {
+          // Unauthenticated guest: strictly 0 remote applications
+          roleApps = [];
+        }
+
+        // Merge Firestore applications with local applications strictly for this user or guest device
         try {
           const localSaved = localStorage.getItem('jobia_applications');
           const localApps: Application[] = localSaved ? JSON.parse(localSaved) : [];
-          const merged = mergeApplicationLists(allApps || [], localApps);
+          let filteredLocal: Application[] = [];
+          if (currentUser?.role === 'admin') {
+            filteredLocal = localApps;
+          } else if (currentUser?.role === 'candidate') {
+            const userEmail = currentUser.email?.toLowerCase().trim();
+            filteredLocal = localApps.filter(
+              (a) =>
+                a.candidateId === currentUser.id ||
+                (userEmail && a.candidateEmail && a.candidateEmail.toLowerCase().trim() === userEmail)
+            );
+          } else if (currentUser?.role === 'business') {
+            const compId = currentUser.companyId;
+            const compName = currentUser.companyName?.toLowerCase().trim();
+            filteredLocal = localApps.filter(
+              (a) =>
+                (compId && a.companyId === compId) ||
+                (compName && a.companyName && a.companyName.toLowerCase().trim() === compName)
+            );
+          } else {
+            const guestIdsRaw = localStorage.getItem('jobia_guest_application_ids');
+            const guestIds: string[] = guestIdsRaw ? JSON.parse(guestIdsRaw) : [];
+            filteredLocal = localApps.filter((a) => guestIds.includes(a.id) && (a.isGuestApplication || !a.candidateId));
+          }
+
+          const merged = mergeApplicationLists(roleApps, filteredLocal);
           setApplications(merged);
+          localStorage.setItem('jobia_applications', JSON.stringify(merged));
         } catch {
-          if (Array.isArray(allApps)) setApplications(allApps);
+          setApplications(roleApps);
         }
 
         if (currentUser?.role === 'candidate') {
@@ -420,6 +527,73 @@ export default function App() {
     });
     return () => unsubscribe();
   }, []);
+
+  // Realtime subscription to all companies for instant sync across devices
+  useEffect(() => {
+    const unsubscribe = subscribeToAllCompanies((remoteComps) => {
+      if (Array.isArray(remoteComps) && remoteComps.length > 0) {
+        setCompanies((prev) => {
+          const compMap = new Map<string, Company>();
+          prev.forEach((c) => compMap.set(c.id, c));
+          remoteComps.forEach((c) => compMap.set(c.id, c));
+          return Array.from(compMap.values());
+        });
+      }
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // Realtime subscription to Applications based on current user role (Instant cross-network apply sync)
+  useEffect(() => {
+    if (!currentUser) return;
+
+    if (currentUser.role === 'business') {
+      const companyJobIds = vacancies
+        .filter((v) => v.companyId === currentUser.companyId || v.createdBy === currentUser.id || v.createdBy === currentUser.email)
+        .map((v) => v.id);
+
+      const unsubscribe = subscribeToCompanyApplications(
+        currentUser.companyId,
+        currentUser.companyName,
+        companyJobIds,
+        (remoteApps) => {
+          setApplications((prev) => mergeApplicationLists(remoteApps, prev));
+        }
+      );
+      return () => unsubscribe();
+    } else if (currentUser.role === 'candidate') {
+      const unsubscribe = subscribeToCandidateApplications(
+        currentUser.id,
+        currentUser.email,
+        (remoteApps) => {
+          setApplications((prev) => mergeApplicationLists(remoteApps, prev));
+        }
+      );
+      return () => unsubscribe();
+    }
+  }, [currentUser, vacancies]);
+
+  // Cross-Network Direct Shared Vacancy Linking (?job=... or ?vacancy=...)
+  useEffect(() => {
+    try {
+      const searchParams = new URLSearchParams(window.location.search);
+      const sharedJobId = searchParams.get('job') || searchParams.get('vacancy');
+      if (sharedJobId) {
+        const found = vacancies.find((v) => v.id === sharedJobId);
+        if (found) {
+          setSelectedJobForDetail(found);
+          setCandidateTab('jobs');
+        } else {
+          getVacancyByIdFromFirestore(sharedJobId).then((remoteJob) => {
+            if (remoteJob) {
+              setSelectedJobForDetail(remoteJob);
+              setCandidateTab('jobs');
+            }
+          });
+        }
+      }
+    } catch {}
+  }, [vacancies]);
 
   const [offerTemplates, setOfferTemplates] = useState<JobOfferTemplate[]>(() => {
     try {
@@ -673,6 +847,25 @@ export default function App() {
     logoutUser();
     setCurrentUser(null);
     setAuthSession(null);
+    setJobOffers([]);
+    try {
+      const guestIdsRaw = localStorage.getItem('jobia_guest_application_ids');
+      const guestIds: string[] = guestIdsRaw ? JSON.parse(guestIdsRaw) : [];
+      if (guestIds.length > 0) {
+        const localSaved = localStorage.getItem('jobia_applications');
+        const localApps: Application[] = localSaved ? JSON.parse(localSaved) : [];
+        const guestOnly = localApps.filter(
+          (a) => guestIds.includes(a.id) && (a.isGuestApplication || !a.candidateId)
+        );
+        localStorage.setItem('jobia_applications', JSON.stringify(guestOnly));
+        setApplications(guestOnly);
+      } else {
+        localStorage.removeItem('jobia_applications');
+        setApplications([]);
+      }
+    } catch {
+      setApplications([]);
+    }
     setCurrentSubscription(getUserSubscription(undefined, currentRole));
     showToast('Sistemdən uğurla çıxış edildi.');
   };
@@ -718,19 +911,53 @@ export default function App() {
     });
   };
 
-  // Candidate visible applications memo
+  // Strictly isolated applications visible to Candidate or Guest
   const candidateVisibleApplications = useMemo(() => {
     if (currentUser?.role === 'candidate') {
       const userEmail = currentUser.email?.toLowerCase().trim();
       return applications.filter(
         (a) =>
           a.candidateId === currentUser.id ||
-          (userEmail && a.candidateEmail && a.candidateEmail.toLowerCase().trim() === userEmail) ||
-          a.isGuestApplication
+          (userEmail && a.candidateEmail && a.candidateEmail.toLowerCase().trim() === userEmail)
       );
     }
-    return applications;
+
+    // If unauthenticated guest: ONLY show applications submitted by this specific browser
+    if (!currentUser) {
+      try {
+        const guestIdsRaw = localStorage.getItem('jobia_guest_application_ids');
+        const guestIds: string[] = guestIdsRaw ? JSON.parse(guestIdsRaw) : [];
+        if (guestIds.length > 0) {
+          return applications.filter(
+            (a) => guestIds.includes(a.id) && (a.isGuestApplication || !a.candidateId)
+          );
+        }
+      } catch (e) {}
+      return [];
+    }
+
+    return [];
   }, [applications, currentUser]);
+
+  // Strictly isolated applications visible to Employer
+  const businessVisibleApplications = useMemo(() => {
+    if (!currentUser || currentUser.role !== 'business') return [];
+    const compId = currentUser.companyId;
+    const compName = currentUser.companyName?.toLowerCase().trim();
+    return applications.filter((a) => {
+      if (compId && a.companyId === compId) return true;
+      if (compName && a.companyName && a.companyName.toLowerCase().trim() === compName) return true;
+      return false;
+    });
+  }, [applications, currentUser]);
+
+  // Role-isolated application counter for Header, Sidebar, and badges
+  const roleApplicationsCount = useMemo(() => {
+    if (currentRole === 'candidate') return candidateVisibleApplications.length;
+    if (currentRole === 'business') return businessVisibleApplications.length;
+    if (currentRole === 'admin' && currentUser?.role === 'admin') return applications.length;
+    return 0;
+  }, [currentRole, candidateVisibleApplications.length, businessVisibleApplications.length, applications.length, currentUser]);
 
   // Submit Job Application (Supports both registered candidates with active CV & guest applicants with file attachments)
   const handleApplyToJob = async (
@@ -761,6 +988,14 @@ export default function App() {
     const today = new Date().toISOString().split('T')[0];
     const isGuest = !currentUser || currentUser.role !== 'candidate';
 
+    // Calculate real multi-dimensional ATS match score (prevents artificial 84% score on empty CVs)
+    const matchEval = calculateApplicationMatchScore(
+      vacancy,
+      cv,
+      attachment,
+      coverNote
+    );
+
     const newApp: Application = {
       id: `app-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
       vacancyId: vacancy.id,
@@ -775,7 +1010,8 @@ export default function App() {
       candidatePhone: applicantPhone,
       appliedDate: today,
       status: 'Müraciət edildi',
-      matchScore: Math.floor(Math.random() * 16) + 82, // AI estimated match 82-97%
+      matchScore: matchEval.score, // Real ATS evaluation (e.g. 12% for empty CV, up to 97% for qualified match)
+      matchHighlights: matchEval.highlights,
       coverNote: coverNote?.trim() || undefined,
       cvData: {
         ...cv,
@@ -795,7 +1031,19 @@ export default function App() {
     // 1. Immediately update in-memory state
     setApplications((prev) => [newApp, ...prev.filter(a => a.id !== newApp.id)]);
 
-    // 2. Immediately persist to localStorage
+    // 2. Persist guest application ID if not authenticated
+    if (isGuest) {
+      try {
+        const guestIdsRaw = localStorage.getItem('jobia_guest_application_ids');
+        const guestIds: string[] = guestIdsRaw ? JSON.parse(guestIdsRaw) : [];
+        if (!guestIds.includes(newApp.id)) {
+          guestIds.push(newApp.id);
+          localStorage.setItem('jobia_guest_application_ids', JSON.stringify(guestIds));
+        }
+      } catch (e) {}
+    }
+
+    // 3. Immediately persist to localStorage
     try {
       const existingSaved = localStorage.getItem('jobia_applications');
       const parsedApps: Application[] = existingSaved ? JSON.parse(existingSaved) : [];
@@ -805,12 +1053,12 @@ export default function App() {
       console.warn('LocalStorage save application notice:', lsErr);
     }
 
-    // 3. Increase applicant count on vacancy
+    // 4. Increase applicant count on vacancy
     setVacancies((prev) =>
       prev.map((v) => (v.id === vacancy.id ? { ...v, applicantsCount: (v.applicantsCount || 0) + 1 } : v))
     );
 
-    // 4. Sync to Firestore in background
+    // 5. Sync to Firestore in background
     try {
       await saveApplicationDirectToFirestore(newApp);
     } catch (e) {
@@ -897,8 +1145,8 @@ export default function App() {
       postedDate: newJob.postedDate || today,
       deadline: newJob.deadline || deadlineDate,
       isFeatured: newJob.isFeatured ?? false,
-      isApproved: false, // Moderation required! Admin must approve before public listing in Vacancies
-      status: 'pending_review',
+      isApproved: true,
+      status: 'published',
       editCount: isEdit ? ((existingJob?.editCount || 0) + 1) : 0,
       maxEditsAllowed: 1,
       lastEditedAt: isEdit ? new Date().toISOString() : undefined,
@@ -914,10 +1162,10 @@ export default function App() {
 
     if (isEdit) {
       setVacancies((prev) => prev.map((v) => (v.id === fullJob.id ? fullJob : v)));
-      showToast('Vakansiya uğurla redaktə edildi və admin təsdiqinə göndərildi (1/1 hüquq istifadə olundu).');
+      showToast('Vakansiya uğurla redaktə edildi və yeniləndi!');
     } else {
       setVacancies((prev) => [fullJob, ...prev]);
-      showToast('Vakansiya qeydə alındı! Admin təsdiqindən sonra saytda dərc ediləcək.');
+      showToast('Vakansiya dərhal dərc edildi və bütün platformada aktivləşdirildi!');
     }
 
     // Persist to Firestore
@@ -1169,7 +1417,7 @@ export default function App() {
           onRoleChange={(role) => setCurrentRole(role)}
           candidateTab={candidateTab}
           onCandidateTabChange={(tab) => setCandidateTab(tab)}
-          applicationsCount={currentRole === 'candidate' ? candidateVisibleApplications.length : applications.length}
+          applicationsCount={roleApplicationsCount}
           savedJobsCount={savedJobIds.length}
           activeVacanciesCount={vacancies.filter((v) => v.isApproved !== false).length}
           pendingApprovalsCount={vacancies.filter((v) => v.isApproved === false).length}
@@ -1180,6 +1428,7 @@ export default function App() {
             setUserToVerify(u);
             setIsVerifyModalOpen(true);
           }}
+          onOpenProfileModal={handleOpenProfileModal}
           onOpenPricing={() => setIsPricingViewOpen(true)}
           onLogout={handleLogout}
         />
@@ -1222,8 +1471,32 @@ export default function App() {
           currentRole={currentRole}
           onOpenPricing={() => setIsPricingViewOpen(true)}
           onOpenAuthModal={handleOpenAuth}
+          onOpenProfileModal={handleOpenProfileModal}
           onLogout={handleLogout}
         />
+
+        {/* User Profile & Email Notification Preferences Modal */}
+        {isProfileModalOpen && currentUser && (
+          <UserProfileModal
+            isOpen={isProfileModalOpen}
+            onClose={() => setIsProfileModalOpen(false)}
+            currentUser={currentUser}
+            initialTab={profileModalTab}
+            onUpdateUser={(updatedUser) => {
+              setCurrentUser(updatedUser);
+              showToast('Tənzimləmələr və bildiriş parametrləri uğurla yadda saxlanıldı!');
+            }}
+            onOpenVerifyModal={(u) => {
+              setIsProfileModalOpen(false);
+              setUserToVerify(u);
+              setIsVerifyModalOpen(true);
+            }}
+            onOpenPricing={() => {
+              setIsProfileModalOpen(false);
+              setIsPricingViewOpen(true);
+            }}
+          />
+        )}
       </div>
     );
   }
@@ -1236,7 +1509,7 @@ export default function App() {
         onRoleChange={handleRoleChangeWithRBAC}
         candidateTab={candidateTab}
         onCandidateTabChange={(tab) => setCandidateTab(tab)}
-        applicationsCount={currentRole === 'candidate' ? candidateVisibleApplications.length : applications.length}
+        applicationsCount={roleApplicationsCount}
         savedJobsCount={savedJobIds.length}
         activeVacanciesCount={vacancies.filter((v) => v.isApproved !== false).length}
         pendingApprovalsCount={vacancies.filter((v) => v.isApproved === false).length}
@@ -1250,6 +1523,7 @@ export default function App() {
         currentUser={currentUser}
         currentSubscription={currentSubscription}
         onOpenAuthModal={handleOpenAuth}
+        onOpenProfileModal={handleOpenProfileModal}
         onOpenPricing={() => setIsPricingViewOpen(true)}
         onLogout={handleLogout}
         onPostJobClick={handleAttemptPostJob}
@@ -1275,7 +1549,7 @@ export default function App() {
             if (currentRole !== 'candidate') handleRoleChangeWithRBAC('candidate');
             if (candidateTab !== 'jobs') setCandidateTab('jobs');
           }}
-          applicationsCount={currentRole === 'candidate' ? candidateVisibleApplications.length : applications.length}
+          applicationsCount={roleApplicationsCount}
           savedJobsCount={savedJobIds.length}
           activeVacanciesCount={vacancies.filter((v) => v.isApproved !== false).length}
           pendingApprovalsCount={vacancies.filter((v) => v.isApproved === false).length}
@@ -1295,6 +1569,7 @@ export default function App() {
             setUserToVerify(u);
             setIsVerifyModalOpen(true);
           }}
+          onOpenProfileModal={handleOpenProfileModal}
           onOpenPricing={() => setIsPricingViewOpen(true)}
           onLogout={handleLogout}
           onPostJobClick={handleAttemptPostJob}
@@ -1451,6 +1726,8 @@ export default function App() {
                     onOpenCVModal={(app) => setViewingSubmittedCVApp(app)}
                     onExploreJobs={() => setCandidateTab('jobs')}
                     onViewOffer={(offer) => setActivePortalOffer(offer)}
+                    currentUser={currentUser}
+                    onOpenAuthModal={(mode, role) => handleOpenAuth(mode || 'login', role || 'candidate')}
                   />
                 )}
 
@@ -1507,17 +1784,35 @@ export default function App() {
 
             {/* ADMIN ROLE VIEW */}
             {currentRole === 'admin' && (
-              <AdminDashboard
-                vacancies={vacancies}
-                companies={companies}
-                applications={applications}
-                onApproveVacancy={handleApproveVacancy}
-                onRejectVacancy={handleRejectVacancy}
-                onToggleFeatureVacancy={handleToggleFeatureVacancy}
-                onDeleteVacancy={handleDeleteVacancy}
-                onToggleCompanyVerified={handleToggleCompanyVerified}
-                onRefresh={handleRefreshAdminData}
-              />
+              currentUser?.role === 'admin' ? (
+                <AdminDashboard
+                  vacancies={vacancies}
+                  companies={companies}
+                  applications={applications}
+                  onApproveVacancy={handleApproveVacancy}
+                  onRejectVacancy={handleRejectVacancy}
+                  onToggleFeatureVacancy={handleToggleFeatureVacancy}
+                  onDeleteVacancy={handleDeleteVacancy}
+                  onToggleCompanyVerified={handleToggleCompanyVerified}
+                  onRefresh={handleRefreshAdminData}
+                />
+              ) : (
+                <div className="max-w-md mx-auto py-16 px-4 text-center space-y-4">
+                  <div className="w-14 h-14 bg-slate-100 text-slate-700 rounded-2xl flex items-center justify-center mx-auto border border-slate-200 shadow-2xs">
+                    <ShieldCheck className="w-7 h-7 text-blue-600" />
+                  </div>
+                  <h2 className="text-lg font-bold text-slate-900">Admin Girişi Tələb Olunur</h2>
+                  <p className="text-xs text-slate-500 leading-relaxed">
+                    Bu panel yalnız sistem inzibatçısı səlahiyyətinə malik hesablar üçün nəzərdə tutulub. Davam etmək üçün admin hesabınızla daxil olun.
+                  </p>
+                  <button
+                    onClick={() => handleOpenAuth('login', 'admin')}
+                    className="px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold shadow-xs transition-colors cursor-pointer"
+                  >
+                    Admin Hesabı ilə Daxil Ol
+                  </button>
+                </div>
+              )
             )}
           </>
         )}
@@ -1818,6 +2113,29 @@ export default function App() {
         }}
       />
 
+      {/* User Profile & Notification / Email Preferences Modal */}
+      {isProfileModalOpen && currentUser && (
+        <UserProfileModal
+          isOpen={isProfileModalOpen}
+          onClose={() => setIsProfileModalOpen(false)}
+          currentUser={currentUser}
+          initialTab={profileModalTab}
+          onUpdateUser={(updatedUser) => {
+            setCurrentUser(updatedUser);
+            showToast('Tənzimləmələr və bildiriş parametrləri uğurla yadda saxlanıldı!');
+          }}
+          onOpenVerifyModal={(u) => {
+            setIsProfileModalOpen(false);
+            setUserToVerify(u);
+            setIsVerifyModalOpen(true);
+          }}
+          onOpenPricing={() => {
+            setIsProfileModalOpen(false);
+            setIsPricingViewOpen(true);
+          }}
+        />
+      )}
+
         {/* Footer with large logo and sweet slogan */}
         <Footer
           currentRole={currentRole}
@@ -1843,6 +2161,7 @@ export default function App() {
         currentRole={currentRole}
         onOpenPricing={() => setIsPricingViewOpen(true)}
         onOpenAuthModal={handleOpenAuth}
+        onOpenProfileModal={handleOpenProfileModal}
         onLogout={handleLogout}
       />
     </div>

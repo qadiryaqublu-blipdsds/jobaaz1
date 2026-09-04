@@ -1,5 +1,5 @@
 import React from 'react';
-import { Application, ApplicationStatus, JobOffer } from '../../types';
+import { Application, ApplicationStatus, JobOffer, User } from '../../types';
 import { 
   CheckCircle2, 
   Building2, 
@@ -8,7 +8,10 @@ import {
   Eye, 
   Briefcase,
   Award,
-  ChevronRight
+  ChevronRight,
+  LogIn,
+  UserPlus,
+  Sparkles
 } from 'lucide-react';
 import { JobiaSectionFooter } from '../JobiaSectionFooter';
 
@@ -18,6 +21,8 @@ interface MyApplicationsProps {
   onOpenCVModal: (app: Application) => void;
   onExploreJobs: () => void;
   onViewOffer?: (offer: JobOffer) => void;
+  currentUser?: User | null;
+  onOpenAuthModal?: (mode?: 'login' | 'register', role?: 'candidate' | 'business') => void;
 }
 
 export const MyApplications: React.FC<MyApplicationsProps> = ({
@@ -26,6 +31,8 @@ export const MyApplications: React.FC<MyApplicationsProps> = ({
   onOpenCVModal,
   onExploreJobs,
   onViewOffer,
+  currentUser,
+  onOpenAuthModal,
 }) => {
   const getStatusBadge = (status: ApplicationStatus) => {
     switch (status) {
@@ -55,35 +62,100 @@ export const MyApplications: React.FC<MyApplicationsProps> = ({
             <span>Mənim Vakansiya Müraciətlərim ({applications.length})</span>
           </h2>
           <p className="text-xs text-slate-500 mt-0.5">
-            Göndərdiyiniz CV-lər, şirkətlərin baxış statusları, müsahibə bildirişləri və rəsmi iş təklifləri.
+            {currentUser 
+              ? 'Göndərdiyiniz CV-lər, şirkətlərin baxış statusları, müsahibə bildirişləri və rəsmi iş təklifləri.'
+              : 'Yalnız sizin bu cihazdan göndərdiyiniz müraciətlər burada əks olunur.'}
           </p>
         </div>
 
         <button
           onClick={onExploreJobs}
-          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg flex items-center gap-1.5 shadow-sm transition-colors"
+          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg flex items-center gap-1.5 shadow-sm transition-colors cursor-pointer"
         >
           <Briefcase className="w-3.5 h-3.5" />
           <span>Yeni Vakansiyalar Axtar</span>
         </button>
       </div>
 
-      {applications.length === 0 ? (
-        <div className="bg-white rounded-xl border border-slate-200 p-12 text-center space-y-3 shadow-sm">
-          <div className="w-12 h-12 rounded-full bg-slate-100 text-slate-400 mx-auto flex items-center justify-center">
-            <Briefcase className="w-6 h-6" />
+      {/* Guest Notice if unauthenticated but has local guest applications */}
+      {!currentUser && applications.length > 0 && (
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-2xs">
+          <div className="flex items-center gap-2.5 text-xs text-amber-900">
+            <Sparkles className="w-4 h-4 text-amber-600 shrink-0" />
+            <span>
+              Bu müraciətlər cari cihazınızda qeydiyyatsız göndərilib. Məlumatları itirməmək və işəgötürənlərin cavablarını bütün cihazlardan izləmək üçün daxil olun.
+            </span>
           </div>
-          <h3 className="text-base font-bold text-slate-800">Hələ heç bir vakansiyaya müraciət etməmisiniz</h3>
-          <p className="text-xs text-slate-500 max-w-sm mx-auto">
-            Vakansiyalar bölməsinə keçid edərək sizə uyğun iş elanlarına 1 kliklə CV-nizi göndərə bilərsiniz.
-          </p>
-          <button
-            onClick={onExploreJobs}
-            className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition-colors inline-block shadow-sm"
-          >
-            Vakansiyalara Bax
-          </button>
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={() => onOpenAuthModal?.('login', 'candidate')}
+              className="px-3 py-1.5 bg-white border border-amber-300 hover:bg-amber-100 text-amber-900 text-xs font-bold rounded-lg cursor-pointer transition-colors"
+            >
+              Daxil Ol
+            </button>
+            <button
+              onClick={() => onOpenAuthModal?.('register', 'candidate')}
+              className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-lg cursor-pointer transition-colors shadow-2xs"
+            >
+              Qeydiyyat
+            </button>
+          </div>
         </div>
+      )}
+
+      {/* Empty State: Differentiated for Unauthenticated Guest vs Authenticated User */}
+      {applications.length === 0 ? (
+        !currentUser ? (
+          <div className="bg-white rounded-xl border border-slate-200 p-8 sm:p-12 text-center space-y-4 shadow-sm max-w-xl mx-auto">
+            <div className="w-14 h-14 rounded-2xl bg-blue-50 text-blue-600 mx-auto flex items-center justify-center border border-blue-100 shadow-2xs">
+              <CheckCircle2 className="w-7 h-7" />
+            </div>
+            <div className="space-y-1.5">
+              <h3 className="text-lg font-bold text-slate-900">Mənim Müraciətlərim Bölməsi</h3>
+              <p className="text-xs text-slate-500 leading-relaxed max-w-md mx-auto">
+                Göndərdiyiniz CV sənədlərini, şirkətlərin baxış statusunu, müsahibə dəvətlərini və rəsmi elektron iş təkliflərini izləmək üçün daxil olun və ya qeydiyyatdan keçin.
+              </p>
+            </div>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-2.5 pt-2">
+              <button
+                onClick={() => onOpenAuthModal?.('login', 'candidate')}
+                className="w-full sm:w-auto px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                <LogIn className="w-3.5 h-3.5" />
+                <span>Daxil Ol</span>
+              </button>
+              <button
+                onClick={() => onOpenAuthModal?.('register', 'candidate')}
+                className="w-full sm:w-auto px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl shadow-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                <UserPlus className="w-3.5 h-3.5" />
+                <span>Yeni Qeydiyyat</span>
+              </button>
+              <button
+                onClick={onExploreJobs}
+                className="w-full sm:w-auto px-5 py-2.5 border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-semibold rounded-xl transition-colors cursor-pointer"
+              >
+                Vakansiyalara Bax
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="bg-white rounded-xl border border-slate-200 p-12 text-center space-y-3 shadow-sm">
+            <div className="w-12 h-12 rounded-full bg-slate-100 text-slate-400 mx-auto flex items-center justify-center">
+              <Briefcase className="w-6 h-6" />
+            </div>
+            <h3 className="text-base font-bold text-slate-800">Hələ heç bir vakansiyaya müraciət etməmisiniz</h3>
+            <p className="text-xs text-slate-500 max-w-sm mx-auto">
+              Vakansiyalar bölməsinə keçid edərək sizə uyğun iş elanlarına 1 kliklə CV-nizi göndərə bilərsiniz.
+            </p>
+            <button
+              onClick={onExploreJobs}
+              className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition-colors inline-block shadow-sm cursor-pointer"
+            >
+              Vakansiyalara Bax
+            </button>
+          </div>
+        )
       ) : (
         <div className="space-y-3">
           {applications.map((app) => {

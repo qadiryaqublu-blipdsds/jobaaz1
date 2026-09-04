@@ -1,7 +1,7 @@
 import React from 'react';
 import { User, UserRole, UserSubscription } from '../types';
 import { useLanguage } from '../context/LanguageContext';
-import { Crown, Sparkles, LogIn, LogOut, User as UserIcon } from 'lucide-react';
+import { Crown, Sparkles, LogIn, LogOut, User as UserIcon, Settings } from 'lucide-react';
 
 interface MobileFrozenBottomBarProps {
   currentUser?: User | null;
@@ -9,6 +9,7 @@ interface MobileFrozenBottomBarProps {
   currentRole?: UserRole;
   onOpenPricing?: () => void;
   onOpenAuthModal?: (mode?: 'login' | 'register', role?: UserRole) => void;
+  onOpenProfileModal?: (initialTab?: 'profile' | 'settings' | 'security') => void;
   onLogout?: () => void;
 }
 
@@ -18,6 +19,7 @@ export const MobileFrozenBottomBar: React.FC<MobileFrozenBottomBarProps> = ({
   currentRole = 'candidate',
   onOpenPricing,
   onOpenAuthModal,
+  onOpenProfileModal,
   onLogout,
 }) => {
   const { dict, language } = useLanguage();
@@ -57,8 +59,13 @@ export const MobileFrozenBottomBar: React.FC<MobileFrozenBottomBarProps> = ({
 
         {/* 2. Daxil ol / Qeydiyyat or User Profile */}
         {currentUser ? (
-          <div className="flex-1 min-h-[42px] flex items-center justify-between gap-2 bg-slate-100/90 border border-slate-200/90 rounded-xl px-2.5 py-1.5 shadow-2xs">
-            <div className="flex items-center gap-2 min-w-0">
+          <div className="flex-1 min-h-[42px] flex items-center justify-between gap-1.5 bg-slate-100/90 border border-slate-200/90 rounded-xl px-2.5 py-1.5 shadow-2xs">
+            <button
+              type="button"
+              onClick={() => onOpenProfileModal?.('settings')}
+              className="flex items-center gap-2 min-w-0 text-left cursor-pointer focus:outline-hidden"
+              title="Profil və Bildiriş Tənzimləmələri"
+            >
               <img
                 src={currentUser.avatarUrl || `https://api.dicebear.com/7.x/initials/svg?seed=${currentUser.fullName}`}
                 alt={currentUser.fullName}
@@ -69,22 +76,35 @@ export const MobileFrozenBottomBar: React.FC<MobileFrozenBottomBarProps> = ({
                   {currentUser.fullName.split(' ')[0]}
                 </div>
                 <div className="text-[10px] text-slate-500 font-medium capitalize truncate">
-                  {currentUser.role === 'business' ? 'İşəgötürən' : currentUser.role === 'admin' ? 'Admin' : 'Namizəd'}
+                  Tənzimləmələr ⚙️
                 </div>
               </div>
-            </div>
+            </button>
 
-            {onLogout && (
-              <button
-                id="mobile-freeze-logout-btn"
-                type="button"
-                onClick={onLogout}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 active:scale-95 transition-all cursor-pointer shrink-0"
-                title={dict.nav.logout}
-              >
-                <LogOut className="w-4 h-4" />
-              </button>
-            )}
+            <div className="flex items-center gap-0.5 shrink-0">
+              {onOpenProfileModal && (
+                <button
+                  id="mobile-freeze-settings-btn"
+                  type="button"
+                  onClick={() => onOpenProfileModal('settings')}
+                  className="p-1.5 rounded-lg text-slate-500 hover:text-blue-600 hover:bg-blue-50 active:scale-95 transition-all cursor-pointer"
+                  title="Tənzimləmələr"
+                >
+                  <Settings className="w-4 h-4" />
+                </button>
+              )}
+              {onLogout && (
+                <button
+                  id="mobile-freeze-logout-btn"
+                  type="button"
+                  onClick={onLogout}
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 active:scale-95 transition-all cursor-pointer"
+                  title={dict.nav.logout}
+                >
+                  <LogOut className="w-4 h-4" />
+                </button>
+              )}
+            </div>
           </div>
         ) : (
           onOpenAuthModal && (

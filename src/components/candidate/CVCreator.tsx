@@ -291,6 +291,82 @@ export const CVCreator: React.FC<CVCreatorProps> = ({
 
   const currentLanguage: CVLanguage = cvData.language || 'az';
 
+  const applyClientFallback = (data: CVData, lang: CVLanguage): CVData => {
+    const jobMap: Record<string, Record<string, string>> = {
+      en: { 'Baş Mühasib': 'Chief Accountant', 'Mühasib': 'Accountant', 'Proqramçı': 'Software Developer', 'Dizayner': 'Designer', 'Menecer': 'Manager', 'Mütəxəssis': 'Specialist' },
+      ru: { 'Baş Mühasib': 'Главный бухгалтер', 'Mühasib': 'Бухгалтер', 'Proqramçı': 'Разработчик ПО', 'Dizayner': 'Дизайнер', 'Menecer': 'Менеджер', 'Mütəxəssis': 'Специалист' },
+      tr: { 'Baş Mühasib': 'Baş Muhasebeci', 'Mühasib': 'Muhasebeci', 'Proqramçı': 'Yazılım Geliştirici', 'Dizayner': 'Tasarımcı', 'Menecer': 'Müdür', 'Mütəxəssis': 'Uzman' },
+      az: { 'Chief Accountant': 'Baş Mühasib', 'Accountant': 'Mühasib', 'Software Developer': 'Proqramçı' }
+    };
+    const degMap: Record<string, Record<string, string>> = {
+      en: { 'Bakalavr': "Bachelor's Degree", 'Magistr': "Master's Degree", 'Doktorantura': 'Doctorate / PhD', 'Orta': 'Secondary School', 'Orta ixtisas': 'Vocational Education' },
+      ru: { 'Bakalavr': 'Бакалавр', 'Magistr': 'Магистр', 'Doktorantura': 'Докторантура', 'Orta': 'Среднее', 'Orta ixtisas': 'Среднее специальное' },
+      tr: { 'Bakalavr': 'Lisans', 'Magistr': 'Yüksek Lisans', 'Doktorantura': 'Doktora', 'Orta': 'Lise', 'Orta ixtisas': 'Meslek Yüksekokulu' },
+      az: { 'Bachelor': 'Bakalavr', 'Master': 'Magistr' }
+    };
+    const lvlMap: Record<string, Record<string, string>> = {
+      en: { 'Başlanğıc': 'Beginner', 'Orta': 'Intermediate', 'Yaxşı': 'Advanced', 'Əla': 'Expert', 'Ana dili': 'Native' },
+      ru: { 'Başlanğıc': 'Начальный', 'Orta': 'Средний', 'Yaxşı': 'Продвинутый', 'Əla': 'Эксперт', 'Ana dili': 'Родной' },
+      tr: { 'Başlanğıc': 'Başlangıç', 'Orta': 'Orta', 'Yaxşı': 'İleri', 'Əla': 'Uzman', 'Ana dili': 'Ana dil' },
+      az: { 'Beginner': 'Başlanğıc', 'Intermediate': 'Orta', 'Advanced': 'Yaxşı', 'Expert': 'Əla', 'Native': 'Ana dili' }
+    };
+    const langNamesMap: Record<string, Record<string, string>> = {
+      en: { 'Azərbaycan dili': 'Azerbaijani', 'İngilis dili': 'English', 'Rus dili': 'Russian', 'Türk dili': 'Turkish' },
+      ru: { 'Azərbaycan dili': 'Азербайджанский', 'İngilis dili': 'Английский', 'Rus dili': 'Русский', 'Türk dili': 'Турецкий' },
+      tr: { 'Azərbaycan dili': 'Azerbaycanca', 'İngilis dili': 'İngilizce', 'Rus dili': 'Rusça', 'Türk dili': 'Türkçe' },
+      az: { 'Azerbaijani': 'Azərbaycan dili', 'English': 'İngilis dili', 'Russian': 'Rus dili', 'Turkish': 'Türk dili' }
+    };
+
+    const targetJobs = jobMap[lang] || {};
+    const targetDegs = degMap[lang] || {};
+    const targetLvls = lvlMap[lang] || {};
+    const targetLangs = langNamesMap[lang] || {};
+
+    return {
+      ...data,
+      language: lang,
+      personalInfo: {
+        ...data.personalInfo,
+        jobTitle: targetJobs[data.personalInfo?.jobTitle || ''] || data.personalInfo?.jobTitle || ''
+      },
+      experiences: (data.experiences || []).map((exp) => ({
+        ...exp,
+        position: targetJobs[exp.position || ''] || exp.position || ''
+      })),
+      education: (data.education || []).map((edu) => ({
+        ...edu,
+        degree: targetDegs[edu.degree || ''] || edu.degree || ''
+      })),
+      skills: (data.skills || []).map((sk) => {
+        let mappedLevel = sk.level;
+        for (const [k, v] of Object.entries(targetLvls)) {
+          if (sk.level?.includes(k)) {
+            mappedLevel = v as 'Başlanğıc' | 'Orta' | 'Yaxşı' | 'Əla / Ekspert';
+            break;
+          }
+        }
+        return { ...sk, level: mappedLevel };
+      }),
+      languages: (data.languages || []).map((l) => {
+        const orig = l.language || l.name || '';
+        let mappedProf = l.proficiency || l.level || '';
+        for (const [k, v] of Object.entries(targetLvls)) {
+          if (mappedProf.includes(k)) {
+            mappedProf = v;
+            break;
+          }
+        }
+        return {
+          ...l,
+          language: targetLangs[orig] || orig,
+          name: targetLangs[orig] || orig,
+          proficiency: mappedProf,
+          level: mappedProf
+        };
+      })
+    };
+  };
+
   const handleTranslateContentWithAI = async (targetLang: CVLanguage) => {
     setIsTranslating(true);
     const langNames: Record<CVLanguage, string> = {
@@ -308,10 +384,14 @@ export const CVCreator: React.FC<CVCreatorProps> = ({
       language: targetLang
     }));
 
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 12000);
+
     try {
       const res = await fetch('/api/ai/translate-cv', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        signal: controller.signal,
         body: JSON.stringify({
           cvData: {
             ...cvData,
@@ -320,6 +400,10 @@ export const CVCreator: React.FC<CVCreatorProps> = ({
           targetLanguage: targetLang
         })
       });
+      clearTimeout(timeoutId);
+      if (!res.ok) {
+        throw new Error(`Server status: ${res.status}`);
+      }
       const data = await res.json();
       if (data.success && data.cvData) {
         const fullTranslated = {
@@ -332,11 +416,16 @@ export const CVCreator: React.FC<CVCreatorProps> = ({
         } catch (_) {}
         setTranslateNotification(`✅ Bütün CV məzmunu uğurla ${targetName} dilinə tam tərcümə edildi!`);
       } else {
+        const fallback = applyClientFallback(cvData, targetLang);
+        setCvData(fallback);
         setTranslateNotification(`Şablon dili ${targetName} olaraq təyin edildi.`);
       }
     } catch (err) {
-      console.error('AI translation error:', err);
-      setTranslateNotification(`Şablon dili ${targetName} olaraq yeniləndi.`);
+      clearTimeout(timeoutId);
+      console.warn('AI translation fallback notice:', err);
+      const fallback = applyClientFallback(cvData, targetLang);
+      setCvData(fallback);
+      setTranslateNotification(`CV strukturu və şablon ${targetName} dilinə uyğunlaşdırıldı.`);
     } finally {
       setIsTranslating(false);
       setTimeout(() => setTranslateNotification(null), 4000);

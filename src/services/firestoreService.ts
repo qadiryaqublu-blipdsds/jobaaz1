@@ -23,7 +23,8 @@ import {
   CandidateProfile, 
   AppNotification, 
   User,
-  UserRole 
+  UserRole,
+  UserEmailPreferences 
 } from '../types';
 
 export enum OperationType {
@@ -175,6 +176,19 @@ export async function getCompanyVacancies(companyId: string): Promise<Vacancy[]>
   }
 }
 
+export async function getVacancyByIdFromFirestore(jobId: string): Promise<Vacancy | null> {
+  try {
+    const snap = await getDoc(doc(db, 'jobs', jobId));
+    if (snap.exists()) {
+      return { ...snap.data(), id: snap.id } as Vacancy;
+    }
+    return null;
+  } catch (err) {
+    console.error('Error fetching vacancy by ID:', err);
+    return null;
+  }
+}
+
 /**
  * Fetch all vacancies (for admin or search index)
  */
@@ -256,8 +270,8 @@ export async function saveVacancyToFirestore(job: Partial<Vacancy>, userId?: str
     skills: job.skills || [],
     postedDate: job.postedDate || now.split('T')[0],
     deadline: job.deadline || new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0],
-    status: job.status || 'pending_review',
-    isApproved: job.isApproved ?? false,
+    status: job.status || 'published',
+    isApproved: job.isApproved !== undefined ? job.isApproved : true,
     editCount: job.editCount ?? 0,
     maxEditsAllowed: job.maxEditsAllowed ?? 1,
     lastEditedAt: job.lastEditedAt || null as any,
@@ -395,6 +409,26 @@ export async function getAllCompaniesFromFirestore(): Promise<Company[]> {
     console.error('Error fetching all companies:', err);
     return [];
   }
+}
+
+/**
+ * Realtime listener for all companies across devices and browser sessions
+ */
+export function subscribeToAllCompanies(callback: (companies: Company[]) => void) {
+  const q = collection(db, 'companies');
+  return onSnapshot(
+    q,
+    (snap) => {
+      const list: Company[] = [];
+      snap.forEach((d) => {
+        list.push({ ...d.data(), id: d.id } as Company);
+      });
+      callback(list);
+    },
+    (err) => {
+      console.warn('Snapshot error for companies:', err);
+    }
+  );
 }
 
 /**
@@ -640,10 +674,11 @@ export async function getCandidateApplications(candidateId?: string, candidateEm
       });
     }
 
-    if (candidateEmail) {
+    if (candidateEmail && candidateEmail.trim()) {
+      const emailLower = candidateEmail.trim().toLowerCase();
       const qEmail = query(
         collection(db, 'applications'),
-        where('candidateEmail', '==', candidateEmail.trim().toLowerCase())
+        where('candidateEmail', '==', emailLower)
       );
       const snapEmail = await getDocs(qEmail);
       snapEmail.forEach((d) => {
@@ -652,6 +687,20 @@ export async function getCandidateApplications(candidateId?: string, candidateEm
           list.push({ ...d.data(), id: d.id } as Application);
         }
       });
+
+      if (candidateEmail.trim() !== emailLower) {
+        const qEmailExact = query(
+          collection(db, 'applications'),
+          where('candidateEmail', '==', candidateEmail.trim())
+        );
+        const snapExact = await getDocs(qEmailExact);
+        snapExact.forEach((d) => {
+          if (!seenIds.has(d.id)) {
+            seenIds.add(d.id);
+            list.push({ ...d.data(), id: d.id } as Application);
+          }
+        });
+      }
     }
 
     return list;
@@ -664,7 +713,11 @@ export async function getCandidateApplications(candidateId?: string, candidateEm
 /**
  * Get employer's company applications
  */
-export async function getCompanyApplications(companyId: string, companyName?: string): Promise<Application[]> {
+export async function getCompanyApplications(
+  companyId: string, 
+  companyName?: string, 
+  jobIds?: string[]
+): Promise<Application[]> {
   try {
     const list: Application[] = [];
     const seenIds = new Set<string>();
@@ -683,10 +736,10 @@ export async function getCompanyApplications(companyId: string, companyName?: st
       });
     }
 
-    if (companyName) {
+    if (companyName && companyName.trim()) {
       const qName = query(
         collection(db, 'applications'),
-        where('companyName', '==', companyName)
+        where('companyName', '==', companyName.trim())
       );
       const snapName = await getDocs(qName);
       snapName.forEach((d) => {
@@ -697,11 +750,108 @@ export async function getCompanyApplications(companyId: string, companyName?: st
       });
     }
 
+    // Also match applications for vacancies belonging to this company/employer
+    if (Array.isArray(jobIds) && jobIds.length > 0) {
+      // Chunk job IDs by 10 for Firestore 'in' query limit
+      for (let i = 0; i < jobIds.length; i += 10) {
+        const slice = jobIds.slice(i, i + 10);
+        try {
+          const qJobs = query(
+            collection(db, 'applications'),
+            where('vacancyId', 'in', slice)
+          );
+          const snapJobs = await getDocs(qJobs);
+          snapJobs.forEach((d) => {
+            if (!seenIds.has(d.id)) {
+              seenIds.add(d.id);
+              list.push({ ...d.data(), id: d.id } as Application);
+            }
+          });
+        } catch {}
+      }
+    }
+
     return list;
   } catch (err) {
     console.error('Error fetching company applications:', err);
     return [];
   }
+}
+
+/**
+ * Realtime subscription to company applications for cross-network and multi-device updates
+ */
+export function subscribeToCompanyApplications(
+  companyId: string | undefined,
+  companyName: string | undefined,
+  jobIds: string[] | undefined,
+  callback: (apps: Application[]) => void
+) {
+  const q = collection(db, 'applications');
+  const normName = companyName ? companyName.toLowerCase().trim() : '';
+  const validJobIds = new Set(jobIds || []);
+
+  return onSnapshot(
+    q,
+    (snap) => {
+      const list: Application[] = [];
+      snap.forEach((d) => {
+        const data = d.data() as Application;
+        const appCompId = data.companyId;
+        const appCompName = data.companyName ? data.companyName.toLowerCase().trim() : '';
+        const appVacId = data.vacancyId || data.jobId;
+
+        const isMatch =
+          (companyId && appCompId === companyId) ||
+          (normName && appCompName === normName) ||
+          (appVacId && validJobIds.has(appVacId));
+
+        if (isMatch) {
+          list.push({ ...data, id: d.id });
+        }
+      });
+      callback(list);
+    },
+    (err) => {
+      console.warn('Snapshot notice for company applications:', err);
+    }
+  );
+}
+
+/**
+ * Realtime subscription to candidate's own applications across devices
+ */
+export function subscribeToCandidateApplications(
+  candidateId: string | undefined,
+  candidateEmail: string | undefined,
+  callback: (apps: Application[]) => void
+) {
+  const q = collection(db, 'applications');
+  const normEmail = candidateEmail ? candidateEmail.toLowerCase().trim() : '';
+
+  return onSnapshot(
+    q,
+    (snap) => {
+      const list: Application[] = [];
+      snap.forEach((d) => {
+        const data = d.data() as Application;
+        const appCandId = data.candidateId;
+        const appCandEmail = data.candidateEmail ? data.candidateEmail.toLowerCase().trim() : '';
+
+        const isMatch =
+          (candidateId && appCandId === candidateId) ||
+          (normEmail && appCandEmail === normEmail);
+
+        if (isMatch) {
+          list.push({ ...data, id: d.id });
+        }
+      });
+      callback(list);
+    },
+    (err) => {
+      console.warn('Snapshot notice for candidate applications:', err);
+    }
+  );
 }
 
 /**
@@ -1543,6 +1693,51 @@ export async function updateUserRoleInFirestore(userId: string, email: string, r
           users[idx].role = role;
           localStorage.setItem('jobia_users_db', JSON.stringify(users));
         }
+      }
+    }
+  } catch {}
+}
+
+/**
+ * Update user email notification preferences in Firestore & Local storage
+ */
+export async function updateUserEmailPreferencesInFirestore(
+  userId: string,
+  email: string,
+  preferences: UserEmailPreferences
+): Promise<void> {
+  const payload = {
+    emailPreferences: preferences,
+    updatedAt: new Date().toISOString(),
+  };
+
+  try {
+    await updateDoc(doc(db, 'users', userId), payload).catch(async () => {
+      await setDoc(doc(db, 'users', userId), { ...payload, email }, { merge: true });
+    });
+  } catch (err) {
+    console.warn('Firestore email preferences update note:', err);
+  }
+
+  try {
+    const raw = localStorage.getItem('jobia_users_db');
+    if (raw) {
+      const users = JSON.parse(raw);
+      if (Array.isArray(users)) {
+        const idx = users.findIndex((u: any) => u.id === userId || u.email?.toLowerCase() === email.toLowerCase());
+        if (idx >= 0) {
+          users[idx].emailPreferences = preferences;
+          localStorage.setItem('jobia_users_db', JSON.stringify(users));
+        }
+      }
+    }
+
+    const sessionRaw = localStorage.getItem('jobia_auth_session');
+    if (sessionRaw) {
+      const session = JSON.parse(sessionRaw);
+      if (session?.user && (session.user.id === userId || session.user.email?.toLowerCase() === email.toLowerCase())) {
+        session.user.emailPreferences = preferences;
+        localStorage.setItem('jobia_auth_session', JSON.stringify(session));
       }
     }
   } catch {}

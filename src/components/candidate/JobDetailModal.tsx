@@ -120,9 +120,17 @@ export const JobDetailModal: React.FC<JobDetailModalProps> = ({
   }, [isCandidateUser, currentUser, savedCV]);
 
   const handleShare = () => {
-    navigator.clipboard.writeText(window.location.href);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    try {
+      const shareUrl = new URL(window.location.origin + window.location.pathname);
+      shareUrl.searchParams.set('job', vacancy.id);
+      navigator.clipboard.writeText(shareUrl.toString());
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2500);
+    } catch {
+      navigator.clipboard.writeText(`${window.location.origin}/?job=${vacancy.id}`);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2500);
+    }
   };
 
   const handleSaveNote = () => {
