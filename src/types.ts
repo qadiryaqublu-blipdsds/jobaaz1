@@ -311,7 +311,18 @@ export interface CVData {
   certificates: CertificateItem[];
 }
 
-export type CVTemplateType = 'modern-emerald' | 'classic-corporate' | 'minimal-indigo' | 'slate-tech';
+export type CVTemplateType = 
+  | 'modern-emerald' 
+  | 'classic-corporate' 
+  | 'minimal-indigo' 
+  | 'slate-tech'
+  | 'executive-burgundy'
+  | 'creative-coral'
+  | 'compact-ats'
+  | 'nordic-teal'
+  | 'horizon-blue'
+  | 'academic-serif'
+  | 'metro-violet';
 
 export interface Application {
   id: string;

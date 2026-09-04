@@ -20,8 +20,8 @@ import {
 interface HeaderProps {
   currentRole?: UserRole;
   onRoleChange?: (role: UserRole) => void;
-  candidateTab?: 'jobs' | 'cv-builder' | 'cv-analyzer' | 'my-applications' | 'salary-trends' | 'calculia' | 'nearby-map' | 'google-chat';
-  onCandidateTabChange?: (tab: 'jobs' | 'cv-builder' | 'cv-analyzer' | 'my-applications' | 'salary-trends' | 'calculia' | 'nearby-map' | 'google-chat') => void;
+  candidateTab?: 'jobs' | 'my-applications' | 'salary-trends' | 'calculia' | 'nearby-map' | 'google-chat' | 'cv-analyzer';
+  onCandidateTabChange?: (tab: 'jobs' | 'my-applications' | 'salary-trends' | 'calculia' | 'nearby-map' | 'google-chat' | 'cv-analyzer') => void;
   applicationsCount?: number;
   activeVacanciesCount?: number;
   pendingApprovalsCount?: number;

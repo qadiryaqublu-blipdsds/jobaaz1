@@ -1,8 +1,6 @@
 import React, { useState } from 'react';
 import { 
   Search, 
-  FileText, 
-  Sparkles, 
   Calculator, 
   Building2, 
   CheckCircle2, 
@@ -22,7 +20,7 @@ import { useLanguage } from '../context/LanguageContext';
 interface IntroTourModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onNavigateToTab?: (tab: 'jobs' | 'cv-builder' | 'cv-analyzer' | 'salary-trends' | 'calculia', role?: 'candidate' | 'business') => void;
+  onNavigateToTab?: (tab: 'jobs' | 'salary-trends' | 'calculia', role?: 'candidate' | 'business') => void;
 }
 
 export const IntroTourModal: React.FC<IntroTourModalProps> = ({
@@ -101,72 +99,6 @@ export const IntroTourModal: React.FC<IntroTourModalProps> = ({
         az: 'Vakansiyaları Göstər',
         en: 'View Vacancies',
         ru: 'Посмотреть вакансии'
-      }
-    },
-    {
-      id: 'cv-builder',
-      icon: FileText,
-      badgeColor: 'bg-blue-600 text-white',
-      glowColor: 'from-blue-600 to-cyan-600',
-      title: {
-        az: 'Peşəkar CV Hazırlayıcı (CV Builder)',
-        en: 'Professional Resume Builder',
-        ru: 'Профессиональный конструктор резюме'
-      },
-      subtitle: {
-        az: 'Müasir şablonlar, avtomatik doldurma və PDF ixracı',
-        en: 'Modern templates, auto-formatting, and instant PDF export',
-        ru: 'Современные шаблоны, автозаполнение и экспорт в PDF'
-      },
-      description: {
-        az: 'Təcrübənizi, təhsilinizi və bacarıqlarınızı addım-addım qeyd edərək beynəlxalq standartlara uyğun, gözoxşayan CV yaradın. İstənilən vaxt PDF formatında endirin.',
-        en: 'Step-by-step guidance to list your experience, education, and skills. Generate internationally formatted, recruiter-ready resumes in PDF.',
-        ru: 'Пошаговый ввод опыта, образования и навыков. Создавайте профессиональные резюме по международным стандартам и скачивайте PDF.'
-      },
-      highlights: [
-        { az: 'Geniş şablon seçimi və real-vaxt önbaxış', en: 'Multiple templates & real-time preview', ru: 'Разнообразие шаблонов и предпросмотр' },
-        { az: 'Tək kliklə yüksək keyfiyyətli PDF çıxarışı', en: '1-click high-res PDF export', ru: 'Скачивание PDF в один клик' },
-        { az: 'Daimi saxlanma və istənilən vaxt redaktə', en: 'Persistent storage & easy editing', ru: 'Автосохранение и легкое редактирование' },
-      ],
-      actionTab: 'cv-builder' as const,
-      actionRole: 'candidate' as const,
-      actionLabel: {
-        az: 'CV Hazırlayıcıya Keç',
-        en: 'Go to CV Builder',
-        ru: 'Перейти в конструктор CV'
-      }
-    },
-    {
-      id: 'ai-analyzer',
-      icon: Sparkles,
-      badgeColor: 'bg-amber-500 text-white',
-      glowColor: 'from-amber-500 to-orange-500',
-      title: {
-        az: 'Süni İntellekt (AI) CV Analizatoru',
-        en: 'AI Resume & ATS Analyzer',
-        ru: 'Анализатор резюме на базе ИИ'
-      },
-      subtitle: {
-        az: 'ATS uyğunluğu, güclü tərəflər və fərdi tövsiyələr',
-        en: 'ATS compatibility score, strengths, and targeted improvement tips',
-        ru: 'Оценка ATS, сильные стороны и персональные рекомендации'
-      },
-      description: {
-        az: 'CV-nizi yükləyin və ya hazırladığınız profili seçin. Süni intellekt mühərrikimiz CV-nizi şirkətlərin tələblərinə uyğun təhlil edərək bal verir və vakansiyalar üzrə uyğunluğu artırmaq üçün dəqiq tövsiyələr təqdim edir.',
-        en: 'Upload your CV or choose your builder profile. Our AI engine evaluates ATS score, points out weaknesses, and advises how to match target job roles.',
-        ru: 'Загрузите резюме или выберите созданный профиль. Наш ИИ проверит его на соответствие ATS, выделит преимущества и подскажет точки роста.'
-      },
-      highlights: [
-        { az: '100 ballıq ATS və uyğunluq balı', en: '100-point ATS & match score', ru: 'Оценка соответствия ATS из 100' },
-        { az: 'Açar sözlər və çatışmayan bacarıqlar', en: 'Keywords & missing skill detection', ru: 'Поиск ключевых слов и недостающих навыков' },
-        { az: 'Müsahibəyə çağırılma şansını artırma tövsiyələri', en: 'Tactical advice to boost interview call rates', ru: 'Советы для повышения шансов на интервью' },
-      ],
-      actionTab: 'cv-analyzer' as const,
-      actionRole: 'candidate' as const,
-      actionLabel: {
-        az: 'AI Analizi Yoxla',
-        en: 'Try AI Analyzer',
-        ru: 'Попробовать AI Анализ'
       }
     },
     {

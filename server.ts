@@ -6,6 +6,8 @@ import { GoogleGenAI, Type } from '@google/genai';
 import { createServer as createViteServer } from 'vite';
 import { PDFParse } from 'pdf-parse';
 import mammoth from 'mammoth';
+import { buildFactualDeepFallback } from './server/deepCvAnalyzer';
+import { buildGeminiCVPrompt, generateRealisticFallbackCV, sanitizeParsedCV } from './server/cvGenerator';
 
 dotenv.config();
 
@@ -67,7 +69,9 @@ let geminiQuotaDepletedUntil = 0;
  */
 async function callGeminiResilient(
   contents: any,
-  config?: any
+  config?: any,
+  preferredModel?: string,
+  timeoutMs: number = 30000
 ): Promise<string> {
   const ai = getAI();
   if (!ai) {
@@ -79,15 +83,22 @@ async function callGeminiResilient(
     throw new Error('AI_QUOTA_DEPLETED');
   }
 
-  // List of valid text models to try in sequence if one is experiencing transient high demand (503)
-  const candidateModels = ['gemini-2.5-flash', 'gemini-2.5-pro', 'gemini-3.8-flash', 'gemini-flash-latest'];
+  const effectiveTimeout = config?.timeoutMs || timeoutMs;
+
+  // Prioritize Gemini 3.8 Flash as requested, followed by robust standard fallbacks
+  const defaultModels = ['gemini-3.8-flash', 'gemini-flash-latest', 'gemini-2.5-flash', 'gemini-3.1-pro-preview'];
+  const candidateModels = preferredModel
+    ? [preferredModel, ...defaultModels.filter(m => m !== preferredModel)]
+    : defaultModels;
   let lastError: any = null;
 
-  for (const model of candidateModels) {
+  for (let i = 0; i < candidateModels.length; i++) {
+    const model = candidateModels[i];
+    let timer: NodeJS.Timeout | null = null;
     try {
-      const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('AI_REQUEST_TIMEOUT')), 10000)
-      );
+      const timeoutPromise = new Promise((_, reject) => {
+        timer = setTimeout(() => reject(new Error('AI_REQUEST_TIMEOUT')), effectiveTimeout);
+      });
 
       const response: any = await Promise.race([
         ai.models.generateContent({
@@ -98,31 +109,55 @@ async function callGeminiResilient(
         timeoutPromise,
       ]);
 
+      if (timer) clearTimeout(timer);
+
       const text = response?.text?.trim();
       if (text) {
         return text;
       }
     } catch (err: any) {
+      if (timer) clearTimeout(timer);
       lastError = err;
       const errMsg = err?.message || String(err);
 
-      // Check if authentication or quota/billing failed (invalid key, depleted prepayment credits, 429 quota exhausted)
-      const isAuthOrQuotaError =
+      // If a timeout happened, don't repeat long multi-model timeouts; fail fast to fallback
+      if (errMsg.includes('AI_REQUEST_TIMEOUT') && i >= 1) {
+        break;
+      }
+
+      // Check if authentication failed
+      const isAuthError =
         errMsg.includes('401') ||
-        errMsg.includes('429') ||
         errMsg.includes('UNAUTHENTICATED') ||
         errMsg.includes('ACCESS_TOKEN_TYPE_UNSUPPORTED') ||
         errMsg.includes('API key not valid') ||
-        errMsg.includes('INVALID_ARGUMENT') ||
+        errMsg.includes('INVALID_ARGUMENT');
+
+      if (isAuthError) {
+        // Set short cooldown so subsequent calls don't hammer the API
+        geminiQuotaDepletedUntil = Date.now() + 60 * 1000;
+        console.log('[Gemini AI Engine] Authentication error encountered. Utilizing offline HR fallback.');
+        throw new Error('AI_UNAVAILABLE');
+      }
+
+      // Check if 429 / quota limit was reached on this specific model
+      const isQuotaOrRateLimit =
+        errMsg.includes('429') ||
         errMsg.includes('RESOURCE_EXHAUSTED') ||
         errMsg.includes('depleted') ||
         errMsg.includes('prepayment') ||
         errMsg.includes('quota');
 
-      if (isAuthOrQuotaError) {
-        // Set cooldown timer (24 hours) so subsequent calls don't hammer the API or log error spam
-        geminiQuotaDepletedUntil = Date.now() + 24 * 60 * 60 * 1000;
-        console.log(`[Gemini AI Notice] API quota or prepayment credit status: ${errMsg.slice(0, 150)}. Using intelligent offline HR fallback.`);
+      if (isQuotaOrRateLimit) {
+        // If there are other candidate models to try, try the next model after a brief pause
+        if (i < candidateModels.length - 1) {
+          await new Promise((r) => setTimeout(r, 400));
+          continue;
+        }
+
+        // All models exhausted or hit quota: set brief 30s cooldown and switch to offline HR fallback
+        geminiQuotaDepletedUntil = Date.now() + 30 * 1000;
+        console.log('[Gemini AI Engine] Rate limit/quota reached on AI provider. Seamlessly applying intelligent offline HR fallback.');
         throw new Error('AI_QUOTA_DEPLETED');
       }
 
@@ -138,7 +173,7 @@ async function callGeminiResilient(
     }
   }
 
-  throw lastError || new Error('Gemini generation unavailable');
+  throw lastError || new Error('AI_GENERATION_FAILED');
 }
 
 // 1. Health check
@@ -186,6 +221,56 @@ Format: hər sətirdə 1 bacarıq. Yalnız Azərbaycan dilində cavab ver.`;
   }
 });
 
+// 2b. Full AI CV Generator Endpoint (Complete Structured CV)
+app.post('/api/ai/generate-full-cv', async (req, res) => {
+  const { jobTitle, experienceLevel, fullName, city, skillsSummary, language, photoUrl } = req.body || {};
+  const requestPayload = {
+    jobTitle: jobTitle || 'Frontend Developer',
+    experienceLevel: experienceLevel || 'mid',
+    fullName: fullName || 'Əli Məmmədov',
+    city: city || 'Bakı, Azərbaycan',
+    skillsSummary,
+    language: language || 'az',
+    photoUrl
+  };
+
+  try {
+    const prompt = buildGeminiCVPrompt(requestPayload);
+    const geminiRaw = await callGeminiResilient(
+      prompt,
+      {
+        responseMimeType: 'application/json',
+        temperature: 0.35,
+        timeoutMs: 25000,
+      },
+      'gemini-3.8-flash'
+    );
+
+    // Clean any accidental markdown wrap
+    const cleanedJson = geminiRaw
+      .replace(/^```(?:json)?\s*/i, '')
+      .replace(/\s*```$/i, '')
+      .trim();
+
+    const parsed = JSON.parse(cleanedJson);
+    const validatedCV = sanitizeParsedCV(parsed, requestPayload);
+
+    return res.json({
+      success: true,
+      cvData: validatedCV,
+      source: 'gemini_ai'
+    });
+  } catch (err: any) {
+    console.log('[AI Full CV Generator] Utilizing intelligent fallback engine:', err?.message || err);
+    const fallbackCV = generateRealisticFallbackCV(requestPayload);
+    return res.json({
+      success: true,
+      cvData: fallbackCV,
+      source: 'domain_fallback'
+    });
+  }
+});
+
 // ==========================================
 // Robust Document Text Extraction (PDF, DOCX, DOC, TXT)
 // ==========================================
@@ -227,7 +312,7 @@ async function extractTextFromBuffer(buffer: Buffer, mimeType?: string, fileName
   if (!buffer || buffer.length === 0) return '';
 
   const lowerName = (fileName || '').toLowerCase();
-  const isPdfHeader = buffer.length >= 4 && buffer.slice(0, 5).toString('ascii').includes('%PDF');
+  const isPdfHeader = buffer.length >= 4 && buffer.slice(0, 1024).toString('ascii').includes('%PDF');
   const isPdf = isPdfHeader || mimeType === 'application/pdf' || lowerName.endsWith('.pdf');
 
   // Check if buffer is actually a ZIP container (PK\x03\x04 or PK\x05\x06)
@@ -242,7 +327,14 @@ async function extractTextFromBuffer(buffer: Buffer, mimeType?: string, fileName
       const res = await parser.getText();
       await parser.destroy();
       if (res?.text && res.text.trim().length > 15) {
-        return res.text.trim();
+        const cleanPdfText = res.text
+          .replace(/--\s*\d+\s+of\s+\d+\s*--/gi, '\n')
+          .replace(/Page\s+\d+\s+of\s+\d+/gi, '\n')
+          .replace(/\f/g, '\n')
+          .replace(/\r\n/g, '\n')
+          .replace(/\n{3,}/g, '\n\n')
+          .trim();
+        return cleanPdfText;
       }
     } catch {
       // PDF parse failed or scanned image, proceed to text fallback
@@ -1893,6 +1985,404 @@ Aşağıdakı JSON sxeminə uyğun olaraq DƏQİQ JSON formatında cavab ver:
     return res.json(factualBaseline);
   } catch {
     return res.json(factualBaseline);
+  }
+});
+
+// ============================================================================
+// 3.00 Dedicated High-Accuracy Gemini 3.8 Flash CV Analyzer
+// Strict Principle: FACTUAL EXTRACTION FIRST -> ANALYSIS SECOND -> GENERATION LAST
+// ZERO HALLUCINATION POLICY: No inventing dates, companies, degrees, or skills
+// ============================================================================
+app.post('/api/ai/deep-cv-analyzer', async (req, res) => {
+  const {
+    cvText,
+    jobDescription,
+    jobDescriptionText,
+    fileBase64,
+    mimeType,
+    fileName,
+    language = 'az'
+  } = req.body;
+
+  const targetJobDescription = (jobDescription || jobDescriptionText || '').trim();
+
+  try {
+    let resolvedText = (cvText || '').trim();
+
+    if (fileBase64 && (!resolvedText || resolvedText.length < 50)) {
+      const extractedFromBuffer = await extractTextFromUpload(fileBase64, mimeType, fileName, resolvedText);
+      if (extractedFromBuffer && extractedFromBuffer.length > 20) {
+        resolvedText = extractedFromBuffer;
+      }
+    }
+
+    const cleanBase64 = fileBase64 && fileBase64.includes(',') ? fileBase64.split(',')[1] : fileBase64;
+    const isMultimodal = Boolean(
+      cleanBase64 &&
+      cleanBase64.length > 100 &&
+      mimeType &&
+      (mimeType.includes('pdf') || mimeType.startsWith('image/'))
+    );
+
+    if (!resolvedText || resolvedText.length < 25) {
+      if (!isMultimodal) {
+        return res.status(400).json({
+          error: 'CV_TEXT_TOO_SHORT',
+          message: language === 'en'
+            ? 'CV content is empty or too short for an accurate factual analysis. Please upload a clear file or paste the full CV text.'
+            : language === 'ru'
+            ? 'Содержимое резюме пустое или слишком короткое. Загрузите файл или вставьте полный текст резюме.'
+            : 'CV məzmunu boşdur və ya çox qısadır. Zəhmət olmasa aydın bir fayl yükləyin və ya tam CV mətnini yapışdırın.'
+        });
+      } else {
+        resolvedText = `[Sənəd PDF/Təsvir formatında təqdim olunub: ${fileName || 'CV faylı'}]`;
+      }
+    }
+
+    const prompt = `You are "Jobia AI CV Analyzer", a professional enterprise-grade AI recruitment and CV analysis engine.
+Your purpose is to analyze CVs/resumes with maximum factual accuracy, strong anti-hallucination protection, ATS compatibility analysis, candidate profiling, career analysis, and job-description matching.
+ACCURACY IS MORE IMPORTANT THAN CREATIVITY. ABSENCE OF INFORMATION MUST NEVER BE INTERPRETED AS NEGATIVE INFORMATION.
+
+CORE OPERATIONAL DIRECTIVES:
+1. ZERO HALLUCINATION:
+   The CV provided by the user is the primary source of truth. NEVER invent, fabricate, assume, or guess candidate name, companies, job titles, employment dates, universities, degrees, skills, certifications, or achievements.
+   If information is not present, return "Not found in CV" or null.
+2. SOURCE EVIDENCE:
+   Every key extracted claim must be traceable to the CV text.
+3. PRESERVE ORIGINAL INFORMATION:
+   Do not silently alter original job titles, company names, institution names, degrees, or dates.
+4. DATE ANALYSIS:
+   Preserve dates as written. Do not guess missing months/years. If "Present"/"Current", mark isCurrent=true. If dates are incomplete or missing, duration="Duration cannot be reliably determined from the CV".
+5. CAREER TIMELINE:
+   Identify earliest known employment, most recent employment, total identifiable experience, and potential gaps ("Potential employment gap detected", never assume unemployment).
+6. SKILLS SEPARATION:
+   Separate EXPLICIT SKILLS (directly written in CV) from INFERRED SKILLS.
+7. ATS SCORE (Exact Deterministic 100-Point Framework):
+   - atsReadability: max 20 pts (layout clarity, text uncorrupted, standard headings)
+   - contentCompleteness: max 20 pts (contacts, experience, education, skills)
+   - keywordOptimization: max 20 pts (domain keywords and tech relevance)
+   - workExperienceStructure: max 15 pts (companies, titles, dates, bullet points)
+   - skillsAlignment: max 10 pts (hard and soft skills clarity)
+   - educationStructure: max 5 pts (degree, institution, dates)
+   - contactInformation: max 5 pts (email and phone presence)
+   - achievementQuality: max 5 pts (quantified metrics vs generic text)
+   TOTAL ATS SCORE = sum of all 8 (0-100). Provide score and explanation for each.
+8. JOB DESCRIPTION MATCHING (If Job Description is provided):
+   Evaluate required and preferred skills, experience, and education:
+   Requirement status MUST be one of: MATCH | PARTIAL MATCH | NOT FOUND | CONTRADICTED | UNKNOWN.
+   Deterministic Job Match Score (0-100%):
+   - Required Skills: 30%
+   - Relevant Experience: 25%
+   - Responsibilities Alignment: 15%
+   - Education: 10%
+   - Keywords: 10%
+   - Certifications: 5%
+   - Languages: 5%
+   TOTAL = 100%.
+9. KEYWORD ANALYSIS:
+   Matched keywords, partially matched, missing keywords, and ethical advice: "Consider adding X only if you genuinely have verifiable experience with X."
+10. ACHIEVEMENT ANALYSIS:
+   Quantified achievements, business-impact achievements, responsibility-based achievements, and generic achievements ("Achievement is described without a measurable result.").
+11. 23-SECTION FINAL OUTPUT JSON SCHEMA:
+    Output language must be ${language === 'en' ? 'English' : language === 'ru' ? 'Russian' : 'Azerbaijani'}.
+
+CV TEXT TO ANALYZE:
+"""
+${resolvedText}
+"""
+${targetJobDescription ? `
+TARGET JOB DESCRIPTION / VACANCY REQUIREMENTS:
+"""
+${targetJobDescription}
+"""
+` : ''}
+
+Respond with VALID JSON ONLY matching this exact schema:
+{
+  "executiveSummary": "Concise factual executive summary",
+  "personalInfo": {
+    "fullName": "Name from CV or Not found in CV",
+    "email": "Email or Not found in CV",
+    "phone": "Phone or Not found in CV",
+    "location": "Location or Not found in CV",
+    "linkedIn": "LinkedIn URL or Not found in CV",
+    "portfolio": "URL or Not found in CV",
+    "website": "URL or Not found in CV",
+    "otherContacts": [],
+    "confidence": "High | Medium | Low",
+    "sourceNotes": "Verification source notes"
+  },
+  "professionalSummary": {
+    "hasOriginalSummary": boolean,
+    "originalSummary": "Original text if in CV",
+    "aiGeneratedSummary": "Factual synthesis based strictly on CV facts",
+    "summaryAnalysis": "Analysis of summary quality"
+  },
+  "workExperience": [
+    {
+      "company": "Company name",
+      "originalJobTitle": "Original title as stated in CV",
+      "position": "Title",
+      "location": "Location or Not specified",
+      "startDate": "Start date as written",
+      "endDate": "End date as written",
+      "isCurrent": boolean,
+      "duration": "Calculated or Duration cannot be reliably determined from the CV",
+      "responsibilities": ["Responsibility 1"],
+      "achievements": ["Quantified or factual achievement"],
+      "tools": ["Tool 1"],
+      "industry": "Industry",
+      "seniorityLevel": "Junior | Mid-Level | Senior | Lead | Not specified",
+      "confidence": "High | Medium | Low",
+      "evidence": "Source quote from CV"
+    }
+  ],
+  "careerTimeline": {
+    "earliestKnownEmployment": "Company and date",
+    "mostRecentEmployment": "Company and title",
+    "totalIdentifiableExperience": "Total duration or Not specified",
+    "careerProgression": "Factual career trajectory",
+    "promotions": [],
+    "industryChanges": [],
+    "functionChanges": [],
+    "potentialEmploymentGaps": [
+      { "period": "Gap dates", "description": "Potential employment gap detected", "note": "Unemployment not assumed" }
+    ]
+  },
+  "totalIdentifiableExperience": "e.g. 5 il və ya Not specified",
+  "education": [
+    {
+      "institution": "Institution name",
+      "degree": "Degree as written",
+      "fieldOfStudy": "Field of study",
+      "startDate": "Date",
+      "endDate": "Date",
+      "graduationStatus": "Graduated | In progress | Not specified",
+      "educationLevel": "Bachelor | Master | PhD | College | Not specified",
+      "institutionType": "University | College | Academy",
+      "confidence": "High | Medium | Low",
+      "evidence": "Source quote from CV"
+    }
+  ],
+  "skills": {
+    "explicitSkills": {
+      "technicalSkills": ["Technical skill explicitly in CV"],
+      "professionalSkills": ["Professional skill explicitly in CV"],
+      "industrySkills": ["Industry skill explicitly in CV"],
+      "softSkills": ["Soft skill explicitly in CV"],
+      "tools": ["Tool explicitly in CV"],
+      "software": ["Software explicitly in CV"],
+      "programmingLanguages": ["Programming language explicitly in CV"],
+      "hrSystems": ["HR system explicitly in CV"],
+      "languages": ["Language explicitly in CV"]
+    },
+    "inferredSkills": [],
+    "technicalSkills": ["Combined tech"],
+    "softSkills": ["Combined soft"],
+    "languages": ["Languages"],
+    "softwareTools": ["Tools"],
+    "industrySkills": ["Industry"],
+    "otherSkills": []
+  },
+  "languages": [
+    { "language": "Language", "proficiency": "Native | Fluent | Intermediate | Not specified", "evidence": "Quote" }
+  ],
+  "certifications": [
+    { "name": "Name", "issuingOrganization": "Org", "date": "Date", "expirationDate": "Date", "credentialId": "ID", "evidence": "Quote" }
+  ],
+  "projects": [
+    { "name": "Project name", "role": "Role", "description": "Desc", "technologies": ["Tech"], "results": "Result", "evidence": "Quote" }
+  ],
+  "awards": [],
+  "publications": [],
+  "volunteering": [],
+  "professionalMemberships": [],
+  "additionalInformation": [],
+  "atsAnalysis": {
+    "atsScore": 0-100,
+    "scoreLabel": "Müsahibəyə Hazır | Təkmilləşmə Tələb Olunur | Yenidən İşlənməlidir",
+    "compatibilityAssessment": "Likely ATS-friendly | Potential ATS parsing risk",
+    "strengths": ["Strength 1"],
+    "issues": ["Issue 1"],
+    "parsingRisks": ["Risk 1"],
+    "criteriaBreakdown": {
+      "contactInfo": { "score": 0-100, "feedback": "Rəy" },
+      "professionalSummary": { "score": 0-100, "feedback": "Rəy" },
+      "workExperience": { "score": 0-100, "feedback": "Rəy" },
+      "education": { "score": 0-100, "feedback": "Rəy" },
+      "skills": { "score": 0-100, "feedback": "Rəy" },
+      "keywords": { "score": 0-100, "feedback": "Rəy" },
+      "jobTitles": { "score": 0-100, "feedback": "Rəy" },
+      "dateConsistency": { "score": 0-100, "feedback": "Rəy" },
+      "formattingReadability": { "score": 0-100, "feedback": "Rəy" },
+      "sectionStructure": { "score": 0-100, "feedback": "Rəy" }
+    }
+  },
+  "atsScoreBreakdown": {
+    "atsReadability": { "score": 0-20, "max": 20, "explanation": "Reason" },
+    "contentCompleteness": { "score": 0-20, "max": 20, "explanation": "Reason" },
+    "keywordOptimization": { "score": 0-20, "max": 20, "explanation": "Reason" },
+    "workExperienceStructure": { "score": 0-15, "max": 15, "explanation": "Reason" },
+    "skillsAlignment": { "score": 0-10, "max": 10, "explanation": "Reason" },
+    "educationStructure": { "score": 0-5, "max": 5, "explanation": "Reason" },
+    "contactInformation": { "score": 0-5, "max": 5, "explanation": "Reason" },
+    "achievementQuality": { "score": 0-5, "max": 5, "explanation": "Reason" },
+    "totalScore": 0-100
+  },
+  "keywordAnalysis": {
+    "matchedKeywords": ["Keyword 1"],
+    "partiallyMatchedKeywords": ["Keyword 2"],
+    "missingKeywords": ["Keyword 3"],
+    "ethicalRecommendations": ["Consider adding X only if you genuinely have verifiable experience with X."]
+  },
+  ${targetJobDescription ? `"jobMatchAnalysis": {
+    "hasJobDescription": true,
+    "targetJobTitle": "Title",
+    "requiredSkillsScore": { "score": 0-30, "max": 30, "explanation": "Reason" },
+    "relevantExperienceScore": { "score": 0-25, "max": 25, "explanation": "Reason" },
+    "responsibilitiesAlignmentScore": { "score": 0-15, "max": 15, "explanation": "Reason" },
+    "educationScore": { "score": 0-10, "max": 10, "explanation": "Reason" },
+    "keywordsScore": { "score": 0-10, "max": 10, "explanation": "Reason" },
+    "certificationsScore": { "score": 0-5, "max": 5, "explanation": "Reason" },
+    "languagesScore": { "score": 0-5, "max": 5, "explanation": "Reason" },
+    "totalMatchScore": 0-100,
+    "matchLevel": "High | Moderate | Low | Insufficient Evidence",
+    "summary": "Match summary",
+    "requirements": [
+      {
+        "requirement": "Requirement name",
+        "category": "Required Skill | Preferred Skill | Experience | Education | Certification | Language | Responsibility | Keyword",
+        "status": "MATCH | PARTIAL MATCH | NOT FOUND | CONTRADICTED | UNKNOWN",
+        "evidence": "Exact source quote from CV or 'Not found in CV'",
+        "note": "Note"
+      }
+    ]
+  },
+  "jobMatchScore": 0-100,` : ''}
+  "strengths": ["Strength 1", "Strength 2"],
+  "weaknesses": ["Weakness 1"],
+  "missingInformation": ["Missing info 1"],
+  "potentialConflicts": [],
+  "potentialEmploymentGaps": ["Gap 1"],
+  "recommendations": ["Recommendation 1", "Recommendation 2"],
+  "evidenceReferences": [
+    { "fact": "Fact description", "sourceQuote": "Exact quote from CV", "confidence": "High | Medium | Low" }
+  ],
+  "experienceRelevance": [
+    { "company": "Company", "position": "Position", "relevanceType": "Directly Relevant | Related | Unrelated", "reason": "Reason", "evidence": "Quote" }
+  ],
+  "achievementAnalysis": {
+    "quantifiedAchievements": ["Quantified result 1"],
+    "businessImpactAchievements": ["Impact 1"],
+    "responsibilityBasedAchievements": ["Responsibility 1"],
+    "genericAchievements": ["Generic item (Achievement is described without a measurable result.)"]
+  },
+  "qualityAnalysis": {
+    "contentQuality": { "score": 0-100, "feedback": "Rəy" },
+    "structure": { "score": 0-100, "feedback": "Rəy" },
+    "clarity": { "score": 0-100, "feedback": "Rəy" },
+    "professionalism": { "score": 0-100, "feedback": "Rəy" },
+    "consistency": { "score": 0-100, "feedback": "Rəy" },
+    "relevance": { "score": 0-100, "feedback": "Rəy" },
+    "grammar": { "score": 0-100, "feedback": "Rəy" },
+    "keywordUsage": { "score": 0-100, "feedback": "Rəy" },
+    "achievementOrientation": { "score": 0-100, "feedback": "Rəy" }
+  },
+  "redFlags": [
+    { "type": "Type", "severity": "low | medium | high", "description": "Description", "detail": "Detail" }
+  ],
+  "candidateProfile": {
+    "careerLevel": "Entry | Junior | Mid-Level | Senior | Lead",
+    "primaryProfession": "Primary profession",
+    "mainIndustry": "Main industry",
+    "totalExperience": "Duration",
+    "keySkills": ["Skills"],
+    "educationLevel": "Education level",
+    "languages": ["Languages"],
+    "certifications": ["Certifications"],
+    "mainStrengths": ["Strengths"]
+  },
+  "jobMatchingProfile": {
+    "matchableSkills": ["Skills"],
+    "matchableTitles": ["Titles"],
+    "experienceMonths": 0,
+    "highestEducationLevel": "Level",
+    "seniority": "Seniority",
+    "industry": "Industry",
+    "languages": ["Languages"],
+    "certifications": ["Certifications"]
+  }
+}`;
+
+    // Cap excessive CV text to 25,000 chars to ensure ultra-fast processing
+    if (resolvedText.length > 25000) {
+      resolvedText = resolvedText.slice(0, 25000);
+    }
+
+    let promptContents: any;
+    if (isMultimodal && cleanBase64) {
+      promptContents = [
+        {
+          inlineData: {
+            data: cleanBase64,
+            mimeType: mimeType?.includes('pdf') ? 'application/pdf' : mimeType,
+          },
+        },
+        `${prompt}\n\nQEYD: Sənədin həm vizual faylı (PDF/təsvir), həm də çıxarılmış mətni təqdim olunub. BÜTÜN səhifələri, bölmələri və detalları tam dəqiqliklə oxu.`,
+      ];
+    } else {
+      promptContents = prompt;
+    }
+
+    try {
+      const rawResponse = await callGeminiResilient(
+        promptContents,
+        {
+          temperature: 0.1,
+          responseMimeType: 'application/json',
+          timeoutMs: 40000,
+        },
+        'gemini-3.8-flash',
+        40000
+      );
+
+      // Clean JSON fences if any
+      const cleaned = rawResponse.replace(/^```json\s*/i, '').replace(/\s*```$/i, '').trim();
+      const parsed = JSON.parse(cleaned);
+
+      // Ensure deterministic atsScore matches atsScoreBreakdown
+      if (parsed.atsScoreBreakdown && typeof parsed.atsScoreBreakdown.totalScore === 'number') {
+        if (!parsed.atsAnalysis) parsed.atsAnalysis = {} as any;
+        parsed.atsAnalysis.atsScore = parsed.atsScoreBreakdown.totalScore;
+      }
+
+      // Add audit metadata
+      parsed.metadata = {
+        extractedCharacterCount: resolvedText.length,
+        sourceType: fileBase64 ? 'upload' : 'text',
+        fileName: fileName || undefined,
+        hasJobDescription: Boolean(targetJobDescription && targetJobDescription.length > 15),
+        processedAt: new Date().toISOString(),
+        engineModel: 'Jobia AI CV Analyzer — Gemini 3.8 Flash Engine'
+      };
+
+      return res.json(parsed);
+    } catch (aiErr: any) {
+      console.log('[Jobia AI CV Analyzer] Using deterministic factual extraction engine fallback.');
+      // Seamless factual fallback
+      const fallbackResult = buildFactualDeepFallback(resolvedText, fileName, language, targetJobDescription);
+      return res.json(fallbackResult);
+    }
+  } catch (err: any) {
+    console.error('Deep CV Analyzer Error:', err);
+    return res.status(500).json({
+      error: 'ANALYSIS_ERROR',
+      message: language === 'en'
+        ? 'An error occurred while analyzing the CV. Please try again with valid text or file.'
+        : language === 'ru'
+        ? 'Произошла ошибка при анализе резюме. Попробуйте еще раз.'
+        : 'CV analizi zamanı xəta baş verdi. Zəhmət olmasa yenidən cəhd edin.'
+    });
   }
 });
 

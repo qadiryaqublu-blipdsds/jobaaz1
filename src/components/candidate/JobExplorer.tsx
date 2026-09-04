@@ -73,8 +73,6 @@ interface JobExplorerProps {
   jobNotes?: Record<string, string>;
   onSaveJobNote?: (jobId: string, note: string) => void;
   onQuickApply?: (vacancy: Vacancy) => void;
-  onOpenCVAnalyzer: () => void;
-  onOpenCVBuilder: () => void;
   onOpenSalaryTrends?: () => void;
   onOpenCalculia?: () => void;
   onOpenNearbyMap?: () => void;
@@ -317,8 +315,6 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
   jobNotes = {},
   onSaveJobNote,
   onQuickApply,
-  onOpenCVAnalyzer,
-  onOpenCVBuilder,
   onOpenSalaryTrends,
   onOpenCalculia,
   onOpenNearbyMap,
@@ -2174,7 +2170,7 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
             </p>
           </div>
 
-          {/* Card 3: AI Dəstəkli Dəqiq Uyğunlaşdırma */}
+          {/* Card 3: AI Dəstəkli Axtarış və Uyğunlaşdırma */}
           <div className="p-6 rounded-2xl bg-slate-50 border border-slate-200/90 space-y-3.5 hover:shadow-xs transition-all">
             <div className="w-12 h-12 rounded-xl bg-purple-100/80 text-purple-700 flex items-center justify-center border border-purple-200 shadow-2xs">
               <Sparkles className="w-6 h-6" />
@@ -2183,7 +2179,7 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
               Süni İntellekt Dəstəyi
             </h3>
             <p className="text-xs sm:text-sm text-slate-600 leading-relaxed font-medium">
-              CV-nizin vakansiyaya uyğunluq faizini dərhal görün, ATS optimallaşdırması ilə şirkətlərin diqqətini çəkin və müsahibəyə hazırlaşın.
+              Ağıllı axtarış və tövsiyələr sayəsində ixtisasınıza və gözləntilərinizə ən uyğun vakansiyaları dərhal kəşf edin.
             </p>
           </div>
         </div>

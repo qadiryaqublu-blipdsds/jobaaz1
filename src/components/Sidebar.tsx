@@ -31,8 +31,8 @@ import {
 interface SidebarProps {
   currentRole: UserRole;
   onRoleChange: (role: UserRole) => void;
-  candidateTab: 'jobs' | 'nearby-map' | 'cv-builder' | 'cv-analyzer' | 'my-applications' | 'salary-trends' | 'calculia' | 'google-chat';
-  onCandidateTabChange: (tab: 'jobs' | 'nearby-map' | 'cv-builder' | 'cv-analyzer' | 'my-applications' | 'salary-trends' | 'calculia' | 'google-chat') => void;
+  candidateTab: 'jobs' | 'nearby-map' | 'my-applications' | 'salary-trends' | 'calculia' | 'google-chat' | 'cv-analyzer';
+  onCandidateTabChange: (tab: 'jobs' | 'nearby-map' | 'my-applications' | 'salary-trends' | 'calculia' | 'google-chat' | 'cv-analyzer') => void;
   applicationsCount?: number;
   activeVacanciesCount?: number;
   pendingApprovalsCount?: number;
@@ -77,7 +77,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const planTier = currentSubscription?.tier || 'FREE';
   const isPaidPlan = planTier !== 'FREE';
 
-  const handleTabClick = (tab: 'jobs' | 'nearby-map' | 'cv-builder' | 'cv-analyzer' | 'my-applications' | 'salary-trends' | 'calculia' | 'google-chat') => {
+  const handleTabClick = (tab: 'jobs' | 'nearby-map' | 'my-applications' | 'salary-trends' | 'calculia' | 'google-chat' | 'cv-analyzer') => {
     onCandidateTabChange(tab);
     onCloseMobile();
   };
@@ -96,6 +96,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
       color: 'blue',
     },
     {
+      id: 'cv-analyzer' as const,
+      label: 'AI CV Analizator & ATS',
+      icon: Sparkles,
+      badge: 'GEMINI 3.8',
+      badgeClass: 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-black text-[9px] shadow-2xs',
+      color: 'blue',
+    },
+    {
       id: 'nearby-map' as const,
       label: dict.nav.nearbyJobs || 'Xəritədə İşlər (Evimə Yaxın)',
       icon: Compass,
@@ -109,21 +117,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
       icon: TrendingUp,
       badge: '2026',
       color: 'indigo',
-    },
-    {
-      id: 'cv-builder' as const,
-      label: dict.nav.cvBuilder,
-      icon: FileText,
-      badge: null,
-      color: 'blue',
-    },
-    {
-      id: 'cv-analyzer' as const,
-      label: dict.nav.cvAnalyzer,
-      icon: Sparkles,
-      badge: 'AI',
-      badgeClass: 'bg-amber-500 text-white',
-      color: 'amber',
     },
     {
       id: 'my-applications' as const,

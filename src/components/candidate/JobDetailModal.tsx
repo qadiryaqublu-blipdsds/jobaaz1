@@ -48,7 +48,6 @@ interface JobDetailModalProps {
   isSaved?: boolean;
   onToggleBookmark?: () => void;
   onOpenInterviewPrep: (vacancy: Vacancy) => void;
-  onOpenCVAnalyzerForJob: (vacancy: Vacancy) => void;
   onShareToGoogleChat?: (vacancy: Vacancy) => void;
 }
 
@@ -65,7 +64,6 @@ export const JobDetailModal: React.FC<JobDetailModalProps> = ({
   isSaved = false,
   onToggleBookmark,
   onOpenInterviewPrep,
-  onOpenCVAnalyzerForJob,
   onShareToGoogleChat,
 }) => {
   const { dict, language } = useLanguage();
@@ -562,34 +560,14 @@ export const JobDetailModal: React.FC<JobDetailModalProps> = ({
           /* JOB DETAILS VIEW (DEFAULT) */
           /* ========================================================================= */
           <div className="p-5 sm:p-6 overflow-y-auto space-y-6 flex-1 text-slate-700 text-xs sm:text-sm">
-            {/* Quick AI Action Cards for Candidates */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <button
-                onClick={() => {
-                  onClose();
-                  onOpenCVAnalyzerForJob(vacancy);
-                }}
-                className="flex items-center gap-3 p-3.5 rounded-lg bg-blue-50/70 border border-blue-200/80 text-left hover:bg-blue-100/60 transition-all group cursor-pointer"
-              >
-                <div className="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-xs">
-                  <Sparkles className="w-4 h-4 group-hover:scale-105 transition-transform" />
-                </div>
-                <div>
-                  <div className="text-xs font-bold text-slate-900">
-                    {language === 'en' ? 'Match My CV to this Job' : language === 'ru' ? 'Адаптировать резюме под вакансию' : 'CV-mi bu vakansiyaya uyğunlaşdır'}
-                  </div>
-                  <div className="text-[11px] text-blue-700">
-                    {language === 'en' ? 'Check ATS score and keywords with AI' : language === 'ru' ? 'Проверить ATS скор и ключевые слова с ИИ' : 'AI ilə açar söz və uyğunluq faizini yoxla'}
-                  </div>
-                </div>
-              </button>
-
+            {/* Quick AI Action Card for Candidates */}
+            <div>
               <button
                 onClick={() => {
                   onClose();
                   onOpenInterviewPrep(vacancy);
                 }}
-                className="flex items-center gap-3 p-3.5 rounded-lg bg-slate-50 border border-slate-200 text-left hover:bg-slate-100 transition-all group cursor-pointer"
+                className="w-full flex items-center gap-3 p-3.5 rounded-xl bg-slate-50 border border-slate-200 text-left hover:bg-slate-100 transition-all group cursor-pointer"
               >
                 <div className="w-8 h-8 rounded-lg bg-slate-800 text-white flex items-center justify-center shrink-0 shadow-xs">
                   <FileText className="w-4 h-4 group-hover:scale-105 transition-transform" />

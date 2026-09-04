@@ -55,8 +55,6 @@ import { LiveNotificationToast } from './components/notifications/LiveNotificati
 import { JobiaLogo, HireMeLogo } from './components/JobiaLogo';
 import { JobExplorer } from './components/candidate/JobExplorer';
 import { JobDetailModal } from './components/candidate/JobDetailModal';
-import { CVBuilder } from './components/candidate/CVBuilder';
-import { CVAnalyzer } from './components/candidate/CVAnalyzer';
 import { NearbyJobsMap } from './components/candidate/NearbyJobsMap';
 import { InterviewPrepModal } from './components/candidate/InterviewPrepModal';
 import { MyApplications } from './components/candidate/MyApplications';
@@ -71,6 +69,7 @@ import { CandidateOfferPortal } from './components/interview-offer/CandidateOffe
 import { getOfferTemplates, saveOfferTemplates } from './services/offerTemplateService';
 import { calculateNetSalary } from './services/salaryCalculator';
 import { SalariaCalculator } from './components/candidate/SalariaCalculator';
+import { DeepCVAnalyzerView } from './components/candidate/cv-analyzer/DeepCVAnalyzerView';
 import { AuthModal } from './components/auth/AuthModal';
 import { VerifyAccountModal } from './components/auth/VerifyAccountModal';
 import { PricingPage } from './components/subscription/PricingPage';
@@ -175,7 +174,7 @@ function mergeVacancyLists(remoteVacancies: Vacancy[], localVacancies: Vacancy[]
 export default function App() {
   // Navigation & Role State
   const [currentRole, setCurrentRole] = useState<UserRole>('candidate');
-  const [candidateTab, setCandidateTab] = useState<'jobs' | 'nearby-map' | 'cv-builder' | 'cv-analyzer' | 'my-applications' | 'salary-trends' | 'calculia' | 'google-chat'>('jobs');
+  const [candidateTab, setCandidateTab] = useState<'jobs' | 'nearby-map' | 'my-applications' | 'salary-trends' | 'calculia' | 'google-chat' | 'cv-analyzer'>('jobs');
   const [calculiaSubTab, setCalculiaSubTab] = useState<'calculia' | 'vacatia'>('calculia');
   const [selectedCompanyFilter, setSelectedCompanyFilter] = useState<string>('Hamısı');
   const [isPricingViewOpen, setIsPricingViewOpen] = useState(false);
@@ -435,7 +434,6 @@ export default function App() {
   // Modals & Drawers State
   const [selectedJobForDetail, setSelectedJobForDetail] = useState<Vacancy | null>(null);
   const [selectedJobForInterview, setSelectedJobForInterview] = useState<Vacancy | null>(null);
-  const [targetVacancyForAnalyzer, setTargetVacancyForAnalyzer] = useState<Vacancy | null>(null);
   const [isPostJobModalOpen, setIsPostJobModalOpen] = useState(false);
   const [editingVacancy, setEditingVacancy] = useState<Vacancy | null>(null);
   const [isGoogleChatModalOpen, setIsGoogleChatModalOpen] = useState(false);
@@ -1399,11 +1397,6 @@ export default function App() {
                     onQuickApply={(job) => {
                       handleApplyToJob(job, 'Tez müraciət vasitəsilə göndərildi.', candidateCV);
                     }}
-                    onOpenCVAnalyzer={() => {
-                      setTargetVacancyForAnalyzer(null);
-                      setCandidateTab('cv-analyzer');
-                    }}
-                    onOpenCVBuilder={() => setCandidateTab('cv-builder')}
                     onOpenSalaryTrends={() => setCandidateTab('salary-trends')}
                     onOpenNearbyMap={() => setCandidateTab('nearby-map')}
                     onOpenCalculia={() => setCandidateTab('calculia')}
@@ -1438,29 +1431,8 @@ export default function App() {
                   />
                 )}
 
-                {candidateTab === 'cv-builder' && (
-                  <CVBuilder
-                    cvData={candidateCV}
-                    onSaveCV={handleSaveCV}
-                    onAnalyzeCV={(cv) => {
-                      setCandidateCV(cv);
-                      setCandidateTab('cv-analyzer');
-                    }}
-                  />
-                )}
-
                 {candidateTab === 'cv-analyzer' && (
-                  <CVAnalyzer
-                    cvData={candidateCV}
-                    vacancies={vacancies}
-                    initialTargetVacancy={targetVacancyForAnalyzer}
-                    onNavigateToBuilder={() => setCandidateTab('cv-builder')}
-                    onImportCVData={(newCV) => {
-                      setCandidateCV(newCV);
-                      handleSaveCV(newCV);
-                      setCandidateTab('cv-builder');
-                    }}
-                  />
+                  <DeepCVAnalyzerView />
                 )}
 
                 {candidateTab === 'my-applications' && (
@@ -1630,10 +1602,6 @@ export default function App() {
           isSaved={savedJobIds.includes(selectedJobForDetail.id)}
           onToggleBookmark={() => handleToggleBookmark(selectedJobForDetail.id)}
           onOpenInterviewPrep={(vac) => setSelectedJobForInterview(vac)}
-          onOpenCVAnalyzerForJob={(vac) => {
-            setTargetVacancyForAnalyzer(vac);
-            setCandidateTab('cv-analyzer');
-          }}
           onShareToGoogleChat={(vac) => {
             setIsGoogleChatModalOpen(true);
           }}

@@ -33,7 +33,7 @@ import {
 
 interface FooterProps {
   currentRole: UserRole;
-  onNavigateCandidateTab?: (tab: 'jobs' | 'nearby-map' | 'cv-builder' | 'cv-analyzer' | 'my-applications' | 'salary-trends' | 'calculia' | 'google-chat') => void;
+  onNavigateCandidateTab?: (tab: 'jobs' | 'nearby-map' | 'my-applications' | 'salary-trends' | 'calculia' | 'google-chat') => void;
   onRoleChange?: (role: UserRole) => void;
   onOpenPricing?: () => void;
   onOpenIntroTour?: () => void;
@@ -158,32 +158,6 @@ export const Footer: React.FC<FooterProps> = ({
                 >
                   <MapIcon className="w-3.5 h-3.5 text-blue-600" />
                   <span>Xəritə ilə Axtarış</span>
-                </button>
-              </li>
-              <li>
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (onRoleChange) onRoleChange('candidate');
-                    if (onNavigateCandidateTab) onNavigateCandidateTab('cv-builder');
-                  }}
-                  className="hover:text-blue-600 flex items-center gap-1.5 transition-colors cursor-pointer text-left"
-                >
-                  <FileText className="w-3.5 h-3.5 text-slate-400" />
-                  <span>CV / Profil Yarat</span>
-                </button>
-              </li>
-              <li>
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (onRoleChange) onRoleChange('candidate');
-                    if (onNavigateCandidateTab) onNavigateCandidateTab('cv-analyzer');
-                  }}
-                  className="hover:text-blue-600 flex items-center gap-1.5 transition-colors cursor-pointer text-left"
-                >
-                  <Sparkles className="w-3.5 h-3.5 text-blue-500" />
-                  <span>AI CV Analizi & ATS Skoru</span>
                 </button>
               </li>
               <li>
