@@ -644,8 +644,8 @@ export const CVCreator: React.FC<CVCreatorProps> = ({
       if (data && data.cvData) {
         setCvData(data.cvData);
         setAiSuccessMessage(
-          data.source === 'gemini_ai'
-            ? '✨ CV Gemini AI tərəfindən uğurla generasiya edildi və formaya yerləşdirildi!'
+          data.source === 'jobia_ai' || data.source === 'gemini_ai'
+            ? '✨ CV Jobia AI tərəfindən uğurla generasiya edildi və formaya yerləşdirildi!'
             : '✨ CV peşəkar intellektual baza tərəfindən uğurla generasiya edildi!'
         );
         setTimeout(() => {

@@ -8,6 +8,10 @@ import { InterviewModal } from '../interview-offer/InterviewModal';
 import { JobOfferTemplatesModal } from '../interview-offer/JobOfferTemplatesModal';
 import { OfferAuditLogModal } from '../interview-offer/OfferAuditLogModal';
 import { RecruitingAnalyticsDashboard } from './analytics/RecruitingAnalyticsDashboard';
+import { CandidateKanbanBoard } from './CandidateKanbanBoard';
+import { CandidateComparatorModal } from './CandidateComparatorModal';
+import { EmployerCostCalculatorModal } from './EmployerCostCalculatorModal';
+import { JobiaAICandidateEvaluatorModal } from './JobiaAICandidateEvaluatorModal';
 import { JobiaSectionFooter } from '../JobiaSectionFooter';
 import { 
   Building2, 
@@ -48,7 +52,13 @@ import {
   AlertTriangle,
   Lock,
   Unlock,
-  Check
+  Check,
+  LayoutGrid,
+  List,
+  Calculator,
+  Scale,
+  CheckSquare,
+  Square
 } from 'lucide-react';
 
 interface BusinessDashboardProps {
@@ -109,6 +119,20 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
   const [editingOffer, setEditingOffer] = useState<JobOffer | undefined>(undefined);
   const [isTemplatesModalOpen, setIsTemplatesModalOpen] = useState(false);
   const [selectedAuditLogOffer, setSelectedAuditLogOffer] = useState<{ id: string; name: string } | null>(null);
+
+  // Interactive Employer Feature States
+  const [applicantViewMode, setApplicantViewMode] = useState<'kanban' | 'table'>('kanban');
+  const [selectedCandidateIds, setSelectedCandidateIds] = useState<string[]>([]);
+  const [isComparatorModalOpen, setIsComparatorModalOpen] = useState(false);
+  const [isCostCalculatorModalOpen, setIsCostCalculatorModalOpen] = useState(false);
+  const [candidateForJobiaAI, setCandidateForJobiaAI] = useState<Application | null>(null);
+  const [isJobiaAIModalOpen, setIsJobiaAIModalOpen] = useState(false);
+
+  const toggleCandidateSelection = (id: string) => {
+    setSelectedCandidateIds((prev) =>
+      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
+    );
+  };
 
   // Editable company form state
   const [editedCompany, setEditedCompany] = useState<Company>(activeCompany);
@@ -486,6 +510,15 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
         >
           Müəssisə Profili
         </button>
+
+        <button
+          onClick={() => setIsCostCalculatorModalOpen(true)}
+          className="px-3.5 py-1.5 rounded-md whitespace-nowrap transition-colors text-emerald-700 bg-emerald-50 hover:bg-emerald-100 font-bold flex items-center gap-1.5 cursor-pointer ml-auto"
+          title="AR 2026 Vergi və İşəgötürən Xərc Simulyatoru"
+        >
+          <Calculator className="w-3.5 h-3.5 text-emerald-600" />
+          <span>Maaş & Vergi Kalkulyatoru</span>
+        </button>
       </div>
 
       {/* TAB 1: Company Vacancies */}
@@ -525,9 +558,9 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {companyJobs.map((job) => {
                 const jobApplicants = applications.filter((a) => a.vacancyId === job.id || a.jobId === job.id);
-                const isApproved = job.isApproved !== false && job.status === 'published';
-                const isPending = job.isApproved === false || job.status === 'pending_review';
+                const isApproved = job.isApproved === true && job.status === 'published';
                 const isRejected = job.status === 'rejected';
+                const isPending = !isApproved && !isRejected;
                 const editCount = job.editCount || 0;
                 const canEdit = editCount < (job.maxEditsAllowed || 1);
 
@@ -683,79 +716,216 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
       {/* TAB 2: Applicants list & screening */}
       {activeTab === 'applicants' && (
         <div className="space-y-4">
-          {/* Filter by job */}
+          {/* Top Control Bar: Filter, View Switcher, and Stats */}
           <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-wrap items-center justify-between gap-3 text-xs">
-            <div className="flex items-center gap-2">
-              <Filter className="w-4 h-4 text-slate-400" />
-              <span className="font-bold text-slate-700">Vakansiya üzrə filtrlə:</span>
-              <select
-                value={filterVacancyId}
-                onChange={(e) => setFilterVacancyId(e.target.value)}
-                className="p-1.5 bg-slate-50 border border-slate-200 rounded-md outline-none font-medium"
-              >
-                <option value="all">Bütün Vakansiyalar ({companyApplications.length})</option>
-                {companyJobs.map((j) => (
-                  <option key={j.id} value={j.id}>
-                    {j.title}
-                  </option>
-                ))}
-              </select>
+            <div className="flex flex-wrap items-center gap-2.5">
+              <div className="flex items-center gap-1.5">
+                <Filter className="w-4 h-4 text-slate-400" />
+                <span className="font-bold text-slate-700">Vakansiya üzrə:</span>
+                <select
+                  value={filterVacancyId}
+                  onChange={(e) => setFilterVacancyId(e.target.value)}
+                  className="p-1.5 bg-slate-50 border border-slate-200 rounded-md outline-none font-medium text-xs"
+                >
+                  <option value="all">Bütün Vakansiyalar ({companyApplications.length})</option>
+                  {companyJobs.map((j) => (
+                    <option key={j.id} value={j.id}>
+                      {j.title}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* View Switcher: Kanban vs Table */}
+              <div className="flex items-center bg-slate-100 p-0.5 rounded-lg border border-slate-200">
+                <button
+                  type="button"
+                  onClick={() => setApplicantViewMode('kanban')}
+                  className={`px-2.5 py-1 rounded-md text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                    applicantViewMode === 'kanban'
+                      ? 'bg-white text-blue-700 shadow-2xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <LayoutGrid className="w-3.5 h-3.5" />
+                  <span>Kanban Lövhəsi</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setApplicantViewMode('table')}
+                  className={`px-2.5 py-1 rounded-md text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                    applicantViewMode === 'table'
+                      ? 'bg-white text-blue-700 shadow-2xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <List className="w-3.5 h-3.5" />
+                  <span>Cədvəl Siyahısı</span>
+                </button>
+              </div>
             </div>
 
-            <span className="text-slate-500 font-medium">
-              Cəmi: <span className="font-bold text-slate-900">{filteredApplicants.length}</span> namizəd
-            </span>
+            <div className="flex items-center gap-3">
+              <span className="text-slate-500 font-medium">
+                Cəmi: <strong className="font-bold text-slate-900">{filteredApplicants.length}</strong> namizəd
+              </span>
+
+              {selectedCandidateIds.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setIsComparatorModalOpen(true)}
+                  className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-bold text-xs flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer"
+                >
+                  <Scale className="w-3.5 h-3.5" />
+                  <span>Müqayisə Et ({selectedCandidateIds.length})</span>
+                </button>
+              )}
+            </div>
           </div>
+
+          {/* Floating Comparison Sticky Alert if Candidates are Selected */}
+          {selectedCandidateIds.length > 0 && (
+            <div className="bg-gradient-to-r from-indigo-900 via-blue-900 to-slate-900 text-white p-3.5 rounded-xl shadow-md border border-indigo-700 flex flex-wrap items-center justify-between gap-3 text-xs animate-fade-in">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center text-cyan-300">
+                  <Scale className="w-4 h-4" />
+                </div>
+                <div>
+                  <h4 className="font-bold text-white text-xs">
+                    {selectedCandidateIds.length} namizəd müqayisə üçün seçildi
+                  </h4>
+                  <p className="text-[11px] text-indigo-200">
+                    Namizədlərin ixtisas, təcrübə, bacarıq və uyğunluq göstəricilərini yan-yana təhlil edin
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsComparatorModalOpen(true)}
+                  className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white font-black rounded-lg shadow-xs flex items-center gap-1.5 transition-colors cursor-pointer"
+                >
+                  <Scale className="w-3.5 h-3.5" />
+                  <span>Yan-yana Müqayisə Et</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSelectedCandidateIds([])}
+                  className="px-3 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg font-semibold transition-colors cursor-pointer"
+                >
+                  Seçimi Təmizlə
+                </button>
+              </div>
+            </div>
+          )}
 
           {filteredApplicants.length === 0 ? (
             <div className="bg-white rounded-xl border border-slate-200 p-12 text-center text-slate-500 text-xs shadow-sm">
               Seçilmiş vakansiya üzrə müraciət tapılmadı.
             </div>
+          ) : applicantViewMode === 'kanban' ? (
+            /* KANBAN BOARD VIEW */
+            <CandidateKanbanBoard
+              applications={filteredApplicants}
+              offers={companyOffers}
+              onOpenApplicantModal={handleOpenApplicantModal}
+              onUpdateApplicationStatus={onUpdateApplicationStatus}
+              onOpenInterviewModal={(app) => {
+                const existingOffer = companyOffers.find((o) => o.applicationId === app.id || o.candidateEmail === app.candidateEmail);
+                handleStartInterviewWorkflow(app, existingOffer);
+              }}
+              onOpenOfferModal={(app) => {
+                const existingOffer = companyOffers.find((o) => o.applicationId === app.id || o.candidateEmail === app.candidateEmail);
+                handleStartInterviewWorkflow(app, existingOffer);
+              }}
+              selectedCandidateIds={selectedCandidateIds}
+              onToggleCandidateSelection={toggleCandidateSelection}
+              onOpenJobiaAIEvaluation={(app) => {
+                setCandidateForJobiaAI(app);
+                setIsJobiaAIModalOpen(true);
+              }}
+            />
           ) : (
+            /* TABLE / LIST VIEW */
             <div className="space-y-3">
               {filteredApplicants.map((app) => {
                 const existingAppOffer = companyOffers.find((o) => o.applicationId === app.id || o.candidateEmail === app.candidateEmail);
+                const isSelected = selectedCandidateIds.includes(app.id);
 
                 return (
                   <div
                     key={app.id}
-                    className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm hover:border-blue-300 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+                    className={`bg-white p-5 rounded-xl border shadow-sm transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${
+                      isSelected ? 'border-blue-500 ring-2 ring-blue-200' : 'border-slate-200 hover:border-blue-300'
+                    }`}
                   >
-                    <div
-                      onClick={() => handleOpenApplicantModal(app)}
-                      className="space-y-1 cursor-pointer flex-1"
-                    >
-                      <div className="flex items-center gap-2">
-                        <h3 className="text-sm font-bold text-slate-900">{app.candidateName}</h3>
-                        {app.matchScore && (
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 flex items-center gap-1">
-                            <Sparkles className="w-3 h-3 text-blue-600" />
-                            <span>{app.matchScore}% Uyğunluq</span>
-                          </span>
+                    <div className="flex items-start gap-3 flex-1">
+                      <button
+                        type="button"
+                        onClick={() => toggleCandidateSelection(app.id)}
+                        className="mt-1 text-slate-400 hover:text-blue-600 transition-colors cursor-pointer"
+                        title={isSelected ? 'Seçimi ləğv et' : 'Müqayisə üçün seç'}
+                      >
+                        {isSelected ? (
+                          <CheckSquare className="w-5 h-5 text-blue-600" />
+                        ) : (
+                          <Square className="w-5 h-5" />
                         )}
-                        {existingAppOffer && (
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300">
-                            Offer: {existingAppOffer.status}
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-xs text-blue-700 font-semibold">{app.vacancyTitle}</p>
-                      <div className="flex flex-wrap items-center gap-3 text-[11px] text-slate-500">
-                        <span>{app.candidateEmail}</span>
-                        <span>•</span>
-                        <span>{app.candidatePhone}</span>
-                        <span>•</span>
-                        <span>Müraciət: {app.appliedDate}</span>
-                      </div>
+                      </button>
 
-                      {app.coverNote && (
-                        <p className="text-xs text-slate-600 bg-slate-50 p-2 rounded-md mt-2 line-clamp-1 italic">
-                          "{app.coverNote}"
-                        </p>
-                      )}
+                      <div
+                        onClick={() => handleOpenApplicantModal(app)}
+                        className="space-y-1 cursor-pointer flex-1"
+                      >
+                        <div className="flex items-center gap-2">
+                          <h3 className="text-sm font-bold text-slate-900">{app.candidateName}</h3>
+                          {app.matchScore && (
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 flex items-center gap-1">
+                              <Sparkles className="w-3 h-3 text-blue-600" />
+                              <span>{app.matchScore}% Uyğunluq</span>
+                            </span>
+                          )}
+                          {existingAppOffer && (
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300">
+                              Offer: {existingAppOffer.status}
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs text-blue-700 font-semibold">{app.vacancyTitle}</p>
+                        <div className="flex flex-wrap items-center gap-3 text-[11px] text-slate-500">
+                          <span>{app.candidateEmail}</span>
+                          <span>•</span>
+                          <span>{app.candidatePhone}</span>
+                          <span>•</span>
+                          <span>Müraciət: {app.appliedDate}</span>
+                          <span>•</span>
+                          <span className="font-semibold text-slate-700">Status: {app.status || 'Gözləyir'}</span>
+                        </div>
+
+                        {app.coverNote && (
+                          <p className="text-xs text-slate-600 bg-slate-50 p-2 rounded-md mt-2 line-clamp-1 italic">
+                            "{app.coverNote}"
+                          </p>
+                        )}
+                      </div>
                     </div>
 
                     <div className="flex flex-wrap items-center gap-2 shrink-0">
+                      {/* Jobia AI Assessment button */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setCandidateForJobiaAI(app);
+                          setIsJobiaAIModalOpen(true);
+                        }}
+                        className="px-3 py-2 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-xs flex items-center gap-1.5 transition-colors cursor-pointer"
+                        title="Jobia AI Dəyərləndirməsi və HR Sualları"
+                      >
+                        <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
+                        <span>Jobia AI Analizi</span>
+                      </button>
+
                       {/* One-Click Interview & Offer trigger */}
                       <button
                         onClick={() => handleStartInterviewWorkflow(app, existingAppOffer)}
@@ -1112,6 +1282,20 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
               </div>
 
               <div className="flex items-center gap-2 shrink-0">
+                {/* Jobia AI Candidate Evaluator */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCandidateForJobiaAI(selectedApplicant);
+                    setIsJobiaAIModalOpen(true);
+                  }}
+                  className="px-3.5 py-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-xs font-bold flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer"
+                  title="Jobia AI Dəyərləndirməsi və HR Müsahibə Sualları"
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
+                  <span>Jobia AI Analizi</span>
+                </button>
+
                 {/* Fast Track to AI Interview & Offer Modal */}
                 <button
                   onClick={() => {
@@ -1584,6 +1768,53 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
           onClose={() => setSelectedAuditLogOffer(null)}
         />
       )}
+
+      {/* Interactive Candidate Side-by-Side Comparator Modal */}
+      <CandidateComparatorModal
+        isOpen={isComparatorModalOpen}
+        onClose={() => setIsComparatorModalOpen(false)}
+        candidates={companyApplications.filter((a) => selectedCandidateIds.includes(a.id))}
+        offers={companyOffers}
+        onOpenApplicantDetail={(cand) => {
+          setIsComparatorModalOpen(false);
+          handleOpenApplicantModal(cand);
+        }}
+        onOpenInterviewModal={(cand) => {
+          setIsComparatorModalOpen(false);
+          const existingOffer = companyOffers.find((o) => o.applicationId === cand.id || o.candidateEmail === cand.candidateEmail);
+          handleStartInterviewWorkflow(cand, existingOffer);
+        }}
+        onOpenOfferModal={(cand) => {
+          setIsComparatorModalOpen(false);
+          const existingOffer = companyOffers.find((o) => o.applicationId === cand.id || o.candidateEmail === cand.candidateEmail);
+          handleStartInterviewWorkflow(cand, existingOffer);
+        }}
+      />
+
+      {/* Interactive Employer Cost & Salary Tax Simulator Modal */}
+      <EmployerCostCalculatorModal
+        isOpen={isCostCalculatorModalOpen}
+        onClose={() => setIsCostCalculatorModalOpen(false)}
+      />
+
+      {/* Interactive Jobia AI Candidate Evaluator & Interview Question Generator Modal */}
+      <JobiaAICandidateEvaluatorModal
+        isOpen={isJobiaAIModalOpen}
+        onClose={() => {
+          setIsJobiaAIModalOpen(false);
+          setCandidateForJobiaAI(null);
+        }}
+        applicant={candidateForJobiaAI}
+        vacancy={companyJobs.find((j) => j.id === candidateForJobiaAI?.vacancyId) || null}
+        onScheduleInterview={(app) => {
+          const existingOffer = companyOffers.find((o) => o.applicationId === app.id || o.candidateEmail === app.candidateEmail);
+          handleStartInterviewWorkflow(app, existingOffer);
+        }}
+        onSendOffer={(app) => {
+          const existingOffer = companyOffers.find((o) => o.applicationId === app.id || o.candidateEmail === app.candidateEmail);
+          handleStartInterviewWorkflow(app, existingOffer);
+        }}
+      />
     </div>
   );
 };

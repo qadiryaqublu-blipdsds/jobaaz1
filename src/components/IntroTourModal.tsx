@@ -41,9 +41,9 @@ export const IntroTourModal: React.FC<IntroTourModalProps> = ({
       badgeColor: 'bg-blue-500 text-white',
       glowColor: 'from-blue-600 to-indigo-600',
       title: {
-        az: 'Jobia & HireMe Platformasına Xoş Gəlmisiniz!',
-        en: 'Welcome to Jobia & HireMe Platform!',
-        ru: 'Добро пожаловать на платформу Jobia & HireMe!'
+        az: 'Jobia.az Platformasına Xoş Gəlmisiniz!',
+        en: 'Welcome to Jobia.az Platform!',
+        ru: 'Добро пожаловать на платформу Jobia.az!'
       },
       subtitle: {
         az: 'Azərbaycanın ən innovativ karyera və vakansiya ekosistemi',

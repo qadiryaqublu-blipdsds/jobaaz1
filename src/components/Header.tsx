@@ -75,7 +75,10 @@ export const Header: React.FC<HeaderProps> = ({
   const isPaidUser = planTier !== 'FREE';
 
   const unreadCount = notifications.filter((n) => !n.isRead).length;
-  const realCompaniesWithJobs = companies.filter((c) => c.name && c.name.trim().length > 0);
+  // STRICT ADMIN APPROVAL: Only verified companies approved by admin are shown in directory
+  const realCompaniesWithJobs = companies.filter(
+    (c) => c.name && c.name.trim().length > 0 && (c.verified === true || c.verificationStatus === 'verified')
+  );
 
   const handleCompanyClick = (name: string) => {
     if (onRoleChange && currentRole !== 'candidate') {

@@ -58,12 +58,17 @@ import {
   Scale,
   Truck,
   ChevronDown,
-  Compass
+  Compass,
+  Bell,
+  BellRing
 } from 'lucide-react';
 import { JobiaLogo } from '../JobiaLogo';
 import { ModalBottomLogo } from '../ModalBottomLogo';
 import { JobiaSectionFooter } from '../JobiaSectionFooter';
 import { normalizeAzText, evaluateJobDomainMatch } from '../../utils/domainSearch';
+import { JobAlertManagerModal } from './JobAlertManagerModal';
+import { JobAlertSubscription, User } from '../../types';
+import { getJobAlertSubscription, saveJobAlertSubscription } from '../../services/firestoreService';
 
 interface JobExplorerProps {
   vacancies: Vacancy[];
@@ -80,6 +85,8 @@ interface JobExplorerProps {
   userCV: CVData;
   selectedCompany?: string;
   onSelectCompany?: (company: string) => void;
+  currentUser?: User | null;
+  onShowToast?: (message: string) => void;
 }
 
 interface AIMatchResult {
@@ -322,6 +329,8 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
   userCV,
   selectedCompany: propSelectedCompany = 'Hamısı',
   onSelectCompany,
+  currentUser,
+  onShowToast,
 }) => {
   const { dict, language, brandAcronym, brandSlogan } = useLanguage();
 
@@ -342,6 +351,102 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
       localStorage.setItem('jobia_explorer_view_mode', mode);
     } catch {
       // ignore
+    }
+  };
+
+  // Job Alert & Subscriptions State
+  const [isJobAlertModalOpen, setIsJobAlertModalOpen] = useState(false);
+  const [candidateAlertSubscription, setCandidateAlertSubscription] = useState<JobAlertSubscription | null>(null);
+
+  const candidateUserId = currentUser?.id || 'candidate-guest-session';
+
+  useEffect(() => {
+    let active = true;
+    getJobAlertSubscription(candidateUserId).then((sub) => {
+      if (active && sub) {
+        setCandidateAlertSubscription(sub);
+      }
+    });
+
+    const handleSubUpdated = (e: Event) => {
+      const detail = (e as CustomEvent<JobAlertSubscription>).detail;
+      if (detail) {
+        setCandidateAlertSubscription(detail);
+      }
+    };
+
+    window.addEventListener('jobia_job_alert_updated', handleSubUpdated);
+    return () => {
+      active = false;
+      window.removeEventListener('jobia_job_alert_updated', handleSubUpdated);
+    };
+  }, [candidateUserId]);
+
+  const activeAlertsCount = candidateAlertSubscription?.isActive !== false
+    ? (candidateAlertSubscription?.categories?.length || 0) + (candidateAlertSubscription?.companies?.length || 0)
+    : 0;
+
+  const handleToggleCategoryAlert = async (e: React.MouseEvent, categoryName: string) => {
+    e.stopPropagation();
+    const currentCats = candidateAlertSubscription?.categories || [];
+    const isSubscribed = currentCats.includes(categoryName);
+    const updatedCats = isSubscribed
+      ? currentCats.filter((c) => c !== categoryName)
+      : [...currentCats, categoryName];
+
+    const updatedSub: JobAlertSubscription = {
+      id: candidateAlertSubscription?.id || `alert-${candidateUserId}`,
+      userId: candidateUserId,
+      userEmail: currentUser?.email,
+      userName: currentUser?.fullName,
+      categories: updatedCats,
+      companies: candidateAlertSubscription?.companies || [],
+      isActive: true,
+      frequency: 'instant',
+      createdAt: candidateAlertSubscription?.createdAt || new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    setCandidateAlertSubscription(updatedSub);
+    await saveJobAlertSubscription(updatedSub);
+    if (onShowToast) {
+      onShowToast(
+        isSubscribed
+          ? `"${categoryName}" izləmə siyahınızdan çıxarıldı.`
+          : `"${categoryName}" kateqoriyası üzrə yeni vakansiyalar üçün canlı bildiriş aktivləşdirildi!`
+      );
+    }
+  };
+
+  const handleToggleCompanyAlert = async (e: React.MouseEvent, companyName: string) => {
+    e.stopPropagation();
+    const currentComps = candidateAlertSubscription?.companies || [];
+    const isSubscribed = currentComps.some((c) => c.toLowerCase() === companyName.toLowerCase());
+    const updatedComps = isSubscribed
+      ? currentComps.filter((c) => c.toLowerCase() !== companyName.toLowerCase())
+      : [...currentComps, companyName];
+
+    const updatedSub: JobAlertSubscription = {
+      id: candidateAlertSubscription?.id || `alert-${candidateUserId}`,
+      userId: candidateUserId,
+      userEmail: currentUser?.email,
+      userName: currentUser?.fullName,
+      categories: candidateAlertSubscription?.categories || [],
+      companies: updatedComps,
+      isActive: true,
+      frequency: 'instant',
+      createdAt: candidateAlertSubscription?.createdAt || new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    setCandidateAlertSubscription(updatedSub);
+    await saveJobAlertSubscription(updatedSub);
+    if (onShowToast) {
+      onShowToast(
+        isSubscribed
+          ? `"${companyName}" izləmə siyahınızdan çıxarıldı.`
+          : `"${companyName}" şirkətinin yeni təsdiqlənmiş vakansiyaları üçün canlı bildiriş aktivləşdirildi!`
+      );
     }
   };
 
@@ -459,7 +564,7 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
     });
     for (let i = 0; i < vacancies.length; i++) {
       const v = vacancies[i];
-      if (v.isApproved === false) continue;
+      if (v.isApproved !== true || v.status !== 'published') continue;
       counts.Hamısı = (counts.Hamısı || 0) + 1;
       if (counts[v.category] !== undefined) {
         counts[v.category] += 1;
@@ -475,23 +580,25 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
     // Seed with known companies
     for (let i = 0; i < SAMPLE_COMPANIES.length; i++) {
       const c = SAMPLE_COMPANIES[i];
-      map[c.name] = {
-        count: 0,
-        logo: c.logo,
-        verified: c.verified,
-        industry: c.industry,
-      };
+      if (c.verified) {
+        map[c.name] = {
+          count: 0,
+          logo: c.logo,
+          verified: c.verified,
+          industry: c.industry,
+        };
+      }
     }
 
     // Count from actual vacancies
     for (let i = 0; i < vacancies.length; i++) {
       const v = vacancies[i];
-      if (v.isApproved === false) continue;
+      if (v.isApproved !== true || v.status !== 'published') continue;
       if (!map[v.companyName]) {
         map[v.companyName] = {
           count: 0,
           logo: v.companyLogo || 'https://images.unsplash.com/photo-1542744173-8e7e53415bb0?w=150&auto=format&fit=crop&q=80',
-          verified: v.companyVerified ?? true,
+          verified: v.companyVerified === true,
           industry: v.category,
         };
       }
@@ -530,7 +637,7 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
 
     for (let i = 0; i < vacancies.length; i++) {
       const v = vacancies[i];
-      if (v.isApproved === false) continue;
+      if (v.isApproved !== true || v.status !== 'published') continue;
       counts['Hamısı'] = (counts['Hamısı'] || 0) + 1;
       const compInd = companyIndustryLookup.get(v.companyName.toLowerCase()) || '';
       const vCat = v.category.toLowerCase();
@@ -761,7 +868,7 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
 
     for (let i = 0; i < vacancies.length; i++) {
       const job = vacancies[i];
-      if (job.isApproved === false) continue;
+      if (job.isApproved !== true || job.status !== 'published') continue;
 
       const meta = jobSearchMetadata.get(job.id);
       const corpus = meta ? meta.corpus : '';
@@ -1041,8 +1148,25 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
             </div>
           </div>
 
-          {/* Rejim Switch & AI / Salary Trends / Map */}
+          {/* Rejim Switch & AI / Salary Trends / Map / Alerts */}
           <div className="flex items-center gap-1.5 flex-wrap sm:flex-nowrap shrink-0">
+            {/* Job Alert & Notifications Quick Launch */}
+            <button
+              type="button"
+              id="btn-candidate-job-alert-modal"
+              onClick={() => setIsJobAlertModalOpen(true)}
+              className="px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shrink-0 shadow-2xs whitespace-nowrap bg-blue-50 hover:bg-blue-100 text-blue-800 border border-blue-200/90"
+              title="Vakansiya və Şirkət İzləmə Sistemi (Job Alerts)"
+            >
+              <BellRing className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+              <span>İzləmə & Bildirişlər</span>
+              {activeAlertsCount > 0 && (
+                <span className="px-1.5 py-0.2 rounded-full bg-blue-600 text-white text-[10px] font-black">
+                  {activeAlertsCount}
+                </span>
+              )}
+            </button>
+
             {onOpenNearbyMap && (
               <button
                 type="button"
@@ -1349,9 +1473,20 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
                   Vəzifə Kateqoriyaları
                 </h3>
               </div>
-              <span className="text-[11px] font-bold text-slate-500">
-                {JOB_CATEGORIES.length}
-              </span>
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setIsJobAlertModalOpen(true)}
+                  className="px-2 py-0.5 rounded-md bg-blue-50 hover:bg-blue-100 text-blue-700 text-[10px] font-bold border border-blue-200 transition-colors flex items-center gap-1 cursor-pointer"
+                  title="Kateqoriya izləmə tənzimləmələri"
+                >
+                  <Bell className="w-2.5 h-2.5" />
+                  <span>İzlə</span>
+                </button>
+                <span className="text-[11px] font-bold text-slate-500">
+                  {JOB_CATEGORIES.length}
+                </span>
+              </div>
             </div>
 
             <div className="p-2 max-h-64 overflow-y-auto scrollbar-thin space-y-0.5">
@@ -1375,24 +1510,49 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
               {JOB_CATEGORIES.map((cat) => {
                 const count = categoryCounts[cat] || 0;
                 const isSelected = selectedCategory === cat;
+                const isAlertSubscribed =
+                  candidateAlertSubscription?.isActive !== false &&
+                  (candidateAlertSubscription?.categories || []).includes(cat);
+
                 return (
-                  <button
-                    key={cat}
-                    type="button"
-                    onClick={() => setSelectedCategory(isSelected ? 'Hamısı' : cat)}
-                    className={`w-full px-2.5 py-1.5 rounded-xl text-left text-xs flex items-center justify-between transition-colors cursor-pointer ${
-                      isSelected
-                        ? 'bg-blue-600 text-white font-bold shadow-xs'
-                        : 'text-slate-700 hover:bg-slate-100 font-medium'
-                    }`}
-                  >
-                    <span className="truncate pr-2">{cat}</span>
-                    <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold shrink-0 ${
-                      isSelected ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'
-                    }`}>
-                      {count}
-                    </span>
-                  </button>
+                  <div key={cat} className="group/cat flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedCategory(isSelected ? 'Hamısı' : cat)}
+                      className={`flex-1 px-2.5 py-1.5 rounded-xl text-left text-xs flex items-center justify-between transition-colors cursor-pointer min-w-0 ${
+                        isSelected
+                          ? 'bg-blue-600 text-white font-bold shadow-xs'
+                          : 'text-slate-700 hover:bg-slate-100 font-medium'
+                      }`}
+                    >
+                      <span className="truncate pr-2">{cat}</span>
+                      <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold shrink-0 ${
+                        isSelected ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'
+                      }`}>
+                        {count}
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => handleToggleCategoryAlert(e, cat)}
+                      className={`p-1.5 rounded-lg transition-all cursor-pointer shrink-0 ${
+                        isAlertSubscribed
+                          ? 'text-blue-600 bg-blue-50 hover:bg-blue-100'
+                          : 'text-slate-300 hover:text-blue-600 hover:bg-slate-100 opacity-60 group-hover/cat:opacity-100'
+                      }`}
+                      title={
+                        isAlertSubscribed
+                          ? `"${cat}" izlənilir (Yeni vakansiyalarda bildiriş alırsınız)`
+                          : `"${cat}" üzrə yeni vakansiyaları izlə`
+                      }
+                    >
+                      {isAlertSubscribed ? (
+                        <BellRing className="w-3.5 h-3.5 text-blue-600" />
+                      ) : (
+                        <Bell className="w-3.5 h-3.5" />
+                      )}
+                    </button>
+                  </div>
                 );
               })}
             </div>
@@ -1517,35 +1677,62 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
 
               {filteredCompaniesForSidebar.map((comp) => {
                 const isSelected = selectedCompany.toLowerCase() === comp.name.toLowerCase();
+                const isCompSubscribed =
+                  candidateAlertSubscription?.isActive !== false &&
+                  (candidateAlertSubscription?.companies || []).some(
+                    (c) => c.toLowerCase() === comp.name.toLowerCase()
+                  );
+
                 return (
-                  <button
-                    key={comp.name}
-                    type="button"
-                    onClick={() => setSelectedCompany(isSelected ? 'Hamısı' : comp.name)}
-                    className={`w-full px-2.5 py-1.5 rounded-xl text-left text-xs flex items-center justify-between transition-colors cursor-pointer ${
-                      isSelected
-                        ? 'bg-indigo-600 text-white font-bold shadow-xs'
-                        : 'text-slate-700 hover:bg-slate-100 font-medium'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2 min-w-0 pr-2">
-                      <img
-                        src={comp.logo}
-                        alt={comp.name}
-                        className="w-4 h-4 rounded object-cover border border-slate-200 shrink-0"
-                        referrerPolicy="no-referrer"
-                      />
-                      <span className="truncate">{comp.name}</span>
-                      {comp.verified && (
-                        <CheckCircle className={`w-3 h-3 shrink-0 ${isSelected ? 'text-white' : 'text-emerald-500'}`} />
+                  <div key={comp.name} className="group/comp flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedCompany(isSelected ? 'Hamısı' : comp.name)}
+                      className={`flex-1 px-2.5 py-1.5 rounded-xl text-left text-xs flex items-center justify-between transition-colors cursor-pointer min-w-0 ${
+                        isSelected
+                          ? 'bg-indigo-600 text-white font-bold shadow-xs'
+                          : 'text-slate-700 hover:bg-slate-100 font-medium'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 min-w-0 pr-2">
+                        <img
+                          src={comp.logo}
+                          alt={comp.name}
+                          className="w-4 h-4 rounded object-cover border border-slate-200 shrink-0"
+                          referrerPolicy="no-referrer"
+                        />
+                        <span className="truncate">{comp.name}</span>
+                        {comp.verified && (
+                          <CheckCircle className={`w-3 h-3 shrink-0 ${isSelected ? 'text-white' : 'text-emerald-500'}`} />
+                        )}
+                      </div>
+                      <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold shrink-0 ${
+                        isSelected ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'
+                      }`}>
+                        {comp.count}
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => handleToggleCompanyAlert(e, comp.name)}
+                      className={`p-1.5 rounded-lg transition-all cursor-pointer shrink-0 ${
+                        isCompSubscribed
+                          ? 'text-indigo-600 bg-indigo-50 hover:bg-indigo-100'
+                          : 'text-slate-300 hover:text-indigo-600 hover:bg-slate-100 opacity-60 group-hover/comp:opacity-100'
+                      }`}
+                      title={
+                        isCompSubscribed
+                          ? `"${comp.name}" izlənilir (Yeni vakansiyalarda bildiriş alırsınız)`
+                          : `"${comp.name}" şirkətini izlə`
+                      }
+                    >
+                      {isCompSubscribed ? (
+                        <BellRing className="w-3.5 h-3.5 text-indigo-600" />
+                      ) : (
+                        <Bell className="w-3.5 h-3.5" />
                       )}
-                    </div>
-                    <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold shrink-0 ${
-                      isSelected ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'
-                    }`}>
-                      {comp.count}
-                    </span>
-                  </button>
+                    </button>
+                  </div>
                 );
               })}
             </div>
@@ -2631,6 +2818,15 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
           </div>
         </div>
       )}
+
+      {/* CANDIDATE JOB ALERTS & SUBSCRIPTIONS MODAL */}
+      <JobAlertManagerModal
+        isOpen={isJobAlertModalOpen}
+        onClose={() => setIsJobAlertModalOpen(false)}
+        currentUser={currentUser || null}
+        onAlertsUpdated={(sub) => setCandidateAlertSubscription(sub)}
+        onShowToast={onShowToast}
+      />
     </div>
   );
 };

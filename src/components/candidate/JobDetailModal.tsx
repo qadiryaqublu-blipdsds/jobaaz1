@@ -26,9 +26,16 @@ import {
   UserCheck,
   LogIn,
   FileCheck,
-  ArrowLeft
+  ArrowLeft,
+  Bell,
+  BellRing,
+  Linkedin,
+  Twitter,
+  Facebook
 } from 'lucide-react';
 import { ModalBottomLogo } from '../ModalBottomLogo';
+import { JobAlertSubscription } from '../../types';
+import { getJobAlertSubscription, saveJobAlertSubscription } from '../../services/firestoreService';
 
 interface JobDetailModalProps {
   vacancy: Vacancy | null;
@@ -119,11 +126,106 @@ export const JobDetailModal: React.FC<JobDetailModalProps> = ({
     }
   }, [isCandidateUser, currentUser, savedCV]);
 
-  const handleShare = () => {
+  // Candidate Alert Follow State for Company and Category
+  const [candidateSubscription, setCandidateSubscription] = useState<JobAlertSubscription | null>(null);
+  const [isFollowingCompany, setIsFollowingCompany] = useState(false);
+  const [isFollowingCategory, setIsFollowingCategory] = useState(false);
+
+  const candidateUserId = currentUser?.id || 'candidate-guest-session';
+
+  React.useEffect(() => {
+    if (!vacancy) return;
+    let active = true;
+    getJobAlertSubscription(candidateUserId).then((sub) => {
+      if (!active) return;
+      if (sub) {
+        setCandidateSubscription(sub);
+        const compFollow = (sub.companies || []).some(
+          (c) => c.toLowerCase() === vacancy.companyName.toLowerCase()
+        );
+        const catFollow = (sub.categories || []).includes(vacancy.category);
+        setIsFollowingCompany(compFollow);
+        setIsFollowingCategory(catFollow);
+      }
+    });
+    return () => {
+      active = false;
+    };
+  }, [vacancy, candidateUserId]);
+
+  const handleToggleFollowCompany = async () => {
+    if (!vacancy) return;
+    const currentComps = candidateSubscription?.companies || [];
+    const isNowFollowing = !isFollowingCompany;
+    const updatedComps = isNowFollowing
+      ? [...currentComps.filter((c) => c.toLowerCase() !== vacancy.companyName.toLowerCase()), vacancy.companyName]
+      : currentComps.filter((c) => c.toLowerCase() !== vacancy.companyName.toLowerCase());
+
+    setIsFollowingCompany(isNowFollowing);
+    const updatedSub: JobAlertSubscription = {
+      id: candidateSubscription?.id || `alert-${candidateUserId}`,
+      userId: candidateUserId,
+      userEmail: currentUser?.email,
+      userName: currentUser?.fullName,
+      categories: candidateSubscription?.categories || [],
+      companies: updatedComps,
+      isActive: true,
+      frequency: 'instant',
+      createdAt: candidateSubscription?.createdAt || new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    setCandidateSubscription(updatedSub);
+    await saveJobAlertSubscription(updatedSub);
+    window.dispatchEvent(new CustomEvent('jobia_job_alert_updated', { detail: updatedSub }));
+  };
+
+  const handleToggleFollowCategory = async () => {
+    if (!vacancy) return;
+    const currentCats = candidateSubscription?.categories || [];
+    const isNowFollowing = !isFollowingCategory;
+    const updatedCats = isNowFollowing
+      ? [...currentCats.filter((c) => c !== vacancy.category), vacancy.category]
+      : currentCats.filter((c) => c !== vacancy.category);
+
+    setIsFollowingCategory(isNowFollowing);
+    const updatedSub: JobAlertSubscription = {
+      id: candidateSubscription?.id || `alert-${candidateUserId}`,
+      userId: candidateUserId,
+      userEmail: currentUser?.email,
+      userName: currentUser?.fullName,
+      categories: updatedCats,
+      companies: candidateSubscription?.companies || [],
+      isActive: true,
+      frequency: 'instant',
+      createdAt: candidateSubscription?.createdAt || new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    setCandidateSubscription(updatedSub);
+    await saveJobAlertSubscription(updatedSub);
+    window.dispatchEvent(new CustomEvent('jobia_job_alert_updated', { detail: updatedSub }));
+  };
+
+  // Social Media & Web Sharing URLs
+  const getJobShareUrl = () => {
     try {
       const shareUrl = new URL(window.location.origin + window.location.pathname);
       shareUrl.searchParams.set('job', vacancy.id);
-      navigator.clipboard.writeText(shareUrl.toString());
+      return shareUrl.toString();
+    } catch {
+      return `${window.location.origin}/?job=${vacancy.id}`;
+    }
+  };
+
+  const jobShareUrl = getJobShareUrl();
+  const shareText = `${vacancy.title} - ${vacancy.companyName} | Jobia.az`;
+
+  const linkedInShareUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(jobShareUrl)}`;
+  const twitterShareUrl = `https://twitter.com/intent/tweet?url=${encodeURIComponent(jobShareUrl)}&text=${encodeURIComponent(shareText)}`;
+  const facebookShareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(jobShareUrl)}`;
+
+  const handleShare = () => {
+    try {
+      navigator.clipboard.writeText(jobShareUrl);
       setCopied(true);
       setTimeout(() => setCopied(false), 2500);
     } catch {
@@ -240,9 +342,24 @@ export const JobDetailModal: React.FC<JobDetailModalProps> = ({
             />
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-                <span className="text-[10px] sm:text-[11px] font-bold px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200/80">
-                  {vacancy.category}
-                </span>
+                <button
+                  type="button"
+                  onClick={handleToggleFollowCategory}
+                  className={`inline-flex items-center gap-1 text-[10px] sm:text-[11px] font-bold px-2 py-0.5 rounded-md border transition-all cursor-pointer ${
+                    isFollowingCategory
+                      ? 'bg-blue-600 text-white border-blue-600 shadow-2xs'
+                      : 'bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-200/80'
+                  }`}
+                  title={
+                    isFollowingCategory
+                      ? `"${vacancy.category}" kateqoriyası izlənilir (Bildiriş aktivdir)`
+                      : `"${vacancy.category}" kateqoriyası üzrə yeni vakansiyaları izlə`
+                  }
+                >
+                  <Bell className={`w-3 h-3 ${isFollowingCategory ? 'fill-current' : ''}`} />
+                  <span>{vacancy.category}</span>
+                  {isFollowingCategory && <span className="text-[9px] opacity-90 font-black">✓ İzlənilir</span>}
+                </button>
                 {vacancy.isFeatured && (
                   <span className="text-[10px] sm:text-[11px] font-bold px-2 py-0.5 rounded-md bg-amber-50 text-amber-700 border border-amber-200">
                     {dict.jobExplorer.featured}
@@ -256,10 +373,29 @@ export const JobDetailModal: React.FC<JobDetailModalProps> = ({
                 {isApplying ? `Müraciət: ${vacancy.title}` : vacancy.title}
               </h2>
               <div className="flex flex-wrap items-center gap-y-1 gap-x-3 sm:gap-x-4 text-[11px] sm:text-xs text-slate-600 mt-1.5 sm:mt-2 font-medium">
-                <span className="flex items-center gap-1 font-bold text-slate-800">
-                  <Building2 className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                  <span className="truncate">{vacancy.companyName}</span>
-                </span>
+                <div className="flex items-center gap-1.5">
+                  <span className="flex items-center gap-1 font-bold text-slate-800">
+                    <Building2 className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                    <span className="truncate">{vacancy.companyName}</span>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleToggleFollowCompany}
+                    className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-bold border transition-colors cursor-pointer ${
+                      isFollowingCompany
+                        ? 'bg-blue-100 text-blue-800 border-blue-300'
+                        : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200'
+                    }`}
+                    title={
+                      isFollowingCompany
+                        ? `"${vacancy.companyName}" izlənilir (Yeni vakansiyalarda bildiriş alırsınız)`
+                        : `"${vacancy.companyName}" şirkətinin vakansiyalarını izlə`
+                    }
+                  >
+                    <BellRing className={`w-2.5 h-2.5 ${isFollowingCompany ? 'text-blue-700' : 'text-slate-500'}`} />
+                    <span>{isFollowingCompany ? 'İzlənilir' : 'İzlə'}</span>
+                  </button>
+                </div>
                 <span className="flex items-center gap-1">
                   <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                   {vacancy.city}
@@ -689,6 +825,74 @@ export const JobDetailModal: React.FC<JobDetailModalProps> = ({
               </div>
             )}
 
+            {/* Social Media Sharing Section */}
+            <div className="p-3.5 sm:p-4 rounded-xl bg-slate-50 border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <h4 className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                  <Share2 className="w-3.5 h-3.5 text-blue-600" />
+                  <span>
+                    {language === 'en'
+                      ? 'Share this vacancy'
+                      : language === 'ru'
+                      ? 'Поделиться вакансией'
+                      : 'Bu vakansiyanı paylaş'}
+                  </span>
+                </h4>
+                <p className="text-[11px] text-slate-500 mt-0.5">
+                  {language === 'en'
+                    ? 'Share with professionals in your network across LinkedIn, Twitter or Facebook'
+                    : language === 'ru'
+                    ? 'Поделитесь с коллегами в LinkedIn, Twitter или Facebook'
+                    : 'LinkedIn, Twitter və ya Facebook-da peşəkar şəbəkənizlə bölüşün'}
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2 flex-wrap">
+                <a
+                  href={linkedInShareUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-3 py-1.5 rounded-lg bg-white border border-[#0A66C2]/30 text-[#0A66C2] hover:bg-[#0A66C2]/10 transition-colors text-xs font-bold flex items-center gap-1.5 shadow-2xs cursor-pointer"
+                  title={language === 'en' ? 'Share on LinkedIn' : language === 'ru' ? 'Поделиться в LinkedIn' : 'LinkedIn-də paylaş'}
+                >
+                  <Linkedin className="w-3.5 h-3.5" />
+                  <span>LinkedIn</span>
+                </a>
+
+                <a
+                  href={twitterShareUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-3 py-1.5 rounded-lg bg-white border border-slate-300 text-slate-800 hover:bg-slate-100 transition-colors text-xs font-bold flex items-center gap-1.5 shadow-2xs cursor-pointer"
+                  title={language === 'en' ? 'Share on Twitter (X)' : language === 'ru' ? 'Поделиться в Twitter (X)' : 'Twitter (X)'}
+                >
+                  <Twitter className="w-3.5 h-3.5" />
+                  <span>Twitter (X)</span>
+                </a>
+
+                <a
+                  href={facebookShareUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-3 py-1.5 rounded-lg bg-white border border-[#1877F2]/30 text-[#1877F2] hover:bg-[#1877F2]/10 transition-colors text-xs font-bold flex items-center gap-1.5 shadow-2xs cursor-pointer"
+                  title={language === 'en' ? 'Share on Facebook' : language === 'ru' ? 'Поделиться в Facebook' : 'Facebook'}
+                >
+                  <Facebook className="w-3.5 h-3.5" />
+                  <span>Facebook</span>
+                </a>
+
+                <button
+                  type="button"
+                  onClick={handleShare}
+                  className="px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-slate-700 hover:bg-slate-100 transition-colors text-xs font-bold flex items-center gap-1.5 shadow-2xs cursor-pointer"
+                  title={copied ? (language === 'en' ? 'Link copied!' : language === 'ru' ? 'Ссылка скопирована!' : 'Link kopyalandı!') : (language === 'en' ? 'Copy Link' : language === 'ru' ? 'Копировать' : 'Linki Kopyala')}
+                >
+                  <Share2 className="w-3.5 h-3.5 text-slate-500" />
+                  <span>{copied ? (language === 'en' ? 'Copied!' : language === 'ru' ? 'Скопировано!' : 'Kopyalandı!') : (language === 'en' ? 'Copy Link' : language === 'ru' ? 'Копировать' : 'Linki Kopyala')}</span>
+                </button>
+              </div>
+            </div>
+
             {/* Meta dates */}
             <div className="flex flex-wrap items-center justify-between gap-4 text-xs text-slate-500 pt-4 border-t border-slate-100">
               <div className="flex items-center gap-1.5">
@@ -731,17 +935,57 @@ export const JobDetailModal: React.FC<JobDetailModalProps> = ({
           </div>
         ) : (
           <div className="p-4 sm:p-5 border-t border-slate-200 bg-white flex flex-wrap items-center justify-between gap-3 shrink-0">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 sm:gap-2">
               <button
+                type="button"
                 onClick={handleShare}
                 className="p-2 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors text-xs font-medium flex items-center gap-1.5 cursor-pointer"
+                title={copied ? (language === 'en' ? 'Link copied!' : language === 'ru' ? 'Ссылка скопирована!' : 'Link kopyalandı!') : (language === 'en' ? 'Copy Link' : language === 'ru' ? 'Копировать' : 'Linki Kopyala')}
               >
                 <Share2 className="w-4 h-4" />
-                <span>{copied ? (language === 'en' ? 'Link copied!' : language === 'ru' ? 'Ссылка скопирована!' : 'Link kopyalandı!') : (language === 'en' ? 'Share' : language === 'ru' ? 'Поделиться' : 'Bölüş')}</span>
+                <span className="hidden sm:inline">{copied ? (language === 'en' ? 'Link copied!' : language === 'ru' ? 'Ссылка скопирована!' : 'Link kopyalandı!') : (language === 'en' ? 'Copy Link' : language === 'ru' ? 'Копировать' : 'Linki Kopyala')}</span>
               </button>
+
+              {/* Social Media Sharing Buttons (LinkedIn, Twitter, Facebook) */}
+              <a
+                href={linkedInShareUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="p-2 rounded-lg border border-[#0A66C2]/30 bg-blue-50/50 hover:bg-[#0A66C2]/10 text-[#0A66C2] transition-colors text-xs font-semibold flex items-center gap-1.5 cursor-pointer"
+                title={language === 'en' ? 'Share on LinkedIn' : language === 'ru' ? 'Поделиться в LinkedIn' : 'LinkedIn-də paylaş'}
+                aria-label="LinkedIn"
+              >
+                <Linkedin className="w-4 h-4" />
+                <span className="hidden md:inline">LinkedIn</span>
+              </a>
+
+              <a
+                href={twitterShareUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="p-2 rounded-lg border border-slate-300 bg-slate-50 hover:bg-slate-100 text-slate-800 transition-colors text-xs font-semibold flex items-center gap-1.5 cursor-pointer"
+                title={language === 'en' ? 'Share on Twitter (X)' : language === 'ru' ? 'Поделиться в Twitter (X)' : 'Twitter-də (X) paylaş'}
+                aria-label="Twitter"
+              >
+                <Twitter className="w-4 h-4" />
+                <span className="hidden md:inline">Twitter</span>
+              </a>
+
+              <a
+                href={facebookShareUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="p-2 rounded-lg border border-[#1877F2]/30 bg-blue-50/50 hover:bg-[#1877F2]/10 text-[#1877F2] transition-colors text-xs font-semibold flex items-center gap-1.5 cursor-pointer"
+                title={language === 'en' ? 'Share on Facebook' : language === 'ru' ? 'Поделиться в Facebook' : 'Facebook-da paylaş'}
+                aria-label="Facebook"
+              >
+                <Facebook className="w-4 h-4" />
+                <span className="hidden md:inline">Facebook</span>
+              </a>
 
               {onShareToGoogleChat && (
                 <button
+                  type="button"
                   onClick={() => onShareToGoogleChat(vacancy)}
                   className="p-2 rounded-lg border border-emerald-200 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 transition-colors text-xs font-semibold flex items-center gap-1.5 cursor-pointer"
                   title="Google Chat"

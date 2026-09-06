@@ -4,7 +4,7 @@ import { CVAnalyzerResult } from '../types/cvAnalyzer';
 /**
  * System prompt instructions enforcing strict factual extraction and zero hallucination.
  */
-export const CV_ANALYZER_SYSTEM_INSTRUCTION = `Sən Gemini 3.8 Flash mühərriki ilə işləyən yüksək dəqiqlikli, faktlara əsaslanan Baş HR Direktoru və ATS (Applicant Tracking System) Ekspertisən.
+export const CV_ANALYZER_SYSTEM_INSTRUCTION = `Sən Jobia AI mühərriki ilə işləyən yüksək dəqiqlikli, faktlara əsaslanan Baş HR Direktoru və ATS (Applicant Tracking System) Ekspertisən.
 Sənin əsas məqsədin təqdim olunan namizəd CV-sini DƏQİQ, FAKTLARA ƏSASLANAN və STRUKTUR VƏZİYYƏTDƏ analiz etməkdir.
 
 ƏSAS VƏ VACİB QAYDA (ZERO HALLUCINATION):
@@ -196,7 +196,7 @@ export function getGeminiApiKey(explicitKey?: string): string {
     // ignore
   }
 
-  throw new Error('GEMINI_API_KEY_MISSING: Gemini API açarı mühit dəyişənlərində tapılmadı.');
+  throw new Error('JOBIA_AI_KEY_MISSING: Jobia AI açarı mühit dəyişənlərində tapılmadı.');
 }
 
 /**
@@ -289,7 +289,7 @@ Yalnız etibarlı JSON qaytar. JSON xaricində heç bir ön və ya son söz, iza
 
       const rawText = response?.text?.trim();
       if (!rawText) {
-        throw new Error('AI_EMPTY_RESPONSE: Gemini modeli boş cavab qaytardı.');
+        throw new Error('AI_EMPTY_RESPONSE: Jobia AI modeli boş cavab qaytardı.');
       }
 
       const cleanJson = extractCleanJson(rawText);

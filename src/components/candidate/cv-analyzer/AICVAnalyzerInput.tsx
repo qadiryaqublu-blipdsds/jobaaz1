@@ -472,10 +472,10 @@ export const AICVAnalyzerInput: React.FC<AICVAnalyzerInputProps> = ({ onAnalyze,
           <Sparkles className="w-5 h-5 text-cyan-300 group-hover:rotate-12 transition-transform" />
           <span>
             {language === 'en'
-              ? 'Analyze CV with Gemini 3.8 Flash'
+              ? 'Analyze CV with Jobia AI'
               : language === 'ru'
-              ? 'Анализировать резюме (Gemini 3.8 Flash)'
-              : 'Gemini 3.8 Flash ilə CV-ni Analiz Et'}
+              ? 'Анализировать резюме (Jobia AI)'
+              : 'Jobia AI ilə CV-ni Analiz Et'}
           </span>
         </button>
         <p className="text-[11px] text-slate-400 text-center mt-2">

@@ -213,11 +213,27 @@
         "userId": "string",
         "title": "string",
         "message": "string",
-        "type": "string (application_submitted | status_changed | interview_invite | job_offer | company_verification | vacancy_approval | new_applicant | payment_success)",
+        "type": "string (application_submitted | status_changed | interview_invite | job_offer | company_verification | vacancy_approval | new_applicant | new_matching_vacancy | payment_success)",
         "isRead": "boolean",
         "link": "string (optional)",
         "data": "object (optional)",
         "createdAt": "string"
+      }
+    },
+    "jobAlertSubscriptions": {
+      "description": "Candidate subscriptions to specific job categories or companies for instant in-app alerts",
+      "fields": {
+        "id": "string",
+        "userId": "string",
+        "userEmail": "string (optional)",
+        "userName": "string (optional)",
+        "categories": "array",
+        "companies": "array",
+        "companyIds": "array (optional)",
+        "isActive": "boolean",
+        "frequency": "string (instant | daily)",
+        "createdAt": "string",
+        "updatedAt": "string"
       }
     },
     "jobOffers": {

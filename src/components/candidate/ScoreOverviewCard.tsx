@@ -129,7 +129,7 @@ export const ScoreOverviewCard: React.FC<ScoreOverviewCardProps> = ({ result }) 
                   {result.candidateName || 'Namizəd'}
                 </span>
                 <span className="px-3 py-1 bg-indigo-100 text-indigo-700 text-xs font-bold rounded-full">
-                  GEMINI AI TƏHLİLİ
+                  JOBIA AI TƏHLİLİ
                 </span>
                 {result.status && (
                   <span
@@ -151,7 +151,7 @@ export const ScoreOverviewCard: React.FC<ScoreOverviewCardProps> = ({ result }) 
 
             <div className="bg-slate-50 rounded-xl p-4 border border-slate-100 max-w-3xl">
               <h4 className="text-xs font-bold text-slate-800 mb-1.5 uppercase tracking-wide">
-                Gemini Xülasəsi
+                Jobia AI Xülasəsi
               </h4>
               <p className="text-sm leading-relaxed text-slate-600 italic">
                 "{executiveSummaryText}"

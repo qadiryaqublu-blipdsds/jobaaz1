@@ -87,11 +87,29 @@ export interface AppNotification {
     | 'company_verification' 
     | 'vacancy_approval' 
     | 'new_applicant'
+    | 'new_matching_vacancy'
     | 'general';
   isRead: boolean;
   link?: string;
   data?: Record<string, any>;
   createdAt: string;
+}
+
+// -------------------------------------------------------------
+// CANDIDATE JOB ALERT & CATEGORY/COMPANY SUBSCRIPTION
+// -------------------------------------------------------------
+export interface JobAlertSubscription {
+  id: string;
+  userId: string;
+  userEmail?: string;
+  userName?: string;
+  categories: string[];
+  companies: string[];
+  companyIds?: string[];
+  isActive: boolean;
+  frequency?: 'instant' | 'daily';
+  createdAt: string;
+  updatedAt: string;
 }
 
 // -------------------------------------------------------------
@@ -1038,4 +1056,34 @@ export interface VacancyRecruitingMetrics {
   
   // AI Insights
   insights: AIRecruitingInsight[];
+}
+
+export type AdminAuditAction =
+  | 'approve_vacancy'
+  | 'reject_vacancy'
+  | 'approve_company'
+  | 'revoke_company'
+  | 'toggle_featured_vacancy'
+  | 'delete_vacancy'
+  | 'change_user_status'
+  | 'change_user_role'
+  | 'change_subscription_status';
+
+export type AdminAuditTargetType = 'vacancy' | 'company' | 'user' | 'subscription' | 'payment' | 'setting';
+
+export interface AdminAuditLog {
+  id: string;
+  adminId: string;
+  adminEmail: string;
+  adminName: string;
+  adminRole?: string;
+  action: AdminAuditAction | string;
+  targetType: AdminAuditTargetType;
+  targetId: string;
+  targetName: string;
+  previousStatus?: string;
+  newStatus: string;
+  details: string;
+  timestamp: string;
+  ipAddress?: string;
 }

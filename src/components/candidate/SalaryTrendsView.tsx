@@ -88,7 +88,7 @@ export const SalaryTrendsView: React.FC<SalaryTrendsViewProps> = ({
   const matchingVacancies = useMemo(() => {
     const roleKeywords = currentRole.roleName.toLowerCase().split(/[ /()]/).filter((w) => w.length > 2);
     return vacancies.filter((v) => {
-      if (v.isApproved === false) return false;
+      if (v.isApproved !== true || v.status !== 'published') return false;
       const titleLower = v.title.toLowerCase();
       const catLower = v.category.toLowerCase();
       return (

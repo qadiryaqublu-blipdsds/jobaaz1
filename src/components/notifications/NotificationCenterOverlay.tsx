@@ -366,6 +366,10 @@ export const NotificationCenterOverlay: React.FC<NotificationCenterOverlayProps>
                     <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white flex items-center justify-center shadow-xs">
                       <CheckCircle2 className="w-4 h-4" />
                     </div>
+                  ) : notif.type === 'new_matching_vacancy' ? (
+                    <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 text-white flex items-center justify-center shadow-xs">
+                      <Sparkles className="w-4 h-4" />
+                    </div>
                   ) : notif.type === 'application_submitted' ? (
                     <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 text-white flex items-center justify-center shadow-xs">
                       <Send className="w-4 h-4" />
@@ -404,6 +408,11 @@ export const NotificationCenterOverlay: React.FC<NotificationCenterOverlayProps>
                     ) : isInterview ? (
                       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-purple-600 text-white text-[10px] font-bold shadow-2xs group-hover:bg-purple-700 transition-colors">
                         <span>Müsahibə Detalları</span>
+                        <ChevronRight className="w-3 h-3" />
+                      </span>
+                    ) : notif.type === 'new_matching_vacancy' ? (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-blue-600 text-white text-[10px] font-bold shadow-2xs group-hover:bg-blue-700 transition-colors">
+                        <span>Vakansiyanı Aç</span>
                         <ChevronRight className="w-3 h-3" />
                       </span>
                     ) : (

@@ -48,12 +48,12 @@ export const AICVAnalyzerLoading: React.FC = () => {
           <Sparkles className="w-10 h-10 animate-spin" style={{ animationDuration: '6s' }} />
         </div>
         <div className="absolute -top-1 -right-1 px-2 py-0.5 rounded-full bg-slate-900 text-white text-[10px] font-bold tracking-wider border border-white/20">
-          GEMINI 3.8 FLASH
+          JOBIA AI ATS
         </div>
       </div>
 
       <h3 className="text-xl sm:text-2xl font-black text-slate-900 mb-2">
-        {language === 'en' ? 'Analyzing CV with Gemini 3.8 Flash' : language === 'ru' ? 'Анализ резюме с помощью Gemini 3.8 Flash' : 'CV Gemini 3.8 Flash ilə analiz olunur'}
+        {language === 'en' ? 'Analyzing CV with Jobia AI' : language === 'ru' ? 'Анализ резюме с помощью Jobia AI' : 'CV Jobia AI ilə analiz olunur'}
       </h3>
       <p className="text-sm text-slate-600 mb-10 max-w-md mx-auto">
         {language === 'en'

@@ -297,7 +297,7 @@ export const NearbyJobsMap: React.FC<NearbyJobsMapProps> = ({
   // Enriched vacancies with real geo distance and commute estimates
   const vacanciesWithDistance = useMemo(() => {
     let list = vacancies
-      .filter((v) => v.isApproved !== false)
+      .filter((v) => v.isApproved === true && v.status === 'published')
       .map((job) => {
         const cityCoords = getCoordinatesForCity(job.city);
         const actualLat = job.latitude || cityCoords.lat;

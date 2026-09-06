@@ -88,7 +88,7 @@ const TEMPLATES_STORAGE_KEY = 'jobia_job_offer_templates';
 
 export function getOfferTemplates(): JobOfferTemplate[] {
   try {
-    const saved = localStorage.getItem(TEMPLATES_STORAGE_KEY) || localStorage.getItem('hireme_job_offer_templates');
+    const saved = localStorage.getItem(TEMPLATES_STORAGE_KEY);
     if (saved) {
       const parsed = JSON.parse(saved);
       if (Array.isArray(parsed) && parsed.length > 0) {

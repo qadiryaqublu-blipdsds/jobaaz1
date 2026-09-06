@@ -26,7 +26,8 @@ import {
   Crown,
   PanelLeftClose,
   PanelLeftOpen,
-  Settings
+  Settings,
+  BellRing
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -38,6 +39,7 @@ interface SidebarProps {
   activeVacanciesCount?: number;
   pendingApprovalsCount?: number;
   savedJobsCount?: number;
+  onOpenJobAlerts?: () => void;
   onOpenGoogleChat?: () => void;
   onPostJobClick?: () => void;
   onOpenIntroTour?: () => void;
@@ -62,6 +64,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   activeVacanciesCount = 0,
   pendingApprovalsCount = 0,
   savedJobsCount = 0,
+  onOpenJobAlerts,
   onOpenGoogleChat,
   onPostJobClick,
   onOpenIntroTour,
@@ -109,7 +112,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       id: 'cv-analyzer' as const,
       label: 'AI CV Analizator & ATS',
       icon: Sparkles,
-      badge: 'GEMINI 3.8',
+      badge: 'JOBIA AI',
       badgeClass: 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-black text-[9px] shadow-2xs',
       color: 'blue',
     },
@@ -154,6 +157,20 @@ export const Sidebar: React.FC<SidebarProps> = ({
       onClick: () => {
         if (onOpenGoogleChat) onOpenGoogleChat();
         else handleTabClick('google-chat');
+      }
+    },
+    {
+      id: 'job-alerts' as any,
+      label: 'İzləmə & Bildirişlər',
+      icon: BellRing,
+      badge: 'Alerts',
+      badgeClass: 'bg-blue-100 text-blue-700 font-bold text-[9px]',
+      color: 'blue',
+      onClick: () => {
+        if (onOpenJobAlerts) {
+          onOpenJobAlerts();
+          onCloseMobile();
+        }
       }
     },
     {

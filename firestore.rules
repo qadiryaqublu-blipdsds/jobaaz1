@@ -96,6 +96,11 @@ service cloud.firestore {
       allow create, update, delete: if true;
     }
 
+    // Job Alert Subscriptions Collection
+    match /jobAlertSubscriptions/{subscriptionId} {
+      allow read, write: if true;
+    }
+
     // Job Offers Collection
     match /jobOffers/{offerId} {
       allow read: if true;

@@ -52,7 +52,9 @@ import {
   subscribeToAllCompanies,
   subscribeToCompanyApplications,
   subscribeToCandidateApplications,
-  getVacancyByIdFromFirestore
+  getVacancyByIdFromFirestore,
+  recordAdminAuditLog,
+  notifySubscribersOfNewVacancy
 } from './services/firestoreService';
 import { calculateApplicationMatchScore } from './utils/applicationMatcher';
 import { Header } from './components/Header';
@@ -60,6 +62,7 @@ import { LiveNotificationToast } from './components/notifications/LiveNotificati
 import { JobiaLogo, HireMeLogo } from './components/JobiaLogo';
 import { JobExplorer } from './components/candidate/JobExplorer';
 import { JobDetailModal } from './components/candidate/JobDetailModal';
+import { JobAlertManagerModal } from './components/candidate/JobAlertManagerModal';
 import { NearbyJobsMap } from './components/candidate/NearbyJobsMap';
 import { InterviewPrepModal } from './components/candidate/InterviewPrepModal';
 import { MyApplications } from './components/candidate/MyApplications';
@@ -210,6 +213,7 @@ export default function App() {
   const [userToVerify, setUserToVerify] = useState<User | null>(null);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [profileModalTab, setProfileModalTab] = useState<'profile' | 'settings' | 'security'>('settings');
+  const [isGlobalJobAlertModalOpen, setIsGlobalJobAlertModalOpen] = useState(false);
 
   const handleOpenProfileModal = (initialTab: 'profile' | 'settings' | 'security' = 'settings') => {
     if (!currentUser) {
@@ -650,6 +654,21 @@ export default function App() {
   // Handle click on a notification to seamlessly navigate to destination
   const handleNavigateNotification = (notif: AppNotification) => {
     setIsPricingViewOpen(false);
+    if (notif.type === 'new_matching_vacancy') {
+      if (currentRole !== 'candidate') {
+        setCurrentRole('candidate');
+      }
+      setCandidateTab('jobs');
+      const vacId = notif.data?.vacancyId;
+      if (vacId) {
+        const foundJob = vacancies.find((v) => v.id === vacId);
+        if (foundJob) {
+          setSelectedJobForDetail(foundJob);
+        }
+      }
+      return;
+    }
+
     if (notif.type === 'job_offer') {
       if (currentRole !== 'candidate') {
         setCurrentRole('candidate');
@@ -959,6 +978,27 @@ export default function App() {
     return 0;
   }, [currentRole, candidateVisibleApplications.length, businessVisibleApplications.length, applications.length, currentUser]);
 
+  // STRICT ADMIN APPROVAL MANDATE:
+  // 1. Verified Companies: Only companies approved by admin (verified === true || verificationStatus === 'verified')
+  const verifiedCompanies = useMemo(() => {
+    return companies.filter(
+      (c) => c.verified === true || c.verificationStatus === 'verified'
+    );
+  }, [companies]);
+
+  // 2. Published Vacancies: Only vacancies strictly approved by admin (isApproved === true && status === 'published')
+  // and whose company is verified by admin (if companyId is present).
+  const publishedVacancies = useMemo(() => {
+    const verifiedIds = new Set(verifiedCompanies.map((c) => c.id));
+    return vacancies.filter((v) => {
+      // Must be strictly approved by admin with published status
+      if (v.isApproved !== true || v.status !== 'published') return false;
+      // If linked to a company, that company must be verified by admin
+      if (v.companyId && !verifiedIds.has(v.companyId)) return false;
+      return true;
+    });
+  }, [vacancies, verifiedCompanies]);
+
   // Submit Job Application (Supports both registered candidates with active CV & guest applicants with file attachments)
   const handleApplyToJob = async (
     vacancy: Vacancy, 
@@ -1123,7 +1163,7 @@ export default function App() {
       companyId: activeCompany.id,
       companyName: activeCompany.name,
       companyLogo: activeCompany.logo,
-      companyVerified: activeCompany.verified ?? true,
+      companyVerified: activeCompany.verified ?? false,
       category: newJob.category || 'İT və Proqramlaşdırma',
       employmentType: newJob.employmentType || 'Tam ştat',
       experienceLevel: newJob.experienceLevel || 'Orta (Mid-level, 1-3 il)',
@@ -1145,8 +1185,8 @@ export default function App() {
       postedDate: newJob.postedDate || today,
       deadline: newJob.deadline || deadlineDate,
       isFeatured: newJob.isFeatured ?? false,
-      isApproved: true,
-      status: 'published',
+      isApproved: currentUser?.role === 'admin' ? true : false,
+      status: currentUser?.role === 'admin' ? 'published' : 'pending_review',
       editCount: isEdit ? ((existingJob?.editCount || 0) + 1) : 0,
       maxEditsAllowed: 1,
       lastEditedAt: isEdit ? new Date().toISOString() : undefined,
@@ -1162,10 +1202,18 @@ export default function App() {
 
     if (isEdit) {
       setVacancies((prev) => prev.map((v) => (v.id === fullJob.id ? fullJob : v)));
-      showToast('Vakansiya uğurla redaktə edildi və yeniləndi!');
+      showToast(
+        currentUser?.role === 'admin'
+          ? 'Vakansiya uğurla redaktə edildi və yeniləndi!'
+          : 'Vakansiya redaktə edildi və təkrar admin təsdiqinə göndərildi.'
+      );
     } else {
       setVacancies((prev) => [fullJob, ...prev]);
-      showToast('Vakansiya dərhal dərc edildi və bütün platformada aktivləşdirildi!');
+      showToast(
+        currentUser?.role === 'admin'
+          ? 'Vakansiya dərhal dərc edildi və bütün platformada aktivləşdirildi!'
+          : 'Vakansiya uğurla qəbul edildi! Admin təsdiqindən sonra dərc olunacaq.'
+      );
     }
 
     // Persist to Firestore
@@ -1173,6 +1221,17 @@ export default function App() {
       await saveVacancyToFirestore(fullJob, currentUser?.id);
     } catch (e) {
       console.warn('Firestore save vacancy notice:', e);
+    }
+
+    // If published directly by admin (Zero-Bypass Moderation policy satisfied), notify matching subscribers
+    if (!isEdit && currentUser?.role === 'admin' && fullJob.status === 'published' && fullJob.isApproved) {
+      notifySubscribersOfNewVacancy(fullJob)
+        .then((res) => {
+          if (res.notifiedCount > 0) {
+            console.log(`[Job Alerts] Sent in-app notifications to ${res.notifiedCount} candidate subscriber(s).`);
+          }
+        })
+        .catch((err) => console.warn('[Job Alerts] Error notifying subscribers:', err));
     }
 
     setIsPostJobModalOpen(false);
@@ -1319,39 +1378,142 @@ export default function App() {
 
   // Admin Actions
   const handleApproveVacancy = async (jobId: string) => {
+    const targetJob = vacancies.find((v) => v.id === jobId);
+    const jobTitle = targetJob?.title || 'Vakansiya';
+    const compName = targetJob?.companyName || '';
+    const adminId = currentUser?.id || 'user-admin-root';
+    const adminEmail = currentUser?.email || 'admin@jobia.az';
+    const adminName = currentUser?.fullName || 'Sistem Administratoru';
+
     setVacancies((prev) => prev.map((v) => (v.id === jobId ? { ...v, isApproved: true, status: 'published' } : v)));
     try {
       await updateVacancyStatus(jobId, 'published', true);
     } catch (e) {
       console.warn('Firestore approve notice:', e);
     }
+
+    // Record audit log identifying which admin account performed approval
+    await recordAdminAuditLog({
+      action: 'approve_vacancy',
+      adminId,
+      adminEmail,
+      adminName,
+      adminRole: 'admin',
+      targetType: 'vacancy',
+      targetId: jobId,
+      targetName: compName ? `${jobTitle} (${compName})` : jobTitle,
+      previousStatus: targetJob?.status || 'pending_review',
+      newStatus: 'published',
+      details: `Admin ${adminName} (${adminEmail}) "${jobTitle}" vakansiyasını yoxlayaraq təsdiqlədi və platformada dərc etdi.`,
+    }).catch(() => {});
+
+    // Trigger in-app notifications for candidates subscribed to this job's category or company
+    if (targetJob) {
+      const approvedJobForNotification = {
+        ...targetJob,
+        isApproved: true,
+        status: 'published' as const,
+      };
+      notifySubscribersOfNewVacancy(approvedJobForNotification)
+        .then((res) => {
+          if (res.notifiedCount > 0) {
+            console.log(`[Job Alerts] Sent in-app notifications to ${res.notifiedCount} candidate subscriber(s).`);
+          }
+        })
+        .catch((err) => console.warn('[Job Alerts] Error notifying subscribers:', err));
+    }
+
     showToast('Vakansiya təsdiqləndi və saytda dərc edildi.');
   };
 
   const handleRejectVacancy = async (jobId: string) => {
+    const targetJob = vacancies.find((v) => v.id === jobId);
+    const jobTitle = targetJob?.title || 'Vakansiya';
+    const compName = targetJob?.companyName || '';
+    const adminId = currentUser?.id || 'user-admin-root';
+    const adminEmail = currentUser?.email || 'admin@jobia.az';
+    const adminName = currentUser?.fullName || 'Sistem Administratoru';
+
     setVacancies((prev) => prev.map((v) => (v.id === jobId ? { ...v, isApproved: false, status: 'rejected' } : v)));
     try {
       await updateVacancyStatus(jobId, 'rejected', false);
     } catch (e) {
       console.warn('Firestore reject notice:', e);
     }
+
+    // Record audit log identifying which admin account performed rejection
+    await recordAdminAuditLog({
+      action: 'reject_vacancy',
+      adminId,
+      adminEmail,
+      adminName,
+      adminRole: 'admin',
+      targetType: 'vacancy',
+      targetId: jobId,
+      targetName: compName ? `${jobTitle} (${compName})` : jobTitle,
+      previousStatus: targetJob?.status || 'published',
+      newStatus: 'rejected',
+      details: `Admin ${adminName} (${adminEmail}) "${jobTitle}" vakansiyasını dərcdən çıxardı (imtina etdi).`,
+    }).catch(() => {});
+
     showToast('Vakansiya dərcdən çıxarıldı.');
   };
 
   const handleToggleFeatureVacancy = async (jobId: string) => {
+    const targetJob = vacancies.find((v) => v.id === jobId);
+    const willBeFeatured = targetJob ? !targetJob.isFeatured : true;
+    const adminId = currentUser?.id || 'user-admin-root';
+    const adminEmail = currentUser?.email || 'admin@jobia.az';
+    const adminName = currentUser?.fullName || 'Sistem Administratoru';
+
     setVacancies((prev) =>
       prev.map((v) => (v.id === jobId ? { ...v, isFeatured: !v.isFeatured } : v))
     );
+
+    await recordAdminAuditLog({
+      action: 'toggle_featured_vacancy',
+      adminId,
+      adminEmail,
+      adminName,
+      adminRole: 'admin',
+      targetType: 'vacancy',
+      targetId: jobId,
+      targetName: targetJob?.title || 'Vakansiya',
+      previousStatus: targetJob?.isFeatured ? 'Önə Çıxarılıb' : 'Standart',
+      newStatus: willBeFeatured ? 'Önə Çıxarılıb' : 'Standart',
+      details: `Admin ${adminName} (${adminEmail}) vakansiyanın Premium statusunu dəyişdirdi (${willBeFeatured ? 'Önə Çıxarıldı' : 'Standart'}).`,
+    }).catch(() => {});
+
     showToast('Vakansiyanın Premium statusu dəyişdirildi.');
   };
 
   const handleDeleteVacancy = async (jobId: string) => {
+    const targetJob = vacancies.find((v) => v.id === jobId);
+    const adminId = currentUser?.id || 'user-admin-root';
+    const adminEmail = currentUser?.email || 'admin@jobia.az';
+    const adminName = currentUser?.fullName || 'Sistem Administratoru';
+
     setVacancies((prev) => prev.filter((v) => v.id !== jobId));
     try {
       await deleteVacancyFromFirestore(jobId);
     } catch (e) {
       console.warn('Firestore delete notice:', e);
     }
+
+    await recordAdminAuditLog({
+      action: 'delete_vacancy',
+      adminId,
+      adminEmail,
+      adminName,
+      adminRole: 'admin',
+      targetType: 'vacancy',
+      targetId: jobId,
+      targetName: targetJob?.title || jobId,
+      previousStatus: targetJob?.status || 'published',
+      newStatus: 'deleted',
+      details: `Admin ${adminName} (${adminEmail}) "${targetJob?.title || jobId}" vakansiyasını həmişəlik sildi.`,
+    }).catch(() => {});
+
     showToast('Vakansiya silindi.');
   };
 
@@ -1378,16 +1540,40 @@ export default function App() {
 
   const handleToggleCompanyVerified = async (companyId: string) => {
     const targetComp = companies.find((c) => c.id === companyId);
-    const newVerified = targetComp ? !targetComp.verified : true;
+    const newVerified = targetComp ? !(targetComp.verified === true || targetComp.verificationStatus === 'verified') : true;
+    const newStatus = newVerified ? 'verified' : 'pending';
+    const compName = targetComp?.name || 'Şirkət';
+    const adminId = currentUser?.id || 'user-admin-root';
+    const adminEmail = currentUser?.email || 'admin@jobia.az';
+    const adminName = currentUser?.fullName || 'Sistem Administratoru';
+
     setCompanies((prev) =>
-      prev.map((c) => (c.id === companyId ? { ...c, verified: newVerified } : c))
+      prev.map((c) => (c.id === companyId ? { ...c, verified: newVerified, verificationStatus: newStatus } : c))
     );
     try {
-      await setCompanyVerificationStatus(companyId, newVerified ? 'verified' : 'pending');
+      await setCompanyVerificationStatus(companyId, newStatus);
     } catch (e) {
       console.warn('Firestore company verification status notice:', e);
     }
-    showToast('Şirkətin verifikasiya statusu dəyişdirildi.');
+
+    // Record audit log identifying which admin account performed company approval / revoke
+    await recordAdminAuditLog({
+      action: newVerified ? 'approve_company' : 'revoke_company',
+      adminId,
+      adminEmail,
+      adminName,
+      adminRole: 'admin',
+      targetType: 'company',
+      targetId: companyId,
+      targetName: compName,
+      previousStatus: targetComp?.verificationStatus || (targetComp?.verified ? 'verified' : 'pending'),
+      newStatus: newStatus,
+      details: newVerified
+        ? `Admin ${adminName} (${adminEmail}) "${compName}" şirkətini rəsmi təsdiqlədi və platformada dərc etdi.`
+        : `Admin ${adminName} (${adminEmail}) "${compName}" şirkətinin rəsmi statusunu ləğv etdi və dərcdən çıxardı.`,
+    }).catch(() => {});
+
+    showToast(newVerified ? 'Şirkət təsdiqləndi və platformada dərc edildi!' : 'Şirkətin təsdiqi ləğv edildi və dərcdən çıxarıldı.');
   };
 
   // If candidate is viewing their secure offer link portal
@@ -1419,8 +1605,9 @@ export default function App() {
           onCandidateTabChange={(tab) => setCandidateTab(tab)}
           applicationsCount={roleApplicationsCount}
           savedJobsCount={savedJobIds.length}
-          activeVacanciesCount={vacancies.filter((v) => v.isApproved !== false).length}
-          pendingApprovalsCount={vacancies.filter((v) => v.isApproved === false).length}
+          activeVacanciesCount={publishedVacancies.length}
+          pendingApprovalsCount={vacancies.filter((v) => v.isApproved !== true || v.status !== 'published').length}
+          companies={verifiedCompanies}
           currentUser={currentUser}
           currentSubscription={currentSubscription}
           onOpenAuthModal={handleOpenAuth}
@@ -1511,8 +1698,9 @@ export default function App() {
         onCandidateTabChange={(tab) => setCandidateTab(tab)}
         applicationsCount={roleApplicationsCount}
         savedJobsCount={savedJobIds.length}
-        activeVacanciesCount={vacancies.filter((v) => v.isApproved !== false).length}
-        pendingApprovalsCount={vacancies.filter((v) => v.isApproved === false).length}
+        activeVacanciesCount={publishedVacancies.length}
+        pendingApprovalsCount={vacancies.filter((v) => v.isApproved !== true || v.status !== 'published').length}
+        onOpenJobAlerts={() => setIsGlobalJobAlertModalOpen(true)}
         onOpenGoogleChat={() => {
           if (currentRole === 'candidate') {
             setCandidateTab('google-chat');
@@ -1542,7 +1730,7 @@ export default function App() {
           onRoleChange={handleRoleChangeWithRBAC}
           candidateTab={candidateTab}
           onCandidateTabChange={(tab) => setCandidateTab(tab)}
-          companies={companies}
+          companies={verifiedCompanies}
           selectedCompany={selectedCompanyFilter}
           onSelectCompany={(comp) => {
             setSelectedCompanyFilter(comp);
@@ -1551,8 +1739,8 @@ export default function App() {
           }}
           applicationsCount={roleApplicationsCount}
           savedJobsCount={savedJobIds.length}
-          activeVacanciesCount={vacancies.filter((v) => v.isApproved !== false).length}
-          pendingApprovalsCount={vacancies.filter((v) => v.isApproved === false).length}
+          activeVacanciesCount={publishedVacancies.length}
+          pendingApprovalsCount={vacancies.filter((v) => v.isApproved !== true || v.status !== 'published').length}
           onOpenGoogleChat={() => {
             if (currentRole === 'candidate') {
               setCandidateTab('google-chat');
@@ -1662,7 +1850,7 @@ export default function App() {
               <div>
                 {candidateTab === 'jobs' && (
                   <JobExplorer
-                    vacancies={vacancies}
+                    vacancies={publishedVacancies}
                     onSelectVacancy={(job) => setSelectedJobForDetail(job)}
                     savedJobIds={savedJobIds}
                     onToggleBookmark={handleToggleBookmark}
@@ -1678,12 +1866,14 @@ export default function App() {
                     onOpenCalculia={() => setCandidateTab('calculia')}
                     onOpenIntroTour={() => setIsIntroTourOpen(true)}
                     userCV={candidateCV}
+                    currentUser={currentUser}
+                    onShowToast={showToast}
                   />
                 )}
 
                 {candidateTab === 'nearby-map' && (
                   <NearbyJobsMap
-                    vacancies={vacancies}
+                    vacancies={publishedVacancies}
                     onSelectVacancy={(job) => setSelectedJobForDetail(job)}
                     savedJobIds={savedJobIds}
                     onToggleBookmark={handleToggleBookmark}
@@ -1695,7 +1885,7 @@ export default function App() {
 
                 {candidateTab === 'salary-trends' && (
                   <SalaryTrendsView
-                    vacancies={vacancies}
+                    vacancies={publishedVacancies}
                     onSelectVacancy={(job) => setSelectedJobForDetail(job)}
                   />
                 )}
@@ -1789,6 +1979,7 @@ export default function App() {
                   vacancies={vacancies}
                   companies={companies}
                   applications={applications}
+                  currentAdminUser={currentUser}
                   onApproveVacancy={handleApproveVacancy}
                   onRejectVacancy={handleRejectVacancy}
                   onToggleFeatureVacancy={handleToggleFeatureVacancy}
@@ -2135,6 +2326,14 @@ export default function App() {
           }}
         />
       )}
+
+      {/* Global Candidate Job Alerts & Notifications Modal */}
+      <JobAlertManagerModal
+        isOpen={isGlobalJobAlertModalOpen}
+        onClose={() => setIsGlobalJobAlertModalOpen(false)}
+        currentUser={currentUser}
+        onShowToast={showToast}
+      />
 
         {/* Footer with large logo and sweet slogan */}
         <Footer

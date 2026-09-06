@@ -62,7 +62,7 @@ export const DeepCVAnalyzerView: React.FC = () => {
           <div className="text-center max-w-2xl mx-auto mb-8">
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200 text-xs font-bold mb-3 shadow-2xs">
               <Sparkles className="w-3.5 h-3.5 text-blue-600" />
-              <span>Gemini 3.8 Flash AI • Zero Hallucination Engine</span>
+              <span>Jobia.az AI • Zero Hallucination Engine</span>
             </div>
             <h1 className="text-2xl sm:text-4xl font-black text-slate-900 tracking-tight">
               {language === 'en'

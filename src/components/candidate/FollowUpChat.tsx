@@ -114,7 +114,7 @@ export const FollowUpChat: React.FC<FollowUpChatProps> = ({
             İnteraktiv Köməkçi
           </span>
           <h3 className="text-lg font-bold text-slate-800">
-            Gemini Karyera Məsləhətçisi (Sual-Cavab)
+            Jobia AI Karyera Məsləhətçisi (Sual-Cavab)
           </h3>
         </div>
         <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold">
@@ -186,7 +186,7 @@ export const FollowUpChat: React.FC<FollowUpChatProps> = ({
         {isLoading && (
           <div className="flex items-center gap-2 text-xs text-slate-500 italic p-2 bg-white rounded-xl border border-slate-200 w-fit">
             <Loader2 className="w-4 h-4 animate-spin text-indigo-600" />
-            <span>Gemini cavab hazırlayır...</span>
+            <span>Jobia AI cavab hazırlayır...</span>
           </div>
         )}
         <div ref={messagesEndRef} />

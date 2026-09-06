@@ -90,7 +90,7 @@ export const OfferDocumentView: React.FC<OfferDocumentViewProps> = ({
       <div className="mb-8 border border-slate-200 rounded-xl overflow-hidden text-xs">
         <div className="bg-slate-900 text-white px-4 py-2.5 font-bold uppercase text-[11px] tracking-wider flex items-center justify-between">
           <span>{isAz ? 'Əməkdaşlığın Əsas Şərtləri' : 'Key Employment Terms & Remuneration'}</span>
-          <span className="text-blue-300 text-[10px]">hireme.az Certified</span>
+          <span className="text-blue-300 text-[10px]">jobia.az Certified</span>
         </div>
         <table className="w-full text-left border-collapse">
           <tbody className="divide-y divide-slate-200">

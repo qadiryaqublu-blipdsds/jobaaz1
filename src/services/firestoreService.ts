@@ -24,7 +24,9 @@ import {
   AppNotification, 
   User,
   UserRole,
-  UserEmailPreferences 
+  UserEmailPreferences,
+  AdminAuditLog,
+  JobAlertSubscription
 } from '../types';
 
 export enum OperationType {
@@ -125,7 +127,11 @@ export async function getPublishedVacancies(): Promise<Vacancy[]> {
     const snap = await getDocs(q);
     const list: Vacancy[] = [];
     snap.forEach((d) => {
-      list.push({ ...d.data(), id: d.id } as Vacancy);
+      const data = d.data() as Vacancy;
+      // STRICT ADMIN APPROVAL: Only jobs with isApproved === true and status === 'published'
+      if (data.isApproved === true && data.status === 'published') {
+        list.push({ ...data, id: d.id });
+      }
     });
     return list;
   } catch (err) {
@@ -145,7 +151,11 @@ export function subscribeToPublishedVacancies(callback: (jobs: Vacancy[]) => voi
   return onSnapshot(q, (snap) => {
     const list: Vacancy[] = [];
     snap.forEach((d) => {
-      list.push({ ...d.data(), id: d.id } as Vacancy);
+      const data = d.data() as Vacancy;
+      // STRICT ADMIN APPROVAL: Only jobs with isApproved === true and status === 'published'
+      if (data.isApproved === true && data.status === 'published') {
+        list.push({ ...data, id: d.id });
+      }
     });
     callback(list);
   }, (err) => {
@@ -270,8 +280,8 @@ export async function saveVacancyToFirestore(job: Partial<Vacancy>, userId?: str
     skills: job.skills || [],
     postedDate: job.postedDate || now.split('T')[0],
     deadline: job.deadline || new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0],
-    status: job.status || 'published',
-    isApproved: job.isApproved !== undefined ? job.isApproved : true,
+    status: job.status ? job.status : 'pending_review',
+    isApproved: job.isApproved === true ? true : false,
     editCount: job.editCount ?? 0,
     maxEditsAllowed: job.maxEditsAllowed ?? 1,
     lastEditedAt: job.lastEditedAt || null as any,
@@ -1172,6 +1182,160 @@ export async function clearAllNotificationsForUser(userId: string) {
 }
 
 /* ========================================================================= */
+/* 5.5 CANDIDATE JOB ALERTS & CATEGORY/COMPANY SUBSCRIPTIONS                */
+/* ========================================================================= */
+
+const LOCAL_JOB_ALERTS_KEY = 'jobia_candidate_job_alerts';
+
+function getLocalJobAlerts(): Record<string, JobAlertSubscription> {
+  try {
+    const raw = localStorage.getItem(LOCAL_JOB_ALERTS_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+}
+
+function saveLocalJobAlert(sub: JobAlertSubscription) {
+  try {
+    const all = getLocalJobAlerts();
+    all[sub.userId] = sub;
+    localStorage.setItem(LOCAL_JOB_ALERTS_KEY, JSON.stringify(all));
+  } catch (e) {
+    console.warn('Local job alerts save error:', e);
+  }
+}
+
+export async function saveJobAlertSubscription(sub: JobAlertSubscription): Promise<void> {
+  // 1. Save local
+  saveLocalJobAlert(sub);
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('jobia_job_alert_updated', { detail: sub }));
+  }
+
+  // 2. Save Firestore
+  try {
+    const sanitized = sanitizeForFirestore(sub);
+    await setDoc(doc(db, 'jobAlertSubscriptions', sub.userId), sanitized);
+  } catch (err) {
+    console.warn('Firestore saveJobAlertSubscription notice, saved locally:', err);
+  }
+}
+
+export async function getJobAlertSubscription(userId: string): Promise<JobAlertSubscription | null> {
+  const local = getLocalJobAlerts()[userId];
+  try {
+    const snap = await getDoc(doc(db, 'jobAlertSubscriptions', userId));
+    if (snap.exists()) {
+      const data = snap.data() as JobAlertSubscription;
+      saveLocalJobAlert(data);
+      return data;
+    }
+  } catch (e) {
+    console.warn('Firestore getJobAlertSubscription notice, using local:', e);
+  }
+  return local || null;
+}
+
+export async function getAllActiveJobAlertSubscriptions(): Promise<JobAlertSubscription[]> {
+  const map = new Map<string, JobAlertSubscription>();
+
+  // Add local subscriptions
+  const locals = getLocalJobAlerts();
+  Object.values(locals).forEach((sub) => {
+    if (sub.isActive !== false) {
+      map.set(sub.userId, sub);
+    }
+  });
+
+  // Query Firestore
+  try {
+    const snap = await getDocs(collection(db, 'jobAlertSubscriptions'));
+    snap.forEach((d) => {
+      const sub = d.data() as JobAlertSubscription;
+      if (sub.isActive !== false) {
+        map.set(sub.userId, sub);
+      }
+    });
+  } catch (e) {
+    console.warn('Firestore getAllActiveJobAlertSubscriptions note, using local:', e);
+  }
+
+  return Array.from(map.values());
+}
+
+/**
+ * Check and notify candidate subscribers when a newly approved vacancy is published
+ */
+export async function notifySubscribersOfNewVacancy(vacancy: Vacancy): Promise<{ notifiedCount: number; subscriberIds: string[] }> {
+  if (!vacancy || !vacancy.title) {
+    return { notifiedCount: 0, subscriberIds: [] };
+  }
+
+  const subscribers = await getAllActiveJobAlertSubscriptions();
+  const notifiedIds: string[] = [];
+
+  const vacCat = (vacancy.category || '').toLowerCase().trim();
+  const vacComp = (vacancy.companyName || '').toLowerCase().trim();
+
+  for (const sub of subscribers) {
+    if (!sub.userId || sub.isActive === false) continue;
+
+    // Check category match
+    const matchedCategory = (sub.categories || []).find((c) => {
+      const cleanC = c.toLowerCase().trim();
+      return cleanC && (cleanC === vacCat || vacCat.includes(cleanC) || cleanC.includes(vacCat));
+    });
+
+    // Check company match
+    const matchedCompany = (sub.companies || []).find((c) => {
+      const cleanComp = c.toLowerCase().trim();
+      return cleanComp && (cleanComp === vacComp || vacComp.includes(cleanComp) || cleanComp.includes(vacComp));
+    });
+
+    if (matchedCategory || matchedCompany) {
+      let reason = '';
+      if (matchedCategory && matchedCompany) {
+        reason = `Həm izlədiyiniz "${vacancy.companyName}" şirkəti, həm də "${matchedCategory}" kateqoriyası üzrə yeni təsdiqlənmiş vakansiya dərc edildi.`;
+      } else if (matchedCompany) {
+        reason = `İzlədiyiniz "${vacancy.companyName}" şirkəti yeni təsdiqlənmiş "${vacancy.title}" vakansiyasını paylaşdı.`;
+      } else {
+        reason = `Abunə olduğunuz "${matchedCategory}" kateqoriyası üzrə "${vacancy.companyName}" şirkətindən yeni təsdiqlənmiş vakansiya dərc olundu.`;
+      }
+
+      const salaryText = vacancy.hideSalary
+        ? 'Müsahibə əsasında'
+        : (vacancy.minSalary ? `${vacancy.minSalary}${vacancy.maxSalary ? ` - ${vacancy.maxSalary}` : ''} ${vacancy.currency || 'AZN'}` : '');
+
+      try {
+        await createNotification({
+          userId: sub.userId,
+          title: `Yeni Uyğun Vakansiya: ${vacancy.title}`,
+          message: reason,
+          type: 'new_matching_vacancy',
+          link: `?job=${vacancy.id}`,
+          data: {
+            vacancyId: vacancy.id,
+            vacancyTitle: vacancy.title,
+            category: vacancy.category,
+            companyName: vacancy.companyName,
+            salary: salaryText,
+            matchedCategory: matchedCategory || null,
+            matchedCompany: matchedCompany || null,
+            publishedAt: new Date().toISOString(),
+          },
+        });
+        notifiedIds.push(sub.userId);
+      } catch (err) {
+        console.warn('Failed to notify subscriber:', sub.userId, err);
+      }
+    }
+  }
+
+  return { notifiedCount: notifiedIds.length, subscriberIds: notifiedIds };
+}
+
+/* ========================================================================= */
 /* 6. REAL JOB OFFERS FIRESTORE SERVICE                                      */
 /* ========================================================================= */
 
@@ -1743,23 +1907,239 @@ export async function updateUserEmailPreferencesInFirestore(
   } catch {}
 }
 
+const ADMIN_AUDIT_STORAGE_KEY = 'jobia_admin_audit_logs';
+
+const DEFAULT_INITIAL_AUDIT_LOGS: AdminAuditLog[] = [
+  {
+    id: 'log-seed-01',
+    adminId: 'user-admin-2',
+    adminEmail: 'qadiryaqublu@gmail.com',
+    adminName: 'Qadir Yaqublu',
+    adminRole: 'admin',
+    action: 'approve_company',
+    targetType: 'company',
+    targetId: 'comp-pasha',
+    targetName: 'PASHA Bank ASC',
+    previousStatus: 'pending',
+    newStatus: 'verified',
+    details: 'PASHA Bank ASC korporativ verifikasiya sənədləri yoxlanılaraq rəsmi təsdiqləndi və ictimai platformada dərc edildi.',
+    timestamp: '2026-09-04T11:20:00.000Z',
+  },
+  {
+    id: 'log-seed-02',
+    adminId: 'user-admin-2',
+    adminEmail: 'qadiryaqublu@gmail.com',
+    adminName: 'Qadir Yaqublu',
+    adminRole: 'admin',
+    action: 'approve_vacancy',
+    targetType: 'vacancy',
+    targetId: 'job-1',
+    targetName: 'Senior Full Stack Developer (PASHA Bank ASC)',
+    previousStatus: 'pending_review',
+    newStatus: 'published',
+    details: 'Vakansiyanın məzmunu və əmək haqqı standartları yoxlanıldı, admin tərəfindən təsdiqlənərək canlı yayıma buraxıldı.',
+    timestamp: '2026-09-04T11:45:00.000Z',
+  },
+  {
+    id: 'log-seed-03',
+    adminId: 'user-admin-1',
+    adminEmail: 'admin@jobia.az',
+    adminName: 'Sistem Administratoru',
+    adminRole: 'admin',
+    action: 'approve_company',
+    targetType: 'company',
+    targetId: 'comp-kapital',
+    targetName: 'Kapital Bank ASC',
+    previousStatus: 'pending',
+    newStatus: 'verified',
+    details: 'Kapital Bank ASC profili və rekvizitləri admin paneli vasitəsilə təsdiqləndi.',
+    timestamp: '2026-09-04T14:10:00.000Z',
+  },
+  {
+    id: 'log-seed-04',
+    adminId: 'user-admin-1',
+    adminEmail: 'admin@jobia.az',
+    adminName: 'Sistem Administratoru',
+    adminRole: 'admin',
+    action: 'approve_vacancy',
+    targetType: 'vacancy',
+    targetId: 'job-2',
+    targetName: 'UI/UX Dizayner (Kapital Bank ASC)',
+    previousStatus: 'pending_review',
+    newStatus: 'published',
+    details: 'Vakansiya tələbləri və meyarları admin moderasiyasından keçdi və dərc edildi.',
+    timestamp: '2026-09-04T14:30:00.000Z',
+  },
+];
+
 /**
- * Create Admin Log in Firestore
+ * Get cached Admin Audit Logs from localStorage
+ */
+export function getStoredAdminAuditLogs(): AdminAuditLog[] {
+  try {
+    const raw = localStorage.getItem(ADMIN_AUDIT_STORAGE_KEY);
+    if (!raw) {
+      localStorage.setItem(ADMIN_AUDIT_STORAGE_KEY, JSON.stringify(DEFAULT_INITIAL_AUDIT_LOGS));
+      return DEFAULT_INITIAL_AUDIT_LOGS;
+    }
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) && parsed.length > 0 ? parsed : DEFAULT_INITIAL_AUDIT_LOGS;
+  } catch {
+    return DEFAULT_INITIAL_AUDIT_LOGS;
+  }
+}
+
+/**
+ * Save Admin Audit Logs to localStorage
+ */
+export function saveStoredAdminAuditLogs(logs: AdminAuditLog[]): void {
+  try {
+    localStorage.setItem(ADMIN_AUDIT_STORAGE_KEY, JSON.stringify(logs));
+  } catch {}
+}
+
+/**
+ * Record an Admin Audit Log in Firestore and Local Storage
+ */
+export async function recordAdminAuditLog(logData: {
+  action: string;
+  adminId: string;
+  adminEmail: string;
+  adminName: string;
+  adminRole?: string;
+  targetType: 'vacancy' | 'company' | 'user' | 'subscription' | 'payment' | 'setting';
+  targetId: string;
+  targetName: string;
+  previousStatus?: string;
+  newStatus: string;
+  details: string;
+  ipAddress?: string;
+}): Promise<AdminAuditLog> {
+  const logId = `admin-log-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+  const now = new Date().toISOString();
+  const fullLog: AdminAuditLog = {
+    id: logId,
+    timestamp: now,
+    ...logData,
+  };
+
+  // 1. Immediately cache in localStorage for instant UI feedback
+  try {
+    const existing = getStoredAdminAuditLogs();
+    const updated = [fullLog, ...existing.filter((l) => l.id !== logId)];
+    saveStoredAdminAuditLogs(updated);
+  } catch (e) {
+    console.warn('Local audit log save notice:', e);
+  }
+
+  // 2. Persist to Firestore adminLogs collection
+  try {
+    await setDoc(doc(db, 'adminLogs', logId), sanitizeForFirestore(fullLog));
+  } catch (e) {
+    console.warn('Firestore audit log save notice:', e);
+  }
+
+  return fullLog;
+}
+
+/**
+ * Legacy wrapper for createAdminLogToFirestore
  */
 export async function createAdminLogToFirestore(data: {
   action: string;
   adminId: string;
   adminEmail: string;
+  adminName?: string;
   targetId?: string;
   targetType?: string;
+  targetName?: string;
+  previousStatus?: string;
+  newStatus?: string;
   details: string;
 }): Promise<void> {
-  const logId = `admin-log-${Date.now()}`;
-  await setDoc(doc(db, 'adminLogs', logId), {
-    id: logId,
-    ...data,
-    timestamp: new Date().toISOString(),
+  await recordAdminAuditLog({
+    action: data.action,
+    adminId: data.adminId,
+    adminEmail: data.adminEmail,
+    adminName: data.adminName || data.adminEmail.split('@')[0],
+    targetType: (data.targetType as any) || 'setting',
+    targetId: data.targetId || 'unknown',
+    targetName: data.targetName || data.targetId || 'Ümumi',
+    previousStatus: data.previousStatus,
+    newStatus: data.newStatus || 'completed',
+    details: data.details,
   }).catch(() => {});
+}
+
+/**
+ * Fetch all Admin Audit Logs from Firestore (with local fallback)
+ */
+export async function getAllAdminAuditLogsFromFirestore(): Promise<AdminAuditLog[]> {
+  try {
+    const snap = await getDocs(collection(db, 'adminLogs'));
+    const firestoreLogs: AdminAuditLog[] = [];
+    snap.forEach((d) => {
+      const data = d.data();
+      firestoreLogs.push({ id: d.id, ...data } as AdminAuditLog);
+    });
+
+    const localLogs = getStoredAdminAuditLogs();
+    const map = new Map<string, AdminAuditLog>();
+    [...firestoreLogs, ...localLogs].forEach((l) => {
+      if (l && l.id) map.set(l.id, l);
+    });
+
+    const merged = Array.from(map.values()).sort(
+      (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+    );
+
+    saveStoredAdminAuditLogs(merged);
+    return merged;
+  } catch (err) {
+    console.warn('Error fetching admin logs from Firestore, using local fallback:', err);
+    return getStoredAdminAuditLogs();
+  }
+}
+
+/**
+ * Real-time subscription to Admin Audit Logs
+ */
+export function subscribeToAdminAuditLogs(callback: (logs: AdminAuditLog[]) => void): () => void {
+  try {
+    const q = collection(db, 'adminLogs');
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const firestoreLogs: AdminAuditLog[] = [];
+        snapshot.forEach((d) => {
+          const data = d.data();
+          firestoreLogs.push({ id: d.id, ...data } as AdminAuditLog);
+        });
+
+        const localLogs = getStoredAdminAuditLogs();
+        const map = new Map<string, AdminAuditLog>();
+        [...firestoreLogs, ...localLogs].forEach((l) => {
+          if (l && l.id) map.set(l.id, l);
+        });
+
+        const merged = Array.from(map.values()).sort(
+          (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+        );
+
+        saveStoredAdminAuditLogs(merged);
+        callback(merged);
+      },
+      (error) => {
+        console.warn('Admin audit logs snapshot error, falling back to local storage:', error);
+        callback(getStoredAdminAuditLogs());
+      }
+    );
+    return unsubscribe;
+  } catch (err) {
+    console.warn('Failed to subscribe to admin audit logs, using local:', err);
+    callback(getStoredAdminAuditLogs());
+    return () => {};
+  }
 }
 
 /* ========================================================================= */

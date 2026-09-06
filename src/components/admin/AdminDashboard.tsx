@@ -7,7 +7,9 @@ import {
   UserRole,
   UserSubscription, 
   SubscriptionStatus,
-  PaymentTransaction 
+  PaymentTransaction,
+  AdminAuditLog,
+  AdminAuditAction 
 } from '../../types';
 import { 
   getStoredSubscriptions, 
@@ -25,7 +27,11 @@ import {
   getAllUsersFromFirestore,
   updateSubscriptionStatusInFirestore,
   updateUserStatusInFirestore,
-  updateUserRoleInFirestore
+  updateUserRoleInFirestore,
+  getAllAdminAuditLogsFromFirestore,
+  subscribeToAdminAuditLogs,
+  getStoredAdminAuditLogs,
+  recordAdminAuditLog
 } from '../../services/firestoreService';
 import { 
   ShieldCheck, 
@@ -51,14 +57,24 @@ import {
   Clock,
   MapPin,
   Phone,
-  Globe
+  Globe,
+  History,
+  Download,
+  CheckCircle2,
+  Filter,
+  ArrowRight,
+  CheckSquare,
+  Square,
+  Layers
 } from 'lucide-react';
+import { JobiaAIComplianceInspectorModal } from './JobiaAIComplianceInspectorModal';
 import { JobiaSectionFooter } from '../JobiaSectionFooter';
 
 interface AdminDashboardProps {
   vacancies: Vacancy[];
   companies: Company[];
   applications: Application[];
+  currentAdminUser?: User | null;
   onApproveVacancy: (id: string) => void;
   onRejectVacancy: (id: string) => void;
   onToggleFeatureVacancy: (id: string) => void;
@@ -71,6 +87,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   vacancies,
   companies,
   applications,
+  currentAdminUser,
   onApproveVacancy,
   onRejectVacancy,
   onToggleFeatureVacancy,
@@ -78,11 +95,25 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   onToggleCompanyVerified,
   onRefresh,
 }) => {
-  const [activeTab, setActiveTab] = useState<'vacancies' | 'subscriptions' | 'users' | 'companies' | 'applications'>('vacancies');
+  const [activeTab, setActiveTab] = useState<'vacancies' | 'subscriptions' | 'users' | 'companies' | 'applications' | 'approval_history'>('vacancies');
   const [searchQuery, setSearchQuery] = useState('');
   const [vacancyModerationFilter, setVacancyModerationFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
   const [selectedVacancyForDetail, setSelectedVacancyForDetail] = useState<Vacancy | null>(null);
   
+  // Audit Logs State
+  const [auditLogs, setAuditLogs] = useState<AdminAuditLog[]>(() => getStoredAdminAuditLogs());
+  const [auditFilterType, setAuditFilterType] = useState<'all' | 'vacancy_approvals' | 'vacancy_rejections' | 'company_approvals' | 'company_revokes' | 'other'>('all');
+  const [auditAdminFilter, setAuditAdminFilter] = useState<string>('all');
+  const [auditSearchQuery, setAuditSearchQuery] = useState('');
+
+  // Fallback / Active admin user object
+  const currentAdmin = currentAdminUser || {
+    id: 'user-admin-1',
+    email: 'admin@jobia.az',
+    fullName: 'Sistem Administratoru',
+    role: 'admin' as UserRole,
+  };
+
   // Local state for live user and subscription updates in admin panel
   const [users, setUsers] = useState<User[]>(() => getStoredUsers());
   const [subscriptions, setSubscriptions] = useState<UserSubscription[]>(() => getStoredSubscriptions());
@@ -92,14 +123,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const fetchFirestoreData = async () => {
     setIsLoadingFirestore(true);
     try {
-      const [fbUsers, fbSubs, fbPayments] = await Promise.all([
+      const [fbUsers, fbSubs, fbPayments, fbLogs] = await Promise.all([
         getAllUsersFromFirestore(),
         getAllSubscriptionsFromFirestore(),
         getAllPaymentsFromFirestore(),
+        getAllAdminAuditLogsFromFirestore(),
       ]);
       setUsers(fbUsers);
       setSubscriptions(fbSubs as UserSubscription[]);
       setTransactions(fbPayments as PaymentTransaction[]);
+      if (Array.isArray(fbLogs) && fbLogs.length > 0) {
+        setAuditLogs(fbLogs);
+      }
     } catch (e) {
       console.warn('Firestore admin fetch warning, using local cache:', e);
     } finally {
@@ -109,12 +144,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
   React.useEffect(() => {
     fetchFirestoreData();
+    const unsub = subscribeToAdminAuditLogs((logs) => {
+      setAuditLogs(logs);
+    });
+    return () => unsub();
   }, []);
 
   const handleRefresh = () => {
     setUsers(getStoredUsers());
     setSubscriptions(getStoredSubscriptions());
     setTransactions(getStoredTransactions());
+    setAuditLogs(getStoredAdminAuditLogs());
     fetchFirestoreData();
     if (onRefresh) onRefresh();
   };
@@ -139,6 +179,21 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
       // sync to Firestore
       await updateUserStatusInFirestore(userId, newStatus).catch(() => {});
+
+      // Record audit log
+      await recordAdminAuditLog({
+        action: 'change_user_status',
+        adminId: currentAdmin.id,
+        adminEmail: currentAdmin.email,
+        adminName: currentAdmin.fullName,
+        adminRole: 'admin',
+        targetType: 'user',
+        targetId: userId,
+        targetName: currentUser?.fullName || currentUser?.email || userId,
+        previousStatus: currentUser?.status || 'active',
+        newStatus,
+        details: `Admin ${currentAdmin.fullName} (${currentAdmin.email}) istifadəçi hesabının statusunu dəyişdi: ${newStatus === 'active' ? 'Aktiv' : 'Deaktiv'}.`,
+      }).catch(() => {});
     } catch (e) {
       console.error(e);
     }
@@ -157,6 +212,21 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     // Sync to Firestore and localStorage
     try {
       await updateUserRoleInFirestore(userId, email, newRole);
+
+      // Record audit log
+      await recordAdminAuditLog({
+        action: 'change_user_role',
+        adminId: currentAdmin.id,
+        adminEmail: currentAdmin.email,
+        adminName: currentAdmin.fullName,
+        adminRole: 'admin',
+        targetType: 'user',
+        targetId: userId,
+        targetName: email,
+        previousStatus: currentRole,
+        newStatus: newRole,
+        details: `Admin ${currentAdmin.fullName} (${currentAdmin.email}) "${email}" istifadəçisinin rolunu dəyişdi: ${currentRole} → ${newRole}.`,
+      }).catch(() => {});
     } catch (err) {
       console.warn('Role update notice:', err);
     }
@@ -179,6 +249,21 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
     const target = updated.find((s) => s.id === subId);
     if (target) {
+      // Record audit log
+      await recordAdminAuditLog({
+        action: 'change_subscription_status',
+        adminId: currentAdmin.id,
+        adminEmail: currentAdmin.email,
+        adminName: currentAdmin.fullName,
+        adminRole: 'admin',
+        targetType: 'subscription',
+        targetId: subId,
+        targetName: `${target.tier} Plan (${target.userName || target.userId})`,
+        previousStatus: target.status === 'ACTIVE' ? 'CANCELLED' : 'ACTIVE',
+        newStatus: target.status,
+        details: `Admin ${currentAdmin.fullName} (${currentAdmin.email}) abunəliyin statusunu dəyişdi: ${target.status}.`,
+      }).catch(() => {});
+
       await updateSubscriptionStatusInFirestore(subId, target.status as any).catch(() => {});
     }
   };
@@ -194,10 +279,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     .filter((t) => t.status === 'SUCCESS')
     .reduce((sum, t) => sum + t.amount, 0);
 
-  // Robust status calculations
-  const isJobPending = (v: Vacancy) => v.isApproved === false || v.status === 'pending_review' || (v.status as string) === 'pending';
+  // Robust status calculations - STRICT ADMIN APPROVAL MANDATE
+  const isJobApproved = (v: Vacancy) => v.isApproved === true && v.status === 'published';
   const isJobRejected = (v: Vacancy) => v.status === 'rejected';
-  const isJobApproved = (v: Vacancy) => !isJobPending(v) && !isJobRejected(v);
+  const isJobPending = (v: Vacancy) => !isJobApproved(v) && !isJobRejected(v);
 
   const approvedVacanciesCount = vacancies.filter(isJobApproved).length;
   const pendingVacanciesCount = vacancies.filter(isJobPending).length;
@@ -237,6 +322,47 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       s.tier.toLowerCase().includes(q)
     );
   });
+
+  // Interactive Admin Tools: Multi-Select & Jobia AI Compliance Inspector
+  const [selectedVacancyIds, setSelectedVacancyIds] = useState<string[]>([]);
+  const [inspectedVacancy, setInspectedVacancy] = useState<Vacancy | null>(null);
+  const [isInspectorModalOpen, setIsInspectorModalOpen] = useState(false);
+
+  const toggleSelectVacancy = (id: string) => {
+    setSelectedVacancyIds((prev) =>
+      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
+    );
+  };
+
+  const handleSelectAllFilteredVacancies = () => {
+    if (selectedVacancyIds.length === filteredVacancies.length && filteredVacancies.length > 0) {
+      setSelectedVacancyIds([]);
+    } else {
+      setSelectedVacancyIds(filteredVacancies.map((v) => v.id));
+    }
+  };
+
+  const handleBulkApprove = () => {
+    if (selectedVacancyIds.length === 0) return;
+    if (window.confirm(`Seçilmiş ${selectedVacancyIds.length} vakansiyanı dərhal təsdiqləyib dərc etmək istəyirsiniz?`)) {
+      selectedVacancyIds.forEach((id) => onApproveVacancy(id));
+      setSelectedVacancyIds([]);
+    }
+  };
+
+  const handleBulkReject = () => {
+    if (selectedVacancyIds.length === 0) return;
+    if (window.confirm(`Seçilmiş ${selectedVacancyIds.length} vakansiyanı dərcdən çıxarmaq / imtina etmək istəyirsiniz?`)) {
+      selectedVacancyIds.forEach((id) => onRejectVacancy(id));
+      setSelectedVacancyIds([]);
+    }
+  };
+
+  const handleBulkFeature = () => {
+    if (selectedVacancyIds.length === 0) return;
+    selectedVacancyIds.forEach((id) => onToggleFeatureVacancy(id));
+    setSelectedVacancyIds([]);
+  };
 
   return (
     <div className="space-y-6">
@@ -288,16 +414,26 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             </div>
           </div>
 
-          <button
-            onClick={() => {
-              setActiveTab('vacancies');
-              setVacancyModerationFilter('pending');
-            }}
-            className="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold shrink-0 transition-colors shadow-xs cursor-pointer flex items-center justify-center gap-1.5"
-          >
-            <Clock className="w-4 h-4" />
-            <span>Təsdiq Gözləyənlərə Bax ({pendingVacanciesCount})</span>
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setActiveTab('approval_history')}
+              className="px-3.5 py-2 rounded-xl bg-white hover:bg-amber-100 text-amber-900 border border-amber-300 text-xs font-bold shrink-0 transition-colors shadow-2xs cursor-pointer flex items-center justify-center gap-1.5"
+            >
+              <History className="w-4 h-4 text-blue-600" />
+              <span>Təsdiq Tarixçəsi ({auditLogs.length})</span>
+            </button>
+
+            <button
+              onClick={() => {
+                setActiveTab('vacancies');
+                setVacancyModerationFilter('pending');
+              }}
+              className="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold shrink-0 transition-colors shadow-xs cursor-pointer flex items-center justify-center gap-1.5"
+            >
+              <Clock className="w-4 h-4" />
+              <span>Təsdiq Gözləyənlərə Bax ({pendingVacanciesCount})</span>
+            </button>
+          </div>
         </div>
       )}
 
@@ -348,6 +484,21 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
       {/* Tabs Bar */}
       <div className="flex items-center gap-1 bg-white p-1 rounded-xl border border-slate-200 text-xs font-bold overflow-x-auto scrollbar-none">
+        <button
+          onClick={() => setActiveTab('approval_history')}
+          className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg whitespace-nowrap transition-all ${
+            activeTab === 'approval_history'
+              ? 'bg-blue-600 text-white shadow-xs'
+              : 'text-slate-700 hover:text-slate-900 hover:bg-slate-50'
+          }`}
+        >
+          <History className="w-3.5 h-3.5 text-inherit" />
+          <span>Təsdiq Tarixçəsi (Approval History)</span>
+          <span className={`text-[10px] font-black px-1.5 py-0.5 rounded-full ${activeTab === 'approval_history' ? 'bg-white/25 text-white' : 'bg-blue-100 text-blue-700'}`}>
+            {auditLogs.length}
+          </span>
+        </button>
+
         <button
           onClick={() => setActiveTab('subscriptions')}
           className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg whitespace-nowrap transition-all ${
@@ -741,10 +892,79 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             </div>
           </div>
 
+          {/* Interactive Bulk Moderation Action Bar */}
+          {selectedVacancyIds.length > 0 && (
+            <div className="bg-slate-900 text-white p-3 px-4 flex flex-wrap items-center justify-between gap-3 text-xs border-b border-slate-800 animate-fade-in">
+              <div className="flex items-center gap-2">
+                <Layers className="w-4 h-4 text-blue-400" />
+                <span className="font-bold text-white">
+                  {selectedVacancyIds.length} vakansiya seçildi
+                </span>
+                <span className="text-slate-400 text-[11px] hidden sm:inline">
+                  (Toplu təsdiq, imtina və ya VIP status)
+                </span>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleBulkApprove}
+                  className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg shadow-xs flex items-center gap-1.5 transition-colors cursor-pointer"
+                  title="Seçilmiş bütün vakansiyaları dərhal təsdiqlə"
+                >
+                  <Check className="w-3.5 h-3.5" />
+                  <span>Toplu Təsdiqlə</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleBulkReject}
+                  className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg shadow-xs flex items-center gap-1.5 transition-colors cursor-pointer"
+                  title="Seçilmiş bütün vakansiyaları dərcdən çıxar / imtina et"
+                >
+                  <XCircle className="w-3.5 h-3.5" />
+                  <span>Toplu İmtina</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleBulkFeature}
+                  className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-lg shadow-xs flex items-center gap-1.5 transition-colors cursor-pointer"
+                  title="Seçilmiş vakansiyaların VIP statusunu dəyiş"
+                >
+                  <Star className="w-3.5 h-3.5" />
+                  <span>Toplu VIP</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setSelectedVacancyIds([])}
+                  className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-semibold rounded-lg transition-colors cursor-pointer"
+                >
+                  Seçimi Sıfırla
+                </button>
+              </div>
+            </div>
+          )}
+
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs text-slate-700">
               <thead className="bg-slate-50 border-b border-slate-200 font-bold text-slate-800">
                 <tr>
+                  <th className="p-3.5 w-10 text-center">
+                    <button
+                      type="button"
+                      onClick={handleSelectAllFilteredVacancies}
+                      className="text-slate-500 hover:text-blue-600 transition-colors cursor-pointer"
+                      title={selectedVacancyIds.length > 0 && selectedVacancyIds.length === filteredVacancies.length ? 'Bütün seçimləri ləğv et' : 'Bütün filtr olunmuşları seç'}
+                    >
+                      {selectedVacancyIds.length > 0 && selectedVacancyIds.length === filteredVacancies.length ? (
+                        <CheckSquare className="w-4 h-4 text-blue-600" />
+                      ) : (
+                        <Square className="w-4 h-4 text-slate-400" />
+                      )}
+                    </button>
+                  </th>
                   <th className="p-3.5">Vakansiya & Şirkət</th>
                   <th className="p-3.5">Kateqoriya</th>
                   <th className="p-3.5">Maaş</th>
@@ -757,7 +977,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               <tbody className="divide-y divide-slate-100">
                 {filteredVacancies.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="p-8 text-center text-slate-400 font-medium">
+                    <td colSpan={8} className="p-8 text-center text-slate-400 font-medium">
                       Bu filtr üzrə vakansiya tapılmadı.
                     </td>
                   </tr>
@@ -766,9 +986,23 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     const isApproved = isJobApproved(job);
                     const isPending = isJobPending(job);
                     const isRejected = isJobRejected(job);
+                    const isSelected = selectedVacancyIds.includes(job.id);
 
                     return (
-                      <tr key={job.id} className="hover:bg-slate-50/70 transition-colors">
+                      <tr key={job.id} className={`hover:bg-slate-50/70 transition-colors ${isSelected ? 'bg-blue-50/40' : ''}`}>
+                        <td className="p-3.5 text-center">
+                          <button
+                            type="button"
+                            onClick={() => toggleSelectVacancy(job.id)}
+                            className="text-slate-500 hover:text-blue-600 transition-colors cursor-pointer"
+                          >
+                            {isSelected ? (
+                              <CheckSquare className="w-4 h-4 text-blue-600" />
+                            ) : (
+                              <Square className="w-4 h-4 text-slate-300" />
+                            )}
+                          </button>
+                        </td>
                         <td className="p-3.5">
                           <div className="flex items-center gap-3">
                             <img
@@ -845,6 +1079,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
                         <td className="p-3.5 text-right">
                           <div className="flex items-center justify-end gap-1.5">
+                            {/* Jobia AI Compliance Inspector */}
+                            <button
+                              onClick={() => {
+                                setInspectedVacancy(job);
+                                setIsInspectorModalOpen(true);
+                              }}
+                              className="p-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-md border border-indigo-200 transition-colors cursor-pointer"
+                              title="Jobia AI Qayda və Keyfiyyət Yoxlaması"
+                            >
+                              <ShieldCheck className="w-3.5 h-3.5" />
+                            </button>
+
                             {/* Preview Full Detail */}
                             <button
                               onClick={() => setSelectedVacancyForDetail(job)}
@@ -925,9 +1171,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     <div>
                       <div className="flex items-center gap-2">
                         <h4 className="font-bold text-slate-900 text-sm">{comp.name}</h4>
-                        {comp.verified && (
-                          <span className="bg-blue-100 text-blue-800 text-[10px] font-bold px-2 py-0.5 rounded-full">
-                            ✓ Təsdiqlənmiş
+                        {comp.verified || comp.verificationStatus === 'verified' ? (
+                          <span className="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded-full border border-emerald-200">
+                            ✓ Təsdiqlənib (Dərcdədir)
+                          </span>
+                        ) : (
+                          <span className="bg-amber-100 text-amber-900 text-[10px] font-bold px-2 py-0.5 rounded-full border border-amber-300">
+                            ⏳ Admin Təsdiqi Gözləyir (Gizlidir)
                           </span>
                         )}
                       </div>
@@ -943,12 +1193,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     <button
                       onClick={() => onToggleCompanyVerified(comp.id)}
                       className={`px-3 py-1.5 rounded-lg font-medium border transition-colors cursor-pointer ${
-                        comp.verified
-                          ? 'bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100'
-                          : 'bg-blue-600 border-blue-600 text-white hover:bg-blue-700 shadow-xs'
+                        comp.verified || comp.verificationStatus === 'verified'
+                          ? 'bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-100'
+                          : 'bg-emerald-600 border-emerald-600 text-white hover:bg-emerald-700 shadow-xs'
                       }`}
                     >
-                      {comp.verified ? 'Verifikasiyanı Ləğv Et' : 'Şirkəti Təsdiqlə (Verify)'}
+                      {comp.verified || comp.verificationStatus === 'verified'
+                        ? 'Təsdiqi Ləğv Et (Dərcdən Çıxar)'
+                        : 'Şirkəti Təsdiqlə (Dərc Et)'}
                     </button>
                   </div>
                 </div>
@@ -993,6 +1245,434 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* ============================================================== */}
+      {/* TAB 6: APPROVAL HISTORY & AUDIT LOGS */}
+      {/* ============================================================== */}
+      {activeTab === 'approval_history' && (
+        <div className="space-y-6">
+          {/* Header & Export Control Bar */}
+          <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-700 flex items-center justify-center border border-blue-200">
+                  <History className="w-4 h-4" />
+                </div>
+                <h2 className="text-base font-bold text-slate-900">
+                  Təsdiq Tarixçəsi və Audit Jurnalı (Approval History)
+                </h2>
+              </div>
+              <p className="text-xs text-slate-500 mt-1 max-w-2xl">
+                Platformadakı hər bir vakansiya və şirkət statusunun dəyişdirilməsi, təsdiqləyən və ya imtina edən admin hesabı, dəqiq tarix və detallarla rəsmi qeydə alınır.
+              </p>
+              <div className="mt-2.5 inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-slate-50 border border-slate-200 text-xs text-slate-700">
+                <ShieldCheck className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                <span>
+                  Hazırkı Fəal Admin: <strong className="text-slate-900">{currentAdmin.fullName}</strong> ({currentAdmin.email})
+                </span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                onClick={handleRefresh}
+                className="px-3 py-2 rounded-xl text-xs font-bold border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 transition-colors flex items-center gap-1.5 cursor-pointer"
+                title="Audit loqlarını yenilə"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+                <span>Yenilə</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  const headers = ['ID', 'Tarix', 'Admin Adı', 'Admin E-poçtu', 'Rol', 'Əməliyyat', 'Hədəf Növü', 'Hədəf ID', 'Hədəf Adı', 'Əvvəlki Status', 'Yeni Status', 'Detallar'];
+                  const rows = auditLogs.map((l) => [
+                    `"${l.id}"`,
+                    `"${new Date(l.timestamp).toLocaleString('az-AZ')}"`,
+                    `"${(l.adminName || '').replace(/"/g, '""')}"`,
+                    `"${(l.adminEmail || '').replace(/"/g, '""')}"`,
+                    `"${l.adminRole || 'admin'}"`,
+                    `"${l.action}"`,
+                    `"${l.targetType}"`,
+                    `"${l.targetId}"`,
+                    `"${(l.targetName || '').replace(/"/g, '""')}"`,
+                    `"${(l.previousStatus || '').replace(/"/g, '""')}"`,
+                    `"${(l.newStatus || '').replace(/"/g, '""')}"`,
+                    `"${(l.details || '').replace(/"/g, '""')}"`
+                  ]);
+                  const csvContent = 'data:text/csv;charset=utf-8,\uFEFF' + [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+                  const encodedUri = encodeURI(csvContent);
+                  const link = document.createElement('a');
+                  link.setAttribute('href', encodedUri);
+                  link.setAttribute('download', `jobia_admin_approval_history_${new Date().toISOString().slice(0, 10)}.csv`);
+                  document.body.appendChild(link);
+                  link.click();
+                  document.body.removeChild(link);
+                }}
+                className="px-3.5 py-2 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>CSV İxrac Et</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Audit Key Statistics Cards */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
+              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">Ümumi Qeydlər</span>
+              <div className="text-xl font-black text-slate-900 mt-1">{auditLogs.length}</div>
+              <span className="text-[11px] text-slate-500">Sistem audit hadisəsi</span>
+            </div>
+
+            <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
+              <span className="text-[11px] font-bold text-emerald-700 uppercase tracking-wider block">Vakansiya Təsdiqi</span>
+              <div className="text-xl font-black text-emerald-700 mt-1">
+                {auditLogs.filter(l => l.action === 'approve_vacancy').length}
+              </div>
+              <span className="text-[11px] text-emerald-600 font-medium">Platformada dərc olundu</span>
+            </div>
+
+            <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
+              <span className="text-[11px] font-bold text-amber-700 uppercase tracking-wider block">Vakansiya İmtinası</span>
+              <div className="text-xl font-black text-amber-700 mt-1">
+                {auditLogs.filter(l => l.action === 'reject_vacancy').length}
+              </div>
+              <span className="text-[11px] text-amber-600 font-medium">Dərcdən çıxarıldı</span>
+            </div>
+
+            <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
+              <span className="text-[11px] font-bold text-purple-700 uppercase tracking-wider block">Şirkət Təsdiqləri</span>
+              <div className="text-xl font-black text-purple-700 mt-1">
+                {auditLogs.filter(l => l.action === 'approve_company').length}
+              </div>
+              <span className="text-[11px] text-purple-600 font-medium">Rəsmi verifikasiya</span>
+            </div>
+          </div>
+
+          {/* Search, Filter & Admin Account Selector */}
+          <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs space-y-3">
+            <div className="flex flex-col md:flex-row gap-3 items-center justify-between">
+              {/* Filter Pills */}
+              <div className="flex items-center gap-1.5 flex-wrap w-full md:w-auto">
+                <button
+                  onClick={() => setAuditFilterType('all')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                    auditFilterType === 'all'
+                      ? 'bg-blue-600 text-white shadow-2xs'
+                      : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                  }`}
+                >
+                  Hamısı ({auditLogs.length})
+                </button>
+
+                <button
+                  onClick={() => setAuditFilterType('vacancy_approvals')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                    auditFilterType === 'vacancy_approvals'
+                      ? 'bg-emerald-600 text-white shadow-2xs'
+                      : 'bg-emerald-50 text-emerald-800 hover:bg-emerald-100'
+                  }`}
+                >
+                  ✓ Vakansiya Təsdiqləri ({auditLogs.filter(l => l.action === 'approve_vacancy').length})
+                </button>
+
+                <button
+                  onClick={() => setAuditFilterType('vacancy_rejections')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                    auditFilterType === 'vacancy_rejections'
+                      ? 'bg-amber-600 text-white shadow-2xs'
+                      : 'bg-amber-50 text-amber-800 hover:bg-amber-100'
+                  }`}
+                >
+                  ✕ Vakansiya İmtinaları ({auditLogs.filter(l => l.action === 'reject_vacancy').length})
+                </button>
+
+                <button
+                  onClick={() => setAuditFilterType('company_approvals')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                    auditFilterType === 'company_approvals'
+                      ? 'bg-purple-600 text-white shadow-2xs'
+                      : 'bg-purple-50 text-purple-800 hover:bg-purple-100'
+                  }`}
+                >
+                  🏢 Şirkət Təsdiqləri ({auditLogs.filter(l => l.action === 'approve_company').length})
+                </button>
+
+                <button
+                  onClick={() => setAuditFilterType('other')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                    auditFilterType === 'other'
+                      ? 'bg-slate-800 text-white shadow-2xs'
+                      : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                  }`}
+                >
+                  ⚙️ Digər Dəyişikliklər
+                </button>
+              </div>
+
+              {/* Admin Selector Dropdown */}
+              <div className="flex items-center gap-2 w-full md:w-auto shrink-0">
+                <span className="text-xs font-bold text-slate-500 whitespace-nowrap">Admin Filtri:</span>
+                <select
+                  value={auditAdminFilter}
+                  onChange={(e) => setAuditAdminFilter(e.target.value)}
+                  className="bg-slate-50 border border-slate-200 text-slate-800 text-xs font-semibold rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                >
+                  <option value="all">Bütün Adminlər (Hamısı)</option>
+                  {Array.from(new Set(auditLogs.map(l => l.adminEmail).filter(Boolean))).map((email) => (
+                    <option key={email} value={email}>
+                      {email}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Search Input */}
+            <div className="relative">
+              <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
+              <input
+                type="text"
+                value={auditSearchQuery}
+                onChange={(e) => setAuditSearchQuery(e.target.value)}
+                placeholder="Admin adı, e-poçtu, vakansiya adı, şirkət adı və ya detal üzrə axtarın..."
+                className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:outline-none focus:ring-1 focus:ring-blue-500"
+              />
+              {auditSearchQuery && (
+                <button
+                  onClick={() => setAuditSearchQuery('')}
+                  className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 text-xs cursor-pointer"
+                >
+                  Təmizlə
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Audit Logs Table / Feed */}
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs text-slate-700">
+                <thead className="bg-slate-50 text-slate-500 border-b border-slate-200 font-bold uppercase tracking-wider text-[10px]">
+                  <tr>
+                    <th className="py-3 px-4">Təsdiqləyən Admin Hesabı</th>
+                    <th className="py-3 px-4">Əməliyyat Növü</th>
+                    <th className="py-3 px-4">Hədəf (Vakansiya / Şirkət)</th>
+                    <th className="py-3 px-4">Status Dəyişikliyi</th>
+                    <th className="py-3 px-4">Detallar və Qeyd</th>
+                    <th className="py-3 px-4 text-right">Tarix və Saat</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 font-medium">
+                  {(() => {
+                    const filtered = auditLogs.filter((log) => {
+                      if (auditFilterType === 'vacancy_approvals' && log.action !== 'approve_vacancy') return false;
+                      if (auditFilterType === 'vacancy_rejections' && log.action !== 'reject_vacancy') return false;
+                      if (auditFilterType === 'company_approvals' && log.action !== 'approve_company') return false;
+                      if (auditFilterType === 'company_revokes' && log.action !== 'revoke_company') return false;
+                      if (auditFilterType === 'other' && ['approve_vacancy', 'reject_vacancy', 'approve_company', 'revoke_company'].includes(log.action)) return false;
+
+                      if (auditAdminFilter !== 'all' && log.adminEmail !== auditAdminFilter) return false;
+
+                      if (auditSearchQuery.trim()) {
+                        const q = auditSearchQuery.toLowerCase();
+                        const matchAdmin = (log.adminName || '').toLowerCase().includes(q) || (log.adminEmail || '').toLowerCase().includes(q);
+                        const matchTarget = (log.targetName || '').toLowerCase().includes(q) || (log.targetId || '').toLowerCase().includes(q);
+                        const matchDetails = (log.details || '').toLowerCase().includes(q);
+                        const matchAction = (log.action || '').toLowerCase().includes(q);
+                        if (!matchAdmin && !matchTarget && !matchDetails && !matchAction) return false;
+                      }
+
+                      return true;
+                    });
+
+                    if (filtered.length === 0) {
+                      return (
+                        <tr>
+                          <td colSpan={6} className="py-12 text-center text-slate-400">
+                            <div className="flex flex-col items-center justify-center gap-2">
+                              <History className="w-8 h-8 text-slate-300" />
+                              <div className="text-sm font-bold text-slate-700">Uyğun audit qeydi tapılmadı</div>
+                              <p className="text-xs text-slate-400 max-w-sm">
+                                Seçilmiş filtrlərə uyğun heç bir təsdiq və ya status dəyişikliyi jurnalı mövcud deyil.
+                              </p>
+                              {(auditFilterType !== 'all' || auditAdminFilter !== 'all' || auditSearchQuery) && (
+                                <button
+                                  onClick={() => {
+                                    setAuditFilterType('all');
+                                    setAuditAdminFilter('all');
+                                    setAuditSearchQuery('');
+                                  }}
+                                  className="mt-2 text-xs text-blue-600 font-bold hover:underline cursor-pointer"
+                                >
+                                  Bütün filtrləri sıfırla
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    }
+
+                    return filtered.map((log) => {
+                      let actionBadge = (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-bold bg-slate-100 text-slate-700 border border-slate-200">
+                          {log.action}
+                        </span>
+                      );
+
+                      if (log.action === 'approve_vacancy') {
+                        actionBadge = (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                            <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                            <span>Vakansiya Təsdiqləndi</span>
+                          </span>
+                        );
+                      } else if (log.action === 'reject_vacancy') {
+                        actionBadge = (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-bold bg-amber-50 text-amber-800 border border-amber-200">
+                            <XCircle className="w-3 h-3 text-amber-600" />
+                            <span>Vakansiya İmtina Edildi</span>
+                          </span>
+                        );
+                      } else if (log.action === 'approve_company') {
+                        actionBadge = (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-bold bg-purple-50 text-purple-700 border border-purple-200">
+                            <Building2 className="w-3 h-3 text-purple-600" />
+                            <span>Şirkət Təsdiqləndi</span>
+                          </span>
+                        );
+                      } else if (log.action === 'revoke_company') {
+                        actionBadge = (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
+                            <XCircle className="w-3 h-3 text-rose-600" />
+                            <span>Şirkət Ləğv Edildi</span>
+                          </span>
+                        );
+                      } else if (log.action === 'toggle_featured_vacancy') {
+                        actionBadge = (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                            <Star className="w-3 h-3 text-indigo-600 fill-indigo-600" />
+                            <span>Premium Dəyişdirildi</span>
+                          </span>
+                        );
+                      } else if (log.action === 'delete_vacancy') {
+                        actionBadge = (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-bold bg-red-50 text-red-700 border border-red-200">
+                            <Trash2 className="w-3 h-3 text-red-600" />
+                            <span>Vakansiya Silindi</span>
+                          </span>
+                        );
+                      } else if (log.action === 'change_user_status' || log.action === 'change_user_role') {
+                        actionBadge = (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                            <Users className="w-3 h-3 text-blue-600" />
+                            <span>İstifadəçi Dəyişikliyi</span>
+                          </span>
+                        );
+                      }
+
+                      return (
+                        <tr key={log.id} className="hover:bg-slate-50/80 transition-colors">
+                          {/* Admin Column */}
+                          <td className="py-3.5 px-4 align-top">
+                            <div className="flex items-center gap-2">
+                              <div className="w-7 h-7 rounded-full bg-blue-600 text-white flex items-center justify-center font-black text-xs shrink-0">
+                                {(log.adminName || log.adminEmail || 'A')[0].toUpperCase()}
+                              </div>
+                              <div className="min-w-0">
+                                <div className="font-bold text-slate-900 truncate">
+                                  {log.adminName || 'Admin'}
+                                </div>
+                                <div className="text-[11px] text-slate-500 font-mono truncate">
+                                  {log.adminEmail}
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+
+                          {/* Action Type */}
+                          <td className="py-3.5 px-4 align-top whitespace-nowrap">
+                            {actionBadge}
+                          </td>
+
+                          {/* Target Column */}
+                          <td className="py-3.5 px-4 align-top">
+                            <div>
+                              <div className="font-bold text-slate-900 leading-tight">
+                                {log.targetName || log.targetId}
+                              </div>
+                              <div className="flex items-center gap-1.5 mt-1">
+                                <span className={`px-1.5 py-0.2 text-[10px] font-bold rounded ${
+                                  log.targetType === 'vacancy'
+                                    ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                                    : log.targetType === 'company'
+                                    ? 'bg-purple-50 text-purple-700 border border-purple-200'
+                                    : 'bg-slate-100 text-slate-700'
+                                }`}>
+                                  {log.targetType === 'vacancy' ? 'Vakansiya' : log.targetType === 'company' ? 'Şirkət' : log.targetType}
+                                </span>
+                                <span className="text-[10px] text-slate-400 font-mono">
+                                  #{log.targetId}
+                                </span>
+                              </div>
+                            </div>
+                          </td>
+
+                          {/* Status Transition */}
+                          <td className="py-3.5 px-4 align-top whitespace-nowrap">
+                            <div className="inline-flex items-center gap-1 text-[11px] font-semibold">
+                              <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-600">
+                                {log.previousStatus || '—'}
+                              </span>
+                              <ArrowRight className="w-3 h-3 text-slate-400" />
+                              <span className={`px-2 py-0.5 rounded font-bold ${
+                                log.newStatus === 'published' || log.newStatus === 'verified' || log.newStatus === 'active'
+                                  ? 'bg-emerald-100 text-emerald-800'
+                                  : log.newStatus === 'rejected' || log.newStatus === 'deleted'
+                                  ? 'bg-amber-100 text-amber-800'
+                                  : 'bg-blue-100 text-blue-800'
+                              }`}>
+                                {log.newStatus || '—'}
+                              </span>
+                            </div>
+                          </td>
+
+                          {/* Details / Note */}
+                          <td className="py-3.5 px-4 align-top text-xs text-slate-600 max-w-xs">
+                            <p className="line-clamp-2" title={log.details}>
+                              {log.details}
+                            </p>
+                          </td>
+
+                          {/* Timestamp */}
+                          <td className="py-3.5 px-4 align-top text-right whitespace-nowrap">
+                            <div className="font-bold text-slate-900 text-xs">
+                              {new Date(log.timestamp).toLocaleDateString('az-AZ', {
+                                day: '2-digit',
+                                month: 'short',
+                                year: 'numeric',
+                              })}
+                            </div>
+                            <div className="text-[10px] text-slate-400 font-mono">
+                              {new Date(log.timestamp).toLocaleTimeString('az-AZ', {
+                                hour: '2-digit',
+                                minute: '2-digit',
+                                second: '2-digit',
+                              })}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    });
+                  })()}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       )}
@@ -1129,6 +1809,56 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   </div>
                 )}
               </div>
+
+              {/* Vacancy Approval History Audit Trail */}
+              <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                <div className="flex items-center justify-between mb-2.5">
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-slate-800">
+                    <History className="w-3.5 h-3.5 text-blue-600" />
+                    <span>Bu Vakansiyanın Təsdiq və Moderasiya Tarixçəsi</span>
+                  </div>
+                  <span className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider">Audit Loqu</span>
+                </div>
+
+                {(() => {
+                  const jobLogs = auditLogs.filter((l) => l.targetId === selectedVacancyForDetail.id);
+                  if (jobLogs.length === 0) {
+                    return (
+                      <p className="text-xs text-slate-400 italic">
+                        Bu vakansiya üçün hələ qeydə alınmış heç bir moderasiya əməliyyatı yoxdur.
+                      </p>
+                    );
+                  }
+
+                  return (
+                    <div className="space-y-2 max-h-48 overflow-y-auto pr-1 text-xs">
+                      {jobLogs.map((log) => (
+                        <div key={log.id} className="p-2.5 rounded-lg bg-white border border-slate-200 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                          <div>
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="font-bold text-slate-900">{log.adminName}</span>
+                              <span className="text-[11px] text-slate-500 font-mono">({log.adminEmail})</span>
+                              <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${
+                                log.action === 'approve_vacancy'
+                                  ? 'bg-emerald-100 text-emerald-800'
+                                  : log.action === 'reject_vacancy'
+                                  ? 'bg-amber-100 text-amber-800'
+                                  : 'bg-blue-100 text-blue-800'
+                              }`}>
+                                {log.action === 'approve_vacancy' ? '✓ Təsdiqləndi' : log.action === 'reject_vacancy' ? '✕ İmtina Edildi' : log.action}
+                              </span>
+                            </div>
+                            <p className="text-[11px] text-slate-600 mt-1">{log.details}</p>
+                          </div>
+                          <div className="text-[10px] text-slate-400 text-right shrink-0 font-mono">
+                            {new Date(log.timestamp).toLocaleString('az-AZ')}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()}
+              </div>
             </div>
 
             {/* Modal Actions Footer */}
@@ -1164,6 +1894,20 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               </div>
 
               <div className="flex items-center gap-2">
+                {/* Jobia AI Compliance Inspector */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setInspectedVacancy(selectedVacancyForDetail);
+                    setIsInspectorModalOpen(true);
+                  }}
+                  className="px-3.5 py-2 rounded-xl text-xs font-bold bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 transition-colors flex items-center gap-1.5 shadow-2xs cursor-pointer"
+                  title="Jobia AI Qanunvericilik və Keyfiyyət Yoxlaması"
+                >
+                  <ShieldCheck className="w-4 h-4 text-indigo-600" />
+                  <span>Jobia AI Yoxla</span>
+                </button>
+
                 {selectedVacancyForDetail.isApproved === false || selectedVacancyForDetail.status !== 'published' ? (
                   <button
                     onClick={() => {
@@ -1199,6 +1943,28 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           </div>
         </div>
       )}
+
+      {/* Interactive Jobia AI Compliance Inspector Modal for Admin */}
+      <JobiaAIComplianceInspectorModal
+        isOpen={isInspectorModalOpen}
+        onClose={() => {
+          setIsInspectorModalOpen(false);
+          setInspectedVacancy(null);
+        }}
+        vacancy={inspectedVacancy}
+        onApprove={(vacId) => {
+          onApproveVacancy(vacId);
+          if (selectedVacancyForDetail?.id === vacId) {
+            setSelectedVacancyForDetail((prev) => prev ? { ...prev, isApproved: true, status: 'published' } : null);
+          }
+        }}
+        onReject={(vacId) => {
+          onRejectVacancy(vacId);
+          if (selectedVacancyForDetail?.id === vacId) {
+            setSelectedVacancyForDetail((prev) => prev ? { ...prev, isApproved: false, status: 'rejected' } : null);
+          }
+        }}
+      />
 
       {/* Dynamic Animated Section Footer with Job Intelligence & Automation */}
       <JobiaSectionFooter 

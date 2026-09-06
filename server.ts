@@ -265,7 +265,7 @@ app.post('/api/ai/generate-full-cv', async (req, res) => {
     return res.json({
       success: true,
       cvData: validatedCV,
-      source: 'gemini_ai'
+      source: 'jobia_ai'
     });
   } catch (err: any) {
     console.log('[AI Full CV Generator] Utilizing intelligent fallback engine:', err?.message || err);
