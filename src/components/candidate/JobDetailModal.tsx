@@ -36,6 +36,13 @@ import {
 import { ModalBottomLogo } from '../ModalBottomLogo';
 import { JobAlertSubscription } from '../../types';
 import { getJobAlertSubscription, saveJobAlertSubscription } from '../../services/firestoreService';
+import { 
+  getLocalizedCategory, 
+  getLocalizedCity, 
+  getLocalizedEmploymentType, 
+  getLocalizedExperienceLevel, 
+  getLocalizedJobTitle 
+} from '../../i18n/localizeData';
 
 interface JobDetailModalProps {
   vacancy: Vacancy | null;
@@ -914,32 +921,32 @@ export const JobDetailModal: React.FC<JobDetailModalProps> = ({
         {/* PERSISTENT STICKY MODAL FOOTER */}
         {/* ========================================================================= */}
         {isApplying ? (
-          <div className="p-4 sm:p-5 border-t border-slate-200 bg-white flex items-center justify-between gap-3 shrink-0 shadow-lg">
+          <div className="p-3.5 sm:p-4 border-t border-slate-200 bg-white flex items-center justify-between gap-3 shrink-0 shadow-lg">
             <button
               type="button"
               onClick={() => setIsApplying(false)}
-              className="px-4 py-2.5 rounded-xl border border-slate-300 text-slate-700 hover:bg-slate-100 font-semibold text-xs transition-colors cursor-pointer flex items-center gap-1.5"
+              className="px-4 py-2.5 rounded-xl border border-slate-300 text-slate-700 hover:bg-slate-100 font-semibold text-xs sm:text-sm transition-colors cursor-pointer flex items-center gap-1.5 shrink-0"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
-              <span>Geri / Ləğv et</span>
+              <span>{language === 'en' ? 'Back / Cancel' : language === 'ru' ? 'Назад / Отмена' : 'Geri / Ləğv et'}</span>
             </button>
 
             <button
               type="button"
               onClick={() => submitApplication()}
-              className="px-6 py-2.5 sm:py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs sm:text-sm shadow-md hover:shadow-lg flex items-center gap-2 transition-all cursor-pointer"
+              className="px-5 sm:px-6 py-2.5 sm:py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs sm:text-sm shadow-md hover:shadow-lg flex items-center gap-2 transition-all cursor-pointer shrink-0"
             >
               <Send className="w-4 h-4" />
-              <span>Müraciəti Göndər</span>
+              <span>{language === 'en' ? 'Submit Application' : language === 'ru' ? 'Отправить заявку' : 'Müraciəti Göndər'}</span>
             </button>
           </div>
         ) : (
-          <div className="p-4 sm:p-5 border-t border-slate-200 bg-white flex flex-wrap items-center justify-between gap-3 shrink-0">
-            <div className="flex items-center gap-1.5 sm:gap-2">
+          <div className="p-3.5 sm:p-5 border-t border-slate-200 bg-white flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 shrink-0">
+            <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto py-0.5 max-w-full">
               <button
                 type="button"
                 onClick={handleShare}
-                className="p-2 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors text-xs font-medium flex items-center gap-1.5 cursor-pointer"
+                className="p-2 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors text-xs font-medium flex items-center gap-1.5 cursor-pointer shrink-0"
                 title={copied ? (language === 'en' ? 'Link copied!' : language === 'ru' ? 'Ссылка скопирована!' : 'Link kopyalandı!') : (language === 'en' ? 'Copy Link' : language === 'ru' ? 'Копировать' : 'Linki Kopyala')}
               >
                 <Share2 className="w-4 h-4" />
@@ -951,7 +958,7 @@ export const JobDetailModal: React.FC<JobDetailModalProps> = ({
                 href={linkedInShareUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="p-2 rounded-lg border border-[#0A66C2]/30 bg-blue-50/50 hover:bg-[#0A66C2]/10 text-[#0A66C2] transition-colors text-xs font-semibold flex items-center gap-1.5 cursor-pointer"
+                className="p-2 rounded-lg border border-[#0A66C2]/30 bg-blue-50/50 hover:bg-[#0A66C2]/10 text-[#0A66C2] transition-colors text-xs font-semibold flex items-center gap-1.5 cursor-pointer shrink-0"
                 title={language === 'en' ? 'Share on LinkedIn' : language === 'ru' ? 'Поделиться в LinkedIn' : 'LinkedIn-də paylaş'}
                 aria-label="LinkedIn"
               >
@@ -963,7 +970,7 @@ export const JobDetailModal: React.FC<JobDetailModalProps> = ({
                 href={twitterShareUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="p-2 rounded-lg border border-slate-300 bg-slate-50 hover:bg-slate-100 text-slate-800 transition-colors text-xs font-semibold flex items-center gap-1.5 cursor-pointer"
+                className="p-2 rounded-lg border border-slate-300 bg-slate-50 hover:bg-slate-100 text-slate-800 transition-colors text-xs font-semibold flex items-center gap-1.5 cursor-pointer shrink-0"
                 title={language === 'en' ? 'Share on Twitter (X)' : language === 'ru' ? 'Поделиться в Twitter (X)' : 'Twitter-də (X) paylaş'}
                 aria-label="Twitter"
               >
@@ -975,7 +982,7 @@ export const JobDetailModal: React.FC<JobDetailModalProps> = ({
                 href={facebookShareUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="p-2 rounded-lg border border-[#1877F2]/30 bg-blue-50/50 hover:bg-[#1877F2]/10 text-[#1877F2] transition-colors text-xs font-semibold flex items-center gap-1.5 cursor-pointer"
+                className="p-2 rounded-lg border border-[#1877F2]/30 bg-blue-50/50 hover:bg-[#1877F2]/10 text-[#1877F2] transition-colors text-xs font-semibold flex items-center gap-1.5 cursor-pointer shrink-0"
                 title={language === 'en' ? 'Share on Facebook' : language === 'ru' ? 'Поделиться в Facebook' : 'Facebook-da paylaş'}
                 aria-label="Facebook"
               >
@@ -987,7 +994,7 @@ export const JobDetailModal: React.FC<JobDetailModalProps> = ({
                 <button
                   type="button"
                   onClick={() => onShareToGoogleChat(vacancy)}
-                  className="p-2 rounded-lg border border-emerald-200 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 transition-colors text-xs font-semibold flex items-center gap-1.5 cursor-pointer"
+                  className="p-2 rounded-lg border border-emerald-200 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 transition-colors text-xs font-semibold flex items-center gap-1.5 cursor-pointer shrink-0"
                   title="Google Chat"
                 >
                   <MessageSquare className="w-4 h-4 text-emerald-600" />
@@ -996,9 +1003,9 @@ export const JobDetailModal: React.FC<JobDetailModalProps> = ({
               )}
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex items-center justify-end w-full sm:w-auto shrink-0">
               {hasApplied ? (
-                <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-50 text-blue-800 text-xs font-bold border border-blue-200">
+                <div className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-blue-50 text-blue-800 text-xs font-bold border border-blue-200">
                   <CheckCircle className="w-4 h-4 text-blue-600" />
                   <span>{language === 'en' ? 'You have already applied to this job' : language === 'ru' ? 'Вы уже откликнулись на эту вакансию' : 'Siz bu vakansiyaya artıq müraciət etmisiniz'}</span>
                 </div>
@@ -1006,7 +1013,7 @@ export const JobDetailModal: React.FC<JobDetailModalProps> = ({
                 <button
                   id="btn-apply-job"
                   onClick={() => setIsApplying(true)}
-                  className="px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs sm:text-sm shadow-md hover:shadow-lg flex items-center gap-2 transition-all cursor-pointer"
+                  className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs sm:text-sm shadow-md hover:shadow-lg flex items-center justify-center gap-2 transition-all cursor-pointer"
                 >
                   <Send className="w-4 h-4" />
                   <span>{dict.jobExplorer.applyNow}</span>

@@ -6,7 +6,11 @@ import { AICVAnalyzerInput } from './AICVAnalyzerInput';
 import { AICVAnalyzerLoading } from './AICVAnalyzerLoading';
 import { AICVAnalyzerDashboard } from './AICVAnalyzerDashboard';
 
-export const DeepCVAnalyzerView: React.FC = () => {
+interface DeepCVAnalyzerViewProps {
+  initialCVText?: string;
+}
+
+export const DeepCVAnalyzerView: React.FC<DeepCVAnalyzerViewProps> = ({ initialCVText }) => {
   const { language } = useLanguage();
   const [result, setResult] = useState<CVAnalyzerResult | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -62,7 +66,13 @@ export const DeepCVAnalyzerView: React.FC = () => {
           <div className="text-center max-w-2xl mx-auto mb-8">
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200 text-xs font-bold mb-3 shadow-2xs">
               <Sparkles className="w-3.5 h-3.5 text-blue-600" />
-              <span>Jobia.az AI • Zero Hallucination Engine</span>
+              <span>
+                {language === 'en'
+                  ? 'Jobia.az • Professional ATS CV Analyzer'
+                  : language === 'ru'
+                  ? 'Jobia.az • Профессиональный ATS Анализатор'
+                  : 'Jobia.az • Peşəkar ATS CV Analizatoru'}
+              </span>
             </div>
             <h1 className="text-2xl sm:text-4xl font-black text-slate-900 tracking-tight">
               {language === 'en'
@@ -73,17 +83,19 @@ export const DeepCVAnalyzerView: React.FC = () => {
             </h1>
             <p className="text-xs sm:text-sm text-slate-600 mt-2 leading-relaxed">
               {language === 'en'
-                ? 'Strict factual extraction without assumptions. 10 ATS criteria, 9-point quality audit, and instant job matching profile.'
+                ? 'Deterministic ATS compatibility analysis. 10 ATS criteria, 9-point quality audit, and instant job matching profile.'
                 : language === 'ru'
-                ? 'Строго фактическое извлечение данных. 10 критериев ATS, аудит качества по 9 пунктам и профиль для вакансий.'
-                : 'Heç bir fərziyyə və ya uydurma fakt olmadan dəqiq çıxarış. 10 ATS meyarı, 9 keyfiyyət auditi və vakansiyalara uyğunlaşdırma profili.'}
+                ? 'Детерминированный анализ совместимости с ATS. 10 критериев ATS, аудит качества по 9 пунктам и профиль для вакансий.'
+                : 'Dəqiq ATS uyğunluq analizi. 10 ATS meyarı, 9 keyfiyyət auditi və vakansiyalara uyğunlaşdırma profili.'}
             </p>
 
             {/* Micro value badges */}
             <div className="flex flex-wrap items-center justify-center gap-3 mt-4 text-xs font-semibold text-slate-600">
               <div className="flex items-center gap-1">
                 <Shield className="w-3.5 h-3.5 text-emerald-600" />
-                <span>Zero-Hallucination</span>
+                <span>
+                  {language === 'en' ? 'ATS Standard Accuracy' : language === 'ru' ? '100% Точность ATS' : '100% ATS Dəqiqlik'}
+                </span>
               </div>
               <span>•</span>
               <div className="flex items-center gap-1">
@@ -119,7 +131,7 @@ export const DeepCVAnalyzerView: React.FC = () => {
         ) : result ? (
           <AICVAnalyzerDashboard data={result} onReset={handleReset} />
         ) : (
-          <AICVAnalyzerInput onAnalyze={handleAnalyze} isLoading={isLoading} />
+          <AICVAnalyzerInput onAnalyze={handleAnalyze} isLoading={isLoading} initialCVText={initialCVText} />
         )}
       </div>
     </div>

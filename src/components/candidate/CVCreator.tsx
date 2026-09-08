@@ -15,6 +15,7 @@ import {
 import { CV_TEMPLATES, CVTemplateMeta } from '../cv-templates/templateRegistry';
 import { CVRenderer } from '../cv-templates/CVRenderer';
 import { downloadCVAsPDF } from '../../utils/pdfExport';
+import { useLanguage } from '../../context/LanguageContext';
 import {
   Download,
   Save,
@@ -197,6 +198,53 @@ const SAMPLE_DEMO_CV_DATA: CVData = {
   ]
 };
 
+export const formatCVDataToPlainText = (cv: CVData): string => {
+  const parts: string[] = [];
+  if (cv.personalInfo.fullName) parts.push(cv.personalInfo.fullName);
+  if (cv.personalInfo.jobTitle) parts.push(cv.personalInfo.jobTitle);
+  const contacts = [
+    cv.personalInfo.email && `Email: ${cv.personalInfo.email}`,
+    cv.personalInfo.phone && `Tel: ${cv.personalInfo.phone}`,
+    cv.personalInfo.address && `Ünvan: ${cv.personalInfo.address}`,
+    cv.personalInfo.linkedin && `LinkedIn: ${cv.personalInfo.linkedin}`,
+    cv.personalInfo.github && `GitHub: ${cv.personalInfo.github}`,
+  ].filter(Boolean);
+  if (contacts.length > 0) parts.push(contacts.join(' | '));
+  if (cv.personalInfo.summary) {
+    parts.push(`\nHaqqımda:\n${cv.personalInfo.summary}`);
+  }
+  if (cv.experiences && cv.experiences.length > 0) {
+    parts.push('\nİş Təcrübəsi:');
+    cv.experiences.forEach((exp, idx) => {
+      parts.push(`${idx + 1}. ${exp.company} — ${exp.position} (${exp.startDate} – ${exp.current ? 'İndiyədək' : exp.endDate || ''}${exp.location ? `, ${exp.location}` : ''})`);
+      if (exp.description) parts.push(exp.description);
+    });
+  }
+  if (cv.education && cv.education.length > 0) {
+    parts.push('\nTəhsil:');
+    cv.education.forEach((edu) => {
+      parts.push(`• ${edu.institution} — ${edu.degree || ''} ${edu.fieldOfStudy || ''} (${edu.startDate || ''} – ${edu.endDate || ''})${edu.gpa ? ` | GPA: ${edu.gpa}` : ''}`);
+    });
+  }
+  if (cv.skills && cv.skills.length > 0) {
+    parts.push('\nBacarıqlar:');
+    parts.push(cv.skills.map((s) => s.name).join(', '));
+  }
+  if (cv.languages && cv.languages.length > 0) {
+    parts.push('\nDillər:');
+    cv.languages.forEach((l) => {
+      parts.push(`• ${l.name} — ${l.level}`);
+    });
+  }
+  if (cv.certificates && cv.certificates.length > 0) {
+    parts.push('\nSertifikatlar:');
+    cv.certificates.forEach((c) => {
+      parts.push(`• ${c.name} (${c.issuer}, ${c.issueDate})`);
+    });
+  }
+  return parts.join('\n');
+};
+
 const STORAGE_KEY = 'jobia_cv_creator_data';
 const STORAGE_TEMPLATE_KEY = 'jobia_cv_creator_template';
 const STORAGE_LAST_SAVED_KEY = 'jobia_cv_last_saved_time';
@@ -204,14 +252,18 @@ const STORAGE_LAST_SAVED_KEY = 'jobia_cv_last_saved_time';
 interface CVCreatorProps {
   onBackToPortal?: () => void;
   onApplyWithCV?: (cv: CVData) => void;
+  onOpenATSAnalyzer?: (cvText: string) => void;
   initialData?: CVData;
 }
 
 export const CVCreator: React.FC<CVCreatorProps> = ({ 
   onBackToPortal, 
   onApplyWithCV, 
+  onOpenATSAnalyzer,
   initialData 
 }) => {
+  const { dict, language } = useLanguage();
+
   // Load initial data:
   // If stored in this device's browser cache, load it (offline persistent!).
   // If opened on another device/fresh browser, start blank so no personal data leaks!
@@ -278,6 +330,41 @@ export const CVCreator: React.FC<CVCreatorProps> = ({
   const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
   const [pdfProgressText, setPdfProgressText] = useState('');
   const [pdfSuccess, setPdfSuccess] = useState(false);
+
+  // Preview Zoom & Scale state for professional responsive mobile preview
+  const previewWrapperRef = useRef<HTMLDivElement>(null);
+  const previewInnerRef = useRef<HTMLDivElement>(null);
+  const [previewZoomMode, setPreviewZoomMode] = useState<'fit' | '100%'>('fit');
+  const [previewScale, setPreviewScale] = useState<number>(1);
+  const [previewDocHeight, setPreviewDocHeight] = useState<number>(1130);
+
+  useEffect(() => {
+    const computeScale = () => {
+      if (previewWrapperRef.current) {
+        const availableWidth = previewWrapperRef.current.clientWidth - 24;
+        if (availableWidth < 800) {
+          const s = Math.max(0.32, availableWidth / 800);
+          setPreviewScale(s);
+        } else {
+          setPreviewScale(1);
+        }
+      }
+      if (previewInnerRef.current) {
+        const h = previewInnerRef.current.scrollHeight;
+        if (h > 0) setPreviewDocHeight(h);
+      }
+    };
+
+    computeScale();
+    const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(computeScale) : null;
+    if (ro && previewWrapperRef.current) ro.observe(previewWrapperRef.current);
+    if (ro && previewInnerRef.current) ro.observe(previewInnerRef.current);
+    window.addEventListener('resize', computeScale);
+    return () => {
+      if (ro) ro.disconnect();
+      window.removeEventListener('resize', computeScale);
+    };
+  }, [activeTab, selectedTemplate, showPhoto, previewZoomMode]);
 
   // Template filter category
   const [templateCategoryFilter, setTemplateCategoryFilter] = useState<string>('Hamısı');
@@ -865,54 +952,55 @@ export const CVCreator: React.FC<CVCreatorProps> = ({
           </div>
 
           {/* Action Buttons */}
-          <div className="flex items-center gap-2 sm:gap-2.5">
+          <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
             {/* Clear All Data Button */}
             <button
               type="button"
               onClick={() => setIsClearModalOpen(true)}
-              className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-2 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 hover:text-rose-800 border border-rose-200 text-xs font-bold transition-all shadow-2xs"
-              title="Bütün daxil edilmiş məlumatları sıfırlayıb təmizlə"
+              className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-2 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 hover:text-rose-800 border border-rose-200 text-xs font-bold transition-all shadow-2xs shrink-0 whitespace-nowrap cursor-pointer"
+              title={language === 'en' ? 'Clear all data' : language === 'ru' ? 'Очистить всё' : 'Bütün daxil edilmiş məlumatları sıfırlayıb təmizlə'}
             >
               <Trash2 className="w-3.5 h-3.5 text-rose-600 shrink-0" />
-              <span className="hidden sm:inline">Bütün Məlumatları Təmizlə</span>
-              <span className="sm:hidden">Təmizlə</span>
+              <span className="hidden sm:inline">{language === 'en' ? 'Clear Data' : language === 'ru' ? 'Очистить' : 'Bütün Məlumatları Təmizlə'}</span>
+              <span className="sm:hidden">{language === 'en' ? 'Clear' : language === 'ru' ? 'Сброс' : 'Təmizlə'}</span>
             </button>
 
             {/* Quick Paste / AI Button */}
             <button
               type="button"
               onClick={() => setActiveTab('paste')}
-              className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition-all ${
+              className={`inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-2 rounded-lg text-xs font-bold transition-all shrink-0 whitespace-nowrap cursor-pointer ${
                 activeTab === 'paste'
                   ? 'bg-purple-700 text-white shadow-xs'
                   : 'bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-200'
               }`}
             >
               <Clipboard className="w-3.5 h-3.5 shrink-0" />
-              <span className="hidden md:inline">Mətni Yapışdır (AI)</span>
-              <span className="md:hidden">Mətn AI</span>
+              <span className="hidden md:inline">{language === 'en' ? 'Paste Text (AI)' : language === 'ru' ? 'Вставить текст (AI)' : 'Mətni Yapışdır (AI)'}</span>
+              <span className="md:hidden">AI</span>
             </button>
 
             {/* Manual Save Data Button (Keşdə Yadda Saxla) */}
             <button
               type="button"
               onClick={handleSaveData}
-              className={`inline-flex items-center gap-1.5 px-3.5 sm:px-4 py-2 rounded-lg text-xs font-extrabold shadow-sm transition-all ${
+              className={`inline-flex items-center gap-1.5 px-3 sm:px-4 py-2 rounded-lg text-xs font-extrabold shadow-sm transition-all shrink-0 whitespace-nowrap cursor-pointer ${
                 saveSuccess
                   ? 'bg-emerald-700 text-white'
                   : 'bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white'
               }`}
-              title="Məlumatları kompüterin keşində yadda saxla (internet kəsilsə də qalır)"
+              title={language === 'en' ? 'Save locally' : language === 'ru' ? 'Сохранить локально' : 'Məlumatları kompüterin keşində yadda saxla'}
             >
               {saveSuccess ? (
                 <>
-                  <Check className="w-4 h-4 text-white" />
-                  <span>Yadda Saxlanıldı!</span>
+                  <Check className="w-4 h-4 text-white shrink-0" />
+                  <span>{language === 'en' ? 'Saved!' : language === 'ru' ? 'Сохранено!' : 'Yadda Saxlanıldı!'}</span>
                 </>
               ) : (
                 <>
-                  <Save className="w-4 h-4" />
-                  <span>Məlumatları Yadda Saxla</span>
+                  <Save className="w-4 h-4 shrink-0" />
+                  <span className="hidden sm:inline">{language === 'en' ? 'Save' : language === 'ru' ? 'Сохранить' : 'Yadda Saxla'}</span>
+                  <span className="sm:hidden">{language === 'en' ? 'Save' : language === 'ru' ? 'Yadda' : 'Saxla'}</span>
                 </>
               )}
             </button>
@@ -920,54 +1008,54 @@ export const CVCreator: React.FC<CVCreatorProps> = ({
         </div>
 
         {/* View Switcher Tabs (Paste Text, Editor, Templates, Live Preview) */}
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between border-t border-slate-100 bg-slate-50/70 overflow-x-auto">
-          <div className="flex gap-1 py-1.5 min-w-max">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 flex items-center justify-between border-t border-slate-100 bg-slate-50/70 overflow-x-auto gap-3 py-1.5">
+          <div className="flex gap-1 min-w-max">
             <button
               onClick={() => setActiveTab('paste')}
-              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+              className={`inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
                 activeTab === 'paste'
                   ? 'bg-white text-purple-700 shadow-xs border border-purple-200 ring-1 ring-purple-400/20'
                   : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
               }`}
             >
-              <Clipboard className="w-3.5 h-3.5 text-purple-600" />
-              <span>Mətni yapışdır (Avtomatik CV)</span>
+              <Clipboard className="w-3.5 h-3.5 text-purple-600 shrink-0" />
+              <span>{language === 'en' ? 'Paste Text (AI)' : language === 'ru' ? 'Вставить текст' : 'Mətni yapışdır (AI)'}</span>
             </button>
 
             <button
               onClick={() => setActiveTab('editor')}
-              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+              className={`inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
                 activeTab === 'editor'
                   ? 'bg-white text-emerald-700 shadow-xs border border-slate-200'
                   : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
               }`}
             >
-              <Edit3 className="w-3.5 h-3.5" />
-              <span>Məlumatları redaktə et</span>
+              <Edit3 className="w-3.5 h-3.5 shrink-0" />
+              <span>{language === 'en' ? 'Edit Details' : language === 'ru' ? 'Редактировать' : 'Düzəliş et'}</span>
             </button>
 
             <button
               onClick={() => setActiveTab('templates')}
-              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+              className={`inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
                 activeTab === 'templates'
                   ? 'bg-white text-emerald-700 shadow-xs border border-slate-200'
                   : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
               }`}
             >
-              <Layers className="w-3.5 h-3.5" />
-              <span>Şablonlar</span>
+              <Layers className="w-3.5 h-3.5 shrink-0" />
+              <span>{language === 'en' ? 'Templates' : language === 'ru' ? 'Шаблоны' : 'Şablonlar'}</span>
             </button>
 
             <button
               onClick={() => setActiveTab('preview')}
-              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+              className={`inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
                 activeTab === 'preview'
-                  ? 'bg-white text-emerald-700 shadow-xs border border-slate-200'
+                  ? 'bg-white text-emerald-700 shadow-xs border border-slate-200 ring-1 ring-emerald-400/20'
                   : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
               }`}
             >
-              <Eye className="w-3.5 h-3.5" />
-              <span>Tam baxış & PDF</span>
+              <Eye className="w-3.5 h-3.5 shrink-0" />
+              <span>{language === 'en' ? 'Preview & PDF' : language === 'ru' ? 'Предпросмотр & PDF' : 'Önbaxış & PDF'}</span>
             </button>
           </div>
 
@@ -1204,7 +1292,7 @@ export const CVCreator: React.FC<CVCreatorProps> = ({
                         data={cvData}
                         template={selectedTemplate}
                         showPhoto={showPhoto}
-                        id="cv-live-creator-export"
+                        id="cv-live-creator-scaled-preview"
                       />
                     </div>
                   </div>
@@ -2477,70 +2565,214 @@ export const CVCreator: React.FC<CVCreatorProps> = ({
 
         {/* TAB 3: FULL LIVE PREVIEW & EXPORT VIEW */}
         {activeTab === 'preview' && (
-          <div className="space-y-6">
-            <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-4">
-              <div>
-                <h2 className="text-sm font-bold text-slate-900">
-                  CV Önbaxışı ({currentTemplateMeta.name})
-                </h2>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  CV birbaşa A4 formatında tərtib olunub. "PDF Endir" düyməsi ilə dərhal yükləyə bilərsiniz.
+          <div className="space-y-4 sm:space-y-6 pb-20 md:pb-6">
+            {/* Top Toolbar */}
+            <div className="bg-white p-3.5 sm:p-4 rounded-xl border border-slate-200 shadow-xs flex flex-col md:flex-row md:items-center md:justify-between gap-3 sm:gap-4">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h2 className="text-sm sm:text-base font-bold text-slate-900 truncate">
+                    {language === 'en' ? 'CV Preview' : language === 'ru' ? 'Предпросмотр резюме' : 'CV Önbaxışı'} ({currentTemplateMeta.name})
+                  </h2>
+                  <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold">
+                    A4 Standart
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">
+                  {language === 'en'
+                    ? 'Official A4 print format. Ready to download as high-resolution PDF or print.'
+                    : language === 'ru'
+                    ? 'Официальный формат A4. Готово к скачиванию в высоком разрешении или печати.'
+                    : 'Rəsmi A4 çap formatında. Yüksək keyfiyyətli PDF kimi endirə və ya çap edə bilərsiniz.'}
                 </p>
               </div>
 
-              <div className="flex items-center gap-2.5">
+              {/* Action and Zoom Controls */}
+              <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+                {/* Zoom Mode Selector */}
+                <div className="inline-flex items-center p-1 bg-slate-100 rounded-lg border border-slate-200 text-xs font-semibold">
+                  <button
+                    type="button"
+                    onClick={() => setPreviewZoomMode('fit')}
+                    className={`px-2.5 py-1 rounded-md transition-all cursor-pointer ${
+                      previewZoomMode === 'fit'
+                        ? 'bg-white text-emerald-800 font-bold shadow-2xs'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                    title={language === 'en' ? 'Fit to Screen' : language === 'ru' ? 'По ширине' : 'Ekrana sığdır'}
+                  >
+                    {language === 'en' ? 'Fit' : language === 'ru' ? 'По ширине' : 'Sığdır'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPreviewZoomMode('100%')}
+                    className={`px-2.5 py-1 rounded-md transition-all cursor-pointer ${
+                      previewZoomMode === '100%'
+                        ? 'bg-white text-emerald-800 font-bold shadow-2xs'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                    title={language === 'en' ? '100% Actual Size' : language === 'ru' ? '100% Размер' : '100% Real'}
+                  >
+                    100%
+                  </button>
+                </div>
+
                 <button
+                  type="button"
                   onClick={() => setActiveTab('templates')}
-                  className="px-3 py-2 rounded-lg border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-semibold"
+                  className="px-3 py-2 rounded-lg border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-semibold whitespace-nowrap cursor-pointer"
                 >
-                  Şablonu dəyiş
+                  {language === 'en' ? 'Change Template' : language === 'ru' ? 'Сменить шаблон' : 'Şablonu dəyiş'}
                 </button>
+
                 <button
+                  type="button"
+                  onClick={() => setActiveTab('editor')}
+                  className="px-3 py-2 rounded-lg border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-semibold whitespace-nowrap cursor-pointer"
+                >
+                  {language === 'en' ? 'Edit Details' : language === 'ru' ? 'Редактировать' : 'Redaktə et'}
+                </button>
+
+                {onOpenATSAnalyzer && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const text = formatCVDataToPlainText(cvData);
+                      onOpenATSAnalyzer(text);
+                    }}
+                    className="px-3.5 py-2 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 text-xs font-bold inline-flex items-center gap-1.5 whitespace-nowrap cursor-pointer shadow-2xs"
+                    title={language === 'en' ? 'Audit CV with ATS Analyzer' : language === 'ru' ? 'Проверить в ATS анализаторе' : 'CV-ni ATS Analizator ilə Yoxla'}
+                  >
+                    <Sparkles className="w-3.5 h-3.5 text-blue-600" />
+                    <span>{language === 'en' ? 'ATS Check' : language === 'ru' ? 'ATS Проверка' : '🎯 ATS Yoxla'}</span>
+                  </button>
+                )}
+
+                <button
+                  type="button"
                   onClick={handleDownloadPDF}
                   disabled={isDownloadingPdf}
-                  className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white text-xs font-bold inline-flex items-center gap-2 shadow-sm"
+                  className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white text-xs font-bold inline-flex items-center justify-center gap-2 shadow-sm whitespace-nowrap cursor-pointer shrink-0"
                 >
                   {isDownloadingPdf ? (
                     <>
                       <Loader2 className="w-4 h-4 animate-spin" />
-                      <span>{pdfProgressText || 'PDF hazırlanır...'}</span>
+                      <span>{pdfProgressText || (language === 'en' ? 'Generating PDF...' : language === 'ru' ? 'Создание PDF...' : 'PDF hazırlanır...')}</span>
                     </>
                   ) : (
                     <>
                       <FileDown className="w-4 h-4" />
-                      <span>PDF Kimi Endir</span>
+                      <span>{language === 'en' ? 'Download PDF' : language === 'ru' ? 'Скачать PDF' : 'PDF Kimi Endir'}</span>
                     </>
                   )}
                 </button>
               </div>
             </div>
 
-            {/* Target Element for Live Rendering and PDF Export */}
-            <div className="bg-slate-100 p-4 sm:p-8 rounded-2xl border border-slate-200 flex justify-center overflow-x-auto shadow-inner">
-              <div className="w-full max-w-[850px] shadow-lg rounded-lg overflow-hidden bg-white">
-                <CVRenderer
-                  data={cvData}
-                  template={selectedTemplate}
-                  showPhoto={showPhoto}
-                  id="cv-live-creator-export"
-                />
-              </div>
+            {/* Document Canvas Container */}
+            <div 
+              ref={previewWrapperRef}
+              className="bg-slate-200/90 p-3 sm:p-6 md:p-8 rounded-2xl border border-slate-300 flex justify-center overflow-x-auto shadow-inner min-h-[500px]"
+            >
+              {previewZoomMode === 'fit' && previewScale < 1 ? (
+                /* Scaled to fit container cleanly on mobile without horizontal scroll */
+                <div
+                  style={{
+                    width: Math.round(800 * previewScale),
+                    height: Math.round(previewDocHeight * previewScale),
+                  }}
+                  className="relative transition-all shadow-xl rounded-lg overflow-hidden bg-white border border-slate-300 shrink-0"
+                >
+                  <div
+                    ref={previewInnerRef}
+                    style={{
+                      width: 800,
+                      transform: `scale(${previewScale})`,
+                      transformOrigin: 'top left',
+                    }}
+                    className="bg-white"
+                  >
+                    <CVRenderer
+                      data={cvData}
+                      template={selectedTemplate}
+                      showPhoto={showPhoto}
+                      id="cv-live-creator-preview-scaled"
+                    />
+                  </div>
+                </div>
+              ) : (
+                /* Full 100% 800px standard A4 preview (scrollable on mobile) */
+                <div 
+                  ref={previewInnerRef}
+                  className="w-[800px] min-w-[800px] shadow-2xl rounded-lg overflow-hidden bg-white border border-slate-300 shrink-0"
+                >
+                  <CVRenderer
+                    data={cvData}
+                    template={selectedTemplate}
+                    showPhoto={showPhoto}
+                    id="cv-live-creator-preview-full"
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* Mobile Fixed Bottom Action Pill when on Preview Tab */}
+            <div className="fixed bottom-3 left-3 right-3 z-30 md:hidden flex items-center justify-between gap-1.5 p-2 rounded-2xl bg-white/95 backdrop-blur-md border border-slate-300 shadow-xl">
+              <button
+                type="button"
+                onClick={() => setActiveTab('editor')}
+                className="py-2.5 px-2.5 rounded-xl border border-slate-200 text-slate-700 text-xs font-bold text-center hover:bg-slate-50 cursor-pointer"
+              >
+                {language === 'en' ? '← Edit' : language === 'ru' ? '← Назад' : '← Redaktə'}
+              </button>
+              {onOpenATSAnalyzer && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const text = formatCVDataToPlainText(cvData);
+                    onOpenATSAnalyzer(text);
+                  }}
+                  className="py-2.5 px-3 rounded-xl bg-blue-50 text-blue-700 border border-blue-200 text-xs font-bold flex items-center justify-center gap-1 active:bg-blue-100 cursor-pointer"
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-blue-600" />
+                  <span>ATS</span>
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={handleDownloadPDF}
+                disabled={isDownloadingPdf}
+                className="flex-1 py-2.5 px-3 rounded-xl bg-emerald-600 text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-md active:bg-emerald-700 cursor-pointer"
+              >
+                {isDownloadingPdf ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>{pdfProgressText || 'PDF...'}</span>
+                  </>
+                ) : (
+                  <>
+                    <FileDown className="w-4 h-4" />
+                    <span>{language === 'en' ? 'Download PDF' : language === 'ru' ? 'Скачать PDF' : 'PDF Kimi Endir'}</span>
+                  </>
+                )}
+              </button>
             </div>
           </div>
         )}
       </main>
 
-      {/* Hidden target element for PDF export when on other tabs */}
-      {activeTab !== 'preview' && (
-        <div className="fixed -left-[9999px] -top-[9999px] w-[850px] pointer-events-none opacity-0">
-          <CVRenderer
-            data={cvData}
-            template={selectedTemplate}
-            showPhoto={showPhoto}
-            id="cv-live-creator-export"
-          />
-        </div>
-      )}
+      {/* Permanent, unconstrained 800px target for 300 DPI A4 PDF export */}
+      <div 
+        id="cv-dedicated-pdf-export-wrapper" 
+        className="fixed -left-[9999px] top-0 pointer-events-none bg-white z-[-100]"
+        style={{ width: '800px', minWidth: '800px', maxWidth: '800px' }}
+      >
+        <CVRenderer
+          data={cvData}
+          template={selectedTemplate}
+          showPhoto={showPhoto}
+          id="cv-live-creator-export"
+        />
+      </div>
 
       {/* ========================================================================= */}
       {/* AI AUTO-GENERATION MODAL */}

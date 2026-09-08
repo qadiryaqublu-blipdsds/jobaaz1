@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { UserRole, User, UserSubscription } from '../types';
 import { JobiaLogo } from './JobiaLogo';
 import { useLanguage } from '../context/LanguageContext';
@@ -27,7 +27,8 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   Settings,
-  BellRing
+  BellRing,
+  GripVertical
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -54,6 +55,10 @@ interface SidebarProps {
   isCollapsed?: boolean;
   onToggleCollapse?: () => void;
 }
+
+const MIN_SIDEBAR_WIDTH = 180;
+const MAX_SIDEBAR_WIDTH = 420;
+const DEFAULT_SIDEBAR_WIDTH = 280;
 
 export const Sidebar: React.FC<SidebarProps> = ({
   currentRole,
@@ -82,6 +87,99 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const { dict, brandAcronym, language } = useLanguage();
   const planTier = currentSubscription?.tier || 'FREE';
   const isPaidPlan = planTier !== 'FREE';
+
+  // Fluid Resizing State
+  const [sidebarWidth, setSidebarWidth] = useState<number>(() => {
+    try {
+      const saved = localStorage.getItem('jobia_sidebar_width');
+      if (saved) {
+        const val = parseInt(saved, 10);
+        if (!isNaN(val) && val >= MIN_SIDEBAR_WIDTH && val <= MAX_SIDEBAR_WIDTH) {
+          return val;
+        }
+      }
+    } catch {}
+    return DEFAULT_SIDEBAR_WIDTH;
+  });
+  const [isDragging, setIsDragging] = useState(false);
+  const dragStartXRef = useRef(0);
+  const dragStartWidthRef = useRef(DEFAULT_SIDEBAR_WIDTH);
+
+  // Mouse & Touch Drag Handlers for Splitter
+  const handleSplitterMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+    dragStartXRef.current = e.clientX;
+    dragStartWidthRef.current = isCollapsed ? 80 : sidebarWidth;
+
+    document.body.style.userSelect = 'none';
+    document.body.style.cursor = 'col-resize';
+
+    const handleMouseMove = (moveEvent: MouseEvent) => {
+      const deltaX = moveEvent.clientX - dragStartXRef.current;
+      const targetWidth = dragStartWidthRef.current + deltaX;
+      const clampedWidth = Math.min(MAX_SIDEBAR_WIDTH, Math.max(MIN_SIDEBAR_WIDTH, targetWidth));
+      setSidebarWidth(clampedWidth);
+
+      // If sidebar was collapsed and dragged out, uncollapse
+      if (isCollapsed && clampedWidth > 160) {
+        onToggleCollapse?.();
+      }
+    };
+
+    const handleMouseUp = () => {
+      setIsDragging(false);
+      document.body.style.userSelect = '';
+      document.body.style.cursor = '';
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+
+      setSidebarWidth((current) => {
+        try {
+          localStorage.setItem('jobia_sidebar_width', current.toString());
+        } catch {}
+        return current;
+      });
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+  };
+
+  const handleSplitterTouchStart = (e: React.TouchEvent) => {
+    if (!e.touches[0]) return;
+    setIsDragging(true);
+    dragStartXRef.current = e.touches[0].clientX;
+    dragStartWidthRef.current = isCollapsed ? 80 : sidebarWidth;
+
+    const handleTouchMove = (moveEvent: TouchEvent) => {
+      if (!moveEvent.touches[0]) return;
+      const deltaX = moveEvent.touches[0].clientX - dragStartXRef.current;
+      const targetWidth = dragStartWidthRef.current + deltaX;
+      const clampedWidth = Math.min(MAX_SIDEBAR_WIDTH, Math.max(MIN_SIDEBAR_WIDTH, targetWidth));
+      setSidebarWidth(clampedWidth);
+
+      if (isCollapsed && clampedWidth > 160) {
+        onToggleCollapse?.();
+      }
+    };
+
+    const handleTouchEnd = () => {
+      setIsDragging(false);
+      window.removeEventListener('touchmove', handleTouchMove);
+      window.removeEventListener('touchend', handleTouchEnd);
+
+      setSidebarWidth((current) => {
+        try {
+          localStorage.setItem('jobia_sidebar_width', current.toString());
+        } catch {}
+        return current;
+      });
+    };
+
+    window.addEventListener('touchmove', handleTouchMove);
+    window.addEventListener('touchend', handleTouchEnd);
+  };
 
   const handleTabClick = (tab: 'jobs' | 'nearby-map' | 'my-applications' | 'salary-trends' | 'calculia' | 'google-chat' | 'cv-analyzer' | 'cv-creator') => {
     onCandidateTabChange(tab);
@@ -118,7 +216,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     },
     {
       id: 'nearby-map' as const,
-      label: dict.nav.nearbyJobs || 'Xəritədə İşlər (Evimə Yaxın)',
+      label: dict.nav.nearbyJobs || 'Xəritədə Vakansiyalar',
       icon: Compass,
       badge: 'YENİ',
       badgeClass: 'bg-emerald-500 text-white font-bold',
@@ -204,12 +302,38 @@ export const Sidebar: React.FC<SidebarProps> = ({
       {/* Main Left Vertical Sidebar with dynamic width */}
       <aside
         id="app-left-sidebar"
-        className={`fixed top-0 bottom-0 left-0 z-50 bg-white border-r border-slate-200 flex flex-col justify-between transition-all duration-300 ease-in-out shadow-lg lg:shadow-none lg:sticky lg:top-0 lg:h-screen lg:shrink-0 lg:translate-x-0 ${
-          isCollapsed ? 'w-20' : 'w-72'
+        style={{
+          width: isOpenMobile ? undefined : (isCollapsed ? '80px' : `${sidebarWidth}px`),
+        }}
+        className={`fixed top-0 bottom-0 left-0 z-50 bg-white border-r border-slate-200 flex flex-col justify-between shadow-lg lg:shadow-none lg:sticky lg:top-0 lg:h-screen lg:shrink-0 ${
+          isDragging ? 'transition-none select-none' : 'transition-[width] duration-200 ease-in-out'
         } ${
           isOpenMobile ? 'translate-x-0 !w-72' : '-translate-x-full lg:translate-x-0'
         }`}
       >
+        {/* Right Vertical Resizing Splitter (Desktop Only) */}
+        <div
+          onMouseDown={handleSplitterMouseDown}
+          onTouchStart={handleSplitterTouchStart}
+          className={`hidden lg:flex absolute -right-1.5 top-0 bottom-0 w-3 cursor-col-resize z-50 items-center justify-center group select-none ${
+            isDragging ? 'opacity-100' : 'opacity-0 hover:opacity-100'
+          } transition-opacity`}
+          title={dict.common.dragToResize || 'Ölçünü dəyişmək üçün sürüşdürün'}
+        >
+          <div
+            className={`w-1 h-full rounded-full transition-colors ${
+              isDragging ? 'bg-blue-600 shadow-sm' : 'bg-transparent group-hover:bg-blue-400/80 group-active:bg-blue-600'
+            }`}
+          />
+          <div
+            className={`absolute top-1/2 -translate-y-1/2 left-1/2 -translate-x-1/2 bg-white border border-slate-300 shadow-xs rounded px-0.5 py-1 pointer-events-none transition-all ${
+              isDragging ? 'opacity-100 ring-2 ring-blue-500/30' : 'opacity-0 group-hover:opacity-100'
+            }`}
+          >
+            <GripVertical className="w-3 h-3 text-slate-500" />
+          </div>
+        </div>
+
         {/* TOP SECTION: LOGO & COLLAPSE / CLOSE BUTTON */}
         <div className={`p-3.5 border-b border-slate-100 flex items-center shrink-0 ${isCollapsed ? 'justify-center' : 'justify-between'}`}>
           <div 
@@ -218,38 +342,50 @@ export const Sidebar: React.FC<SidebarProps> = ({
               onCandidateTabChange('jobs');
               onCloseMobile();
             }}
-            className="flex items-center gap-2 cursor-pointer select-none group"
-            title="jobia.az - Ana səhifə"
+            className="flex items-center gap-2 cursor-pointer select-none group min-w-0"
+            title={`jobia.az - ${dict.common.home || 'Ana səhifə'}`}
           >
-            <JobiaLogo size={isCollapsed ? "xs" : "md"} className="group-hover:opacity-90 transition-opacity" />
+            <JobiaLogo size={isCollapsed ? "xs" : "md"} className="group-hover:opacity-90 transition-opacity shrink-0" />
             {!isCollapsed && (
-              <div className="flex flex-col">
-                <span className="text-[10px] font-black tracking-wider text-emerald-700 uppercase leading-none">
+              <div className="flex flex-col min-w-0 overflow-hidden">
+                <span className="text-[10px] font-black tracking-wider text-emerald-700 uppercase leading-none truncate">
                   {brandAcronym}
                 </span>
-                <span className="text-[9px] text-slate-500 font-semibold leading-tight mt-0.5">
-                  Ağıllı İş Platforması
+                <span className="text-[9px] text-slate-500 font-semibold leading-tight mt-0.5 truncate">
+                  {dict.common.smartPlatform || 'Ağıllı İş Platforması'}
                 </span>
               </div>
             )}
           </div>
 
-          {/* Desktop Toggle Button */}
+          {/* Desktop Toggle Button when expanded */}
           {onToggleCollapse && !isCollapsed && (
             <button
               type="button"
               onClick={onToggleCollapse}
-              className="hidden lg:flex p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 cursor-pointer transition-colors"
-              title="Paneli yığcamlaşdır"
+              className="hidden lg:flex p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 cursor-pointer transition-colors shrink-0"
+              title={dict.common.collapseSidebar || 'Paneli yığcamlaşdır'}
             >
               <PanelLeftClose className="w-4 h-4" />
+            </button>
+          )}
+
+          {/* Desktop Toggle Button when collapsed */}
+          {onToggleCollapse && isCollapsed && (
+            <button
+              type="button"
+              onClick={onToggleCollapse}
+              className="hidden lg:flex p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-slate-100 cursor-pointer transition-colors shrink-0"
+              title={dict.common.expandSidebar || 'Paneli genişləndir'}
+            >
+              <PanelLeftOpen className="w-4 h-4" />
             </button>
           )}
 
           {/* Close button on mobile */}
           <button
             onClick={onCloseMobile}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 lg:hidden cursor-pointer"
+            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 lg:hidden cursor-pointer shrink-0"
           >
             <X className="w-5 h-5" />
           </button>
@@ -854,27 +990,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 </button>
               )
             )
-          )}
-
-          {/* Desktop Collapse / Expand Button in Sidebar Bottom */}
-          {onToggleCollapse && (
-            <button
-              type="button"
-              onClick={onToggleCollapse}
-              className={`hidden lg:flex items-center justify-center w-full py-1.5 text-xs font-bold text-slate-500 hover:text-slate-900 hover:bg-slate-200/60 rounded-xl transition-all cursor-pointer ${
-                isCollapsed ? 'px-1' : 'px-3 gap-2 border border-slate-200'
-              }`}
-              title={isCollapsed ? 'Paneli genişləndir' : 'Paneli yığcamlaşdır'}
-            >
-              {isCollapsed ? (
-                <PanelLeftOpen className="w-4 h-4 text-blue-600" />
-              ) : (
-                <>
-                  <PanelLeftClose className="w-4 h-4 text-slate-500" />
-                  <span>Paneli Yığcamlaşdır</span>
-                </>
-              )}
-            </button>
           )}
 
         </div>

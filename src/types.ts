@@ -369,7 +369,13 @@ export type CVTemplateType =
   | 'simple-clean'
   | 'entry-student'
   | 'prestige-executive'
-  | 'practical-direct';
+  | 'practical-direct'
+  | 'zurich-banking'
+  | 'silicon-dev'
+  | 'berlin-creative'
+  | 'tokyo-minimal'
+  | 'cambridge-scholar'
+  | 'scandinavian-edge';
 
 export interface Application {
   id: string;

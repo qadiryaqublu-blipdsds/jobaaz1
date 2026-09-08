@@ -186,11 +186,28 @@ export default function App() {
   const [currentRole, setCurrentRole] = useState<UserRole>('candidate');
   const [candidateTab, setCandidateTab] = useState<'jobs' | 'nearby-map' | 'my-applications' | 'salary-trends' | 'calculia' | 'google-chat' | 'cv-analyzer' | 'cv-creator'>('jobs');
   const [calculiaSubTab, setCalculiaSubTab] = useState<'calculia' | 'vacatia'>('calculia');
+  const [analyzerPrefillText, setAnalyzerPrefillText] = useState<string>('');
   const [selectedCompanyFilter, setSelectedCompanyFilter] = useState<string>('Hamısı');
   const [isPricingViewOpen, setIsPricingViewOpen] = useState(false);
   const [isIntroTourOpen, setIsIntroTourOpen] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('jobia_sidebar_collapsed') === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  const handleToggleSidebarCollapse = () => {
+    setIsSidebarCollapsed((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem('jobia_sidebar_collapsed', String(next));
+      } catch {}
+      return next;
+    });
+  };
 
   // Auto-launch intro tour for first-time visitors
   useEffect(() => {
@@ -1719,7 +1736,7 @@ export default function App() {
         isOpenMobile={isMobileSidebarOpen}
         onCloseMobile={() => setIsMobileSidebarOpen(false)}
         isCollapsed={isSidebarCollapsed}
-        onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+        onToggleCollapse={handleToggleSidebarCollapse}
       />
 
       {/* Main Content Column */}
@@ -1764,7 +1781,7 @@ export default function App() {
           onOpenIntroTour={() => setIsIntroTourOpen(true)}
           onToggleMobileSidebar={() => setIsMobileSidebarOpen(!isMobileSidebarOpen)}
           isSidebarCollapsed={isSidebarCollapsed}
-          onToggleCollapseSidebar={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+          onToggleCollapseSidebar={handleToggleSidebarCollapse}
         />
 
         {/* Scrollable Main Area (Body + Footer scroll smoothly under frozen header & sidebar) */}
@@ -1898,13 +1915,17 @@ export default function App() {
                 )}
 
                 {candidateTab === 'cv-analyzer' && (
-                  <DeepCVAnalyzerView />
+                  <DeepCVAnalyzerView initialCVText={analyzerPrefillText} />
                 )}
 
                 {candidateTab === 'cv-creator' && (
                   <CVCreator
                     onApplyWithCV={() => {
                       setCandidateTab('jobs');
+                    }}
+                    onOpenATSAnalyzer={(cvText) => {
+                      setAnalyzerPrefillText(cvText);
+                      setCandidateTab('cv-analyzer');
                     }}
                   />
                 )}

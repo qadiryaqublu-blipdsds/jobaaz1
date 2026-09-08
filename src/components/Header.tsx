@@ -10,8 +10,6 @@ import {
   LogIn, 
   LogOut, 
   Plus, 
-  PanelLeftClose, 
-  PanelLeftOpen,
   Sparkles,
   Bell,
   User as UserIcon,
@@ -112,23 +110,6 @@ export const Header: React.FC<HeaderProps> = ({
               </button>
             )}
 
-            {/* Desktop Sidebar Collapse / Expand Toggle */}
-            {onToggleCollapseSidebar && (
-              <button
-                id="header-desktop-sidebar-toggle-btn"
-                type="button"
-                onClick={onToggleCollapseSidebar}
-                className="hidden lg:flex items-center justify-center p-2 rounded-xl text-slate-500 hover:text-slate-900 hover:bg-slate-100 cursor-pointer transition-all border border-transparent hover:border-slate-200"
-                title={isSidebarCollapsed ? (language === 'en' ? 'Expand Sidebar' : 'Sol Paneli Genişləndir') : (language === 'en' ? 'Collapse Sidebar' : 'Sol Paneli Yığcamlaşdır')}
-              >
-                {isSidebarCollapsed ? (
-                  <PanelLeftOpen className="w-4 h-4 text-blue-600" />
-                ) : (
-                  <PanelLeftClose className="w-4 h-4 text-slate-600" />
-                )}
-              </button>
-            )}
-
             {/* Mobile Logo Brand */}
             <div 
               onClick={() => handleCompanyClick('Hamısı')}
@@ -189,9 +170,15 @@ export const Header: React.FC<HeaderProps> = ({
                 </div>
               </div>
             ) : (
-              <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-50 border border-slate-200/80 text-xs text-slate-600 font-medium select-none">
+              <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-50 border border-slate-200/80 text-xs text-slate-600 font-medium select-none truncate">
                 <Sparkles className="w-3.5 h-3.5 text-blue-600 shrink-0" />
-                <span>Azərbaycanın Rəsmi Vakansiyalar və İşə Qəbul Portalı</span>
+                <span className="truncate">
+                  {language === 'en'
+                    ? 'Official Verified Jobs & Career Portal'
+                    : language === 'ru'
+                    ? 'Официальный портал вакансий и трудоустройства'
+                    : 'Azərbaycanın Rəsmi Vakansiyalar və İşə Qəbul Portalı'}
+                </span>
               </div>
             )}
           </div>
@@ -212,8 +199,8 @@ export const Header: React.FC<HeaderProps> = ({
                     ? 'bg-blue-50 text-blue-700 border border-blue-200/90 hover:bg-blue-100 hover:text-blue-800'
                     : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100 border border-transparent hover:border-slate-200'
                 }`}
-                title="Real-vaxt Bildirişlər Mərkəzi"
-                aria-label="Real-vaxt Bildirişlər Mərkəzi"
+                title={language === 'en' ? 'Notifications' : language === 'ru' ? 'Уведомления' : 'Bildirişlər'}
+                aria-label="Notifications"
               >
                 <Bell className={`w-4 h-4 ${unreadCount > 0 ? 'animate-wiggle' : ''}`} />
                 
@@ -240,11 +227,13 @@ export const Header: React.FC<HeaderProps> = ({
                 id="header-vip-pricing-btn"
                 type="button"
                 onClick={onOpenPricing}
-                className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-amber-50 hover:bg-amber-100/90 text-amber-900 border border-amber-300/80 shadow-2xs hover:shadow-xs transition-all cursor-pointer group active:scale-95 shrink-0"
+                className="hidden md:flex items-center gap-1.5 px-2.5 lg:px-3 py-1.5 rounded-xl text-xs font-bold bg-amber-50 hover:bg-amber-100/90 text-amber-900 border border-amber-300/80 shadow-2xs hover:shadow-xs transition-all cursor-pointer group active:scale-95 shrink-0 whitespace-nowrap"
                 title={dict.nav.pricing}
               >
                 <Crown className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-                <span className="tracking-tight">VIP Planlar</span>
+                <span className="tracking-tight whitespace-nowrap">
+                  {language === 'en' ? 'VIP Plans' : language === 'ru' ? 'VIP Тарифы' : 'VIP Planlar'}
+                </span>
                 {isPaidUser ? (
                   <span className="px-1.5 py-0.5 rounded-md bg-amber-200/70 text-amber-950 text-[9px] font-extrabold uppercase">
                     {planTier}
@@ -264,7 +253,7 @@ export const Header: React.FC<HeaderProps> = ({
 
             {/* 4. Eye-Pleasing Interactive Auth Button / User Profile (Visible on Desktop / Tablet md+) */}
             {currentUser ? (
-              <div className="hidden md:flex items-center gap-1.5 bg-slate-100/90 hover:bg-slate-200/80 p-1 pl-1.5 rounded-xl border border-slate-200/90 transition-all">
+              <div className="hidden md:flex items-center gap-1.5 bg-slate-100/90 hover:bg-slate-200/80 p-1 pl-1.5 rounded-xl border border-slate-200/90 transition-all shrink-0">
                 <button
                   type="button"
                   onClick={() => onOpenProfileModal?.('settings')}
@@ -293,13 +282,13 @@ export const Header: React.FC<HeaderProps> = ({
                           e.stopPropagation();
                           onOpenVerifyModal(currentUser);
                         }}
-                        className="text-[9px] font-bold text-amber-600 hover:text-amber-700 hover:underline cursor-pointer leading-tight mt-0.5"
+                        className="text-[9px] font-bold text-amber-600 hover:text-amber-700 hover:underline cursor-pointer leading-tight mt-0.5 whitespace-nowrap"
                       >
-                        Təsdiqlə ⚡
+                        {language === 'en' ? 'Verify ⚡' : language === 'ru' ? 'Подтвердить ⚡' : 'Təsdiqlə ⚡'}
                       </span>
                     ) : (
-                      <span className="text-[9px] text-slate-500 font-medium leading-tight mt-0.5">
-                        Tənzimləmələr
+                      <span className="text-[9px] text-slate-500 font-medium leading-tight mt-0.5 whitespace-nowrap">
+                        {language === 'en' ? 'Settings' : language === 'ru' ? 'Настройки' : 'Tənzimləmələr'}
                       </span>
                     )}
                   </div>
@@ -311,8 +300,8 @@ export const Header: React.FC<HeaderProps> = ({
                     id="header-settings-btn"
                     type="button"
                     onClick={() => onOpenProfileModal('settings')}
-                    className="p-1 rounded-lg text-slate-500 hover:text-blue-600 hover:bg-blue-50 transition-colors cursor-pointer"
-                    title="Bildiriş Tənzimləmələri"
+                    className="p-1 rounded-lg text-slate-500 hover:text-blue-600 hover:bg-blue-50 transition-colors cursor-pointer shrink-0"
+                    title={language === 'en' ? 'Settings' : language === 'ru' ? 'Настройки' : 'Tənzimləmələr'}
                   >
                     <Settings className="w-3.5 h-3.5" />
                   </button>
@@ -323,7 +312,7 @@ export const Header: React.FC<HeaderProps> = ({
                     id="header-logout-btn"
                     type="button"
                     onClick={onLogout}
-                    className="p-1 rounded-lg text-slate-500 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
+                    className="p-1 rounded-lg text-slate-500 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer shrink-0"
                     title={dict.nav.logout}
                   >
                     <LogOut className="w-3.5 h-3.5" />
@@ -336,12 +325,15 @@ export const Header: React.FC<HeaderProps> = ({
                   id="header-auth-trigger-btn"
                   type="button"
                   onClick={() => onOpenAuthModal('login', currentRole)}
-                  className="hidden md:flex animate-auth-trigger items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white cursor-pointer shadow-xs hover:shadow-md active:scale-95 transition-all"
-                  title="Daxil ol və ya Pulsuz Qeydiyyatdan Keç"
+                  className="hidden md:flex animate-auth-trigger items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white cursor-pointer shadow-xs hover:shadow-md active:scale-95 transition-all shrink-0 whitespace-nowrap"
+                  title="Daxil ol / Qeydiyyat"
                 >
                   <Sparkles className="w-3.5 h-3.5 text-blue-200 shrink-0" />
                   <span className="tracking-tight whitespace-nowrap font-bold">
-                    {dict.nav.login} <span className="hidden sm:inline">/ Qeydiyyat</span>
+                    {dict.nav.login}{' '}
+                    <span className="hidden lg:inline">
+                      {language === 'en' ? '/ Sign Up' : language === 'ru' ? '/ Регистрация' : '/ Qeydiyyat'}
+                    </span>
                   </span>
                 </button>
               )

@@ -174,7 +174,7 @@ export const AICVAnalyzerDashboard: React.FC<AICVAnalyzerDashboardProps> = ({
             <span>{data.metadata?.extractedCharacterCount || 0} simvol oxundu</span>
           </div>
           <div className="text-[11px] text-slate-600 font-medium">
-            🔒 Zero-Hallucination: Yalnız təsdiqlənmiş CV faktları əsasında
+            🔒 Rəsmi ATS Qiymətləndirməsi: Yalnız sənəddə mövcud olan faktiki məlumatlar əsasında
           </div>
         </div>
       </div>
@@ -609,7 +609,7 @@ export const AICVAnalyzerDashboard: React.FC<AICVAnalyzerDashboardProps> = ({
                 <span>Dəqiq Çıxarılmış Bacarıqlar (Explicit Skills)</span>
               </h3>
               <p className="text-xs text-slate-500 mt-0.5">
-                Yalnız namizədin CV-sində birbaşa qeyd olunan səriştələr (Zero-Hallucination).
+                Yalnız namizədin CV-sində birbaşa qeyd olunan səriştələr və ATS açar sözləri.
               </p>
             </div>
 

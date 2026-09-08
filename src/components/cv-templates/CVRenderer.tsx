@@ -15,6 +15,12 @@ import { TemplateSimpleClean } from './TemplateSimpleClean';
 import { TemplateEntryStudent } from './TemplateEntryStudent';
 import { TemplatePrestigeExecutive } from './TemplatePrestigeExecutive';
 import { TemplatePracticalDirect } from './TemplatePracticalDirect';
+import { TemplateZurichBanking } from './TemplateZurichBanking';
+import { TemplateSiliconDev } from './TemplateSiliconDev';
+import { TemplateBerlinCreative } from './TemplateBerlinCreative';
+import { TemplateTokyoMinimal } from './TemplateTokyoMinimal';
+import { TemplateCambridgeScholar } from './TemplateCambridgeScholar';
+import { TemplateScandinavianEdge } from './TemplateScandinavianEdge';
 
 interface CVRendererProps {
   data: CVData;
@@ -50,6 +56,18 @@ export const CVRenderer: React.FC<CVRendererProps> = ({
         return <TemplatePrestigeExecutive data={effectiveData} showPhoto={showPhoto} />;
       case 'practical-direct':
         return <TemplatePracticalDirect data={effectiveData} showPhoto={showPhoto} />;
+      case 'zurich-banking':
+        return <TemplateZurichBanking data={effectiveData} showPhoto={showPhoto} />;
+      case 'silicon-dev':
+        return <TemplateSiliconDev data={effectiveData} showPhoto={showPhoto} />;
+      case 'berlin-creative':
+        return <TemplateBerlinCreative data={effectiveData} showPhoto={showPhoto} />;
+      case 'tokyo-minimal':
+        return <TemplateTokyoMinimal data={effectiveData} showPhoto={showPhoto} />;
+      case 'cambridge-scholar':
+        return <TemplateCambridgeScholar data={effectiveData} showPhoto={showPhoto} />;
+      case 'scandinavian-edge':
+        return <TemplateScandinavianEdge data={effectiveData} showPhoto={showPhoto} />;
       case 'classic-corporate':
         return <TemplateClassic data={effectiveData} />;
       case 'minimal-indigo':

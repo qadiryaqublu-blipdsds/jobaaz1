@@ -26,6 +26,12 @@ export const MobileFrozenBottomBar: React.FC<MobileFrozenBottomBarProps> = ({
   const planTier = currentSubscription?.tier || 'FREE';
   const isPaidUser = planTier !== 'FREE';
 
+  const isEn = language === 'en';
+  const isRu = language === 'ru';
+  const vipLabel = isEn ? 'VIP Plans' : isRu ? 'VIP Тарифы' : 'VIP Planlar';
+  const settingsLabel = isEn ? 'Settings' : isRu ? 'Настройки' : 'Tənzimləmələr';
+  const registerSuffix = isEn ? ' / Sign Up' : isRu ? ' / Регистрация' : ' / Qeydiyyat';
+
   return (
     <div
       id="mobile-frozen-action-bar"
@@ -44,7 +50,7 @@ export const MobileFrozenBottomBar: React.FC<MobileFrozenBottomBarProps> = ({
             title={dict.nav.pricing}
           >
             <Crown className="w-4 h-4 text-amber-600 shrink-0" />
-            <span className="tracking-tight font-bold whitespace-nowrap">VIP Planlar</span>
+            <span className="tracking-tight font-bold whitespace-nowrap">{vipLabel}</span>
             {isPaidUser ? (
               <span className="px-1.5 py-0.5 rounded bg-amber-200/80 text-amber-900 text-[9px] font-extrabold uppercase tracking-wider">
                 {planTier}
@@ -64,7 +70,7 @@ export const MobileFrozenBottomBar: React.FC<MobileFrozenBottomBarProps> = ({
               type="button"
               onClick={() => onOpenProfileModal?.('settings')}
               className="flex items-center gap-2 min-w-0 text-left cursor-pointer focus:outline-hidden"
-              title="Profil və Bildiriş Tənzimləmələri"
+              title={settingsLabel}
             >
               <img
                 src={currentUser.avatarUrl || `https://api.dicebear.com/7.x/initials/svg?seed=${currentUser.fullName}`}
@@ -76,7 +82,7 @@ export const MobileFrozenBottomBar: React.FC<MobileFrozenBottomBarProps> = ({
                   {currentUser.fullName.split(' ')[0]}
                 </div>
                 <div className="text-[10px] text-slate-500 font-medium capitalize truncate">
-                  Tənzimləmələr ⚙️
+                  {settingsLabel} ⚙️
                 </div>
               </div>
             </button>
@@ -88,7 +94,7 @@ export const MobileFrozenBottomBar: React.FC<MobileFrozenBottomBarProps> = ({
                   type="button"
                   onClick={() => onOpenProfileModal('settings')}
                   className="p-1.5 rounded-lg text-slate-500 hover:text-blue-600 hover:bg-blue-50 active:scale-95 transition-all cursor-pointer"
-                  title="Tənzimləmələr"
+                  title={settingsLabel}
                 >
                   <Settings className="w-4 h-4" />
                 </button>
@@ -113,11 +119,11 @@ export const MobileFrozenBottomBar: React.FC<MobileFrozenBottomBarProps> = ({
               type="button"
               onClick={() => onOpenAuthModal('login', currentRole)}
               className="flex-1 min-h-[42px] flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-blue-600 active:bg-blue-700 text-white shadow-xs transition-transform active:scale-98 cursor-pointer shrink-0"
-              title="Daxil ol və ya Pulsuz Qeydiyyatdan Keç"
+              title={`${dict.nav.login}${registerSuffix}`}
             >
               <Sparkles className="w-3.5 h-3.5 text-blue-200 shrink-0" />
               <span className="tracking-tight whitespace-nowrap font-bold">
-                {dict.nav.login} / Qeydiyyat
+                {dict.nav.login}{registerSuffix}
               </span>
             </button>
           )

@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useDeferredValue } from 'react';
+import React, { useState, useMemo, useEffect, useDeferredValue, useRef } from 'react';
 import { Vacancy, CVData } from '../../types';
 import { JOB_CATEGORIES, CITIES, SAMPLE_COMPANIES } from '../../data/mockData';
 import { useLanguage } from '../../context/LanguageContext';
@@ -60,7 +60,10 @@ import {
   ChevronDown,
   Compass,
   Bell,
-  BellRing
+  BellRing,
+  PanelLeftClose,
+  PanelLeftOpen,
+  GripVertical
 } from 'lucide-react';
 import { JobiaLogo } from '../JobiaLogo';
 import { ModalBottomLogo } from '../ModalBottomLogo';
@@ -69,6 +72,17 @@ import { normalizeAzText, evaluateJobDomainMatch } from '../../utils/domainSearc
 import { JobAlertManagerModal } from './JobAlertManagerModal';
 import { JobAlertSubscription, User } from '../../types';
 import { getJobAlertSubscription, saveJobAlertSubscription } from '../../services/firestoreService';
+import {
+  getLocalizedCategory,
+  getLocalizedEmploymentType,
+  getLocalizedExperience,
+  getLocalizedCity,
+  getLocalizedIndustry,
+  getLocalizedSortOption,
+  getLocalizedVacancyTitle,
+  getLocalizedVacancyDescription,
+  getLocalizedVacancyRequirements
+} from '../../i18n/localizeData';
 
 interface JobExplorerProps {
   vacancies: Vacancy[];
@@ -332,7 +346,127 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
   currentUser,
   onShowToast,
 }) => {
-  const { dict, language, brandAcronym, brandSlogan } = useLanguage();
+  const { dict, language, brandAcronym, brandSlogan, t } = useLanguage();
+
+  // Task 1: Category Filters Column Dynamic Resizing & Collapsible State
+  const MIN_FILTER_WIDTH = 220;
+  const MAX_FILTER_WIDTH = 440;
+  const DEFAULT_FILTER_WIDTH = 280;
+
+  const [filterColumnWidth, setFilterColumnWidth] = useState<number>(() => {
+    try {
+      const saved = localStorage.getItem('jobia_vacancies_filter_width');
+      if (saved) {
+        const val = parseInt(saved, 10);
+        if (!isNaN(val) && val >= MIN_FILTER_WIDTH && val <= MAX_FILTER_WIDTH) {
+          return val;
+        }
+      }
+    } catch {}
+    return DEFAULT_FILTER_WIDTH;
+  });
+
+  const [isFiltersCollapsed, setIsFiltersCollapsed] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('jobia_vacancies_filter_collapsed') === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  const handleToggleFiltersCollapse = () => {
+    setIsFiltersCollapsed((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem('jobia_vacancies_filter_collapsed', String(next));
+      } catch {}
+      return next;
+    });
+  };
+
+  const [isFilterDragging, setIsFilterDragging] = useState(false);
+  const filterDragStartXRef = useRef(0);
+  const filterDragStartWidthRef = useRef(DEFAULT_FILTER_WIDTH);
+
+  const handleFilterSplitterMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsFilterDragging(true);
+    filterDragStartXRef.current = e.clientX;
+    filterDragStartWidthRef.current = isFiltersCollapsed ? 60 : filterColumnWidth;
+
+    document.body.style.userSelect = 'none';
+    document.body.style.cursor = 'col-resize';
+
+    const handleMouseMove = (moveEvent: MouseEvent) => {
+      const deltaX = moveEvent.clientX - filterDragStartXRef.current;
+      const targetWidth = filterDragStartWidthRef.current + deltaX;
+      const clampedWidth = Math.min(MAX_FILTER_WIDTH, Math.max(MIN_FILTER_WIDTH, targetWidth));
+      setFilterColumnWidth(clampedWidth);
+
+      if (isFiltersCollapsed && clampedWidth > 180) {
+        setIsFiltersCollapsed(false);
+        try {
+          localStorage.setItem('jobia_vacancies_filter_collapsed', 'false');
+        } catch {}
+      }
+    };
+
+    const handleMouseUp = () => {
+      setIsFilterDragging(false);
+      document.body.style.userSelect = '';
+      document.body.style.cursor = '';
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+
+      setFilterColumnWidth((current) => {
+        try {
+          localStorage.setItem('jobia_vacancies_filter_width', current.toString());
+        } catch {}
+        return current;
+      });
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+  };
+
+  const handleFilterSplitterTouchStart = (e: React.TouchEvent) => {
+    if (!e.touches[0]) return;
+    setIsFilterDragging(true);
+    filterDragStartXRef.current = e.touches[0].clientX;
+    filterDragStartWidthRef.current = isFiltersCollapsed ? 60 : filterColumnWidth;
+
+    const handleTouchMove = (moveEvent: TouchEvent) => {
+      if (!moveEvent.touches[0]) return;
+      const deltaX = moveEvent.touches[0].clientX - filterDragStartXRef.current;
+      const targetWidth = filterDragStartWidthRef.current + deltaX;
+      const clampedWidth = Math.min(MAX_FILTER_WIDTH, Math.max(MIN_FILTER_WIDTH, targetWidth));
+      setFilterColumnWidth(clampedWidth);
+
+      if (isFiltersCollapsed && clampedWidth > 180) {
+        setIsFiltersCollapsed(false);
+        try {
+          localStorage.setItem('jobia_vacancies_filter_collapsed', 'false');
+        } catch {}
+      }
+    };
+
+    const handleTouchEnd = () => {
+      setIsFilterDragging(false);
+      window.removeEventListener('touchmove', handleTouchMove);
+      window.removeEventListener('touchend', handleTouchEnd);
+
+      setFilterColumnWidth((current) => {
+        try {
+          localStorage.setItem('jobia_vacancies_filter_width', current.toString());
+        } catch {}
+        return current;
+      });
+    };
+
+    window.addEventListener('touchmove', handleTouchMove);
+    window.addEventListener('touchend', handleTouchEnd);
+  };
 
   // Mode: 'simple' (accessible for blue-collar / everyone) vs 'detailed' (advanced with full AI/ATS)
   const [viewMode, setViewMode] = useState<'simple' | 'detailed'>(() => {
@@ -1173,10 +1307,10 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
                 id="btn-open-nearby-map-top"
                 onClick={onOpenNearbyMap}
                 className="px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shrink-0 shadow-2xs whitespace-nowrap bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200/90"
-                title="Evimə Yaxın Vakansiyalar (Xəritə)"
+                title={language === 'en' ? 'Jobs on Map' : language === 'ru' ? 'Вакансии на карте' : 'Xəritədə Vakansiyalar'}
               >
                 <Compass className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                <span>🗺️ Xəritədə Bax</span>
+                <span>{language === 'en' ? '🗺️ View on Map' : language === 'ru' ? '🗺️ На карте' : '🗺️ Xəritədə Bax'}</span>
               </button>
             )}
 
@@ -1398,411 +1532,507 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
       {/* ========================================================================= */}
       {/* 2. MAIN 2-COLUMN LAYOUT: LEFT FILTERS + RIGHT VACANCIES (IMMEDIATE)       */}
       {/* ========================================================================= */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+      <div className="flex flex-col lg:flex-row gap-5 items-start relative">
         {/* ========================================================================= */}
         {/* LEFT COLUMN: DESKTOP FILTERS (Hidden on mobile for instant vacancy view)  */}
         {/* ========================================================================= */}
-        <aside className="hidden lg:block lg:order-1 lg:col-span-4 xl:col-span-3 space-y-3.5">
-          {/* Active Filter Chips & Reset */}
-          {activeFiltersCount > 0 && (
-            <div className="bg-blue-50/70 border border-blue-200/90 rounded-2xl p-3 space-y-2 shadow-2xs animate-fade-in">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-extrabold text-blue-900 flex items-center gap-1.5">
-                  <Filter className="w-3.5 h-3.5 text-blue-600" />
-                  <span>Aktiv Filtrlər ({activeFiltersCount})</span>
+        <aside
+          id="vacancies-category-filters-column"
+          style={{
+            width: isFiltersCollapsed ? '54px' : `${filterColumnWidth}px`,
+          }}
+          className={`hidden lg:block shrink-0 relative ${
+            isFilterDragging ? 'transition-none select-none' : 'transition-[width] duration-200 ease-in-out'
+          }`}
+        >
+          {isFiltersCollapsed ? (
+            /* Collapsed Strip View */
+            <div className="bg-white rounded-2xl border border-slate-200 p-2 space-y-3 flex flex-col items-center shadow-xs">
+              <button
+                type="button"
+                onClick={handleToggleFiltersCollapse}
+                className="p-2 rounded-xl bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors cursor-pointer"
+                title={dict.common?.expandFilters || 'Filtrləri Aç'}
+              >
+                <PanelLeftOpen className="w-4 h-4" />
+              </button>
+              {activeFiltersCount > 0 && (
+                <span className="w-5 h-5 rounded-full bg-blue-600 text-white text-[10px] font-black flex items-center justify-center">
+                  {activeFiltersCount}
+                </span>
+              )}
+              <div className="w-full border-t border-slate-100 my-1" />
+              <button
+                type="button"
+                onClick={handleToggleFiltersCollapse}
+                className="p-2 rounded-xl text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer text-sm"
+                title={dict.filters?.jobCategories || 'Vəzifə Kateqoriyaları'}
+              >
+                📁
+              </button>
+              <button
+                type="button"
+                onClick={handleToggleFiltersCollapse}
+                className="p-2 rounded-xl text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer text-sm"
+                title={dict.filters?.industries || 'Şirkətlərin Kateqoriyası'}
+              >
+                🏢
+              </button>
+              <button
+                type="button"
+                onClick={handleToggleFiltersCollapse}
+                className="p-2 rounded-xl text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer text-sm"
+                title={dict.filters?.companies || 'Şirkətlərin Adı'}
+              >
+                🏛️
+              </button>
+            </div>
+          ) : (
+            /* Full Expanded Filters Column */
+            <div className="space-y-3.5">
+              {/* Header with Quick Collapse Toggle */}
+              <div className="flex items-center justify-between px-1">
+                <span className="text-[11px] font-black text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+                  <SlidersHorizontal className="w-3.5 h-3.5 text-blue-600" />
+                  <span>{dict.filters?.title || 'Filtrlər'}</span>
                 </span>
                 <button
                   type="button"
-                  onClick={handleResetFilters}
-                  className="text-[11px] font-bold text-rose-600 hover:text-rose-800 flex items-center gap-1 cursor-pointer hover:underline"
+                  onClick={handleToggleFiltersCollapse}
+                  className="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 cursor-pointer transition-colors"
+                  title={dict.common?.collapseFilters || 'Filtrləri yığcamlaşdır'}
                 >
-                  <RotateCcw className="w-3 h-3" />
-                  <span>Sıfırla</span>
+                  <PanelLeftClose className="w-4 h-4" />
                 </button>
               </div>
 
-              <div className="flex flex-wrap gap-1">
-                {selectedCategory !== 'Hamısı' && (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-white text-blue-800 text-[11px] font-bold border border-blue-200 shadow-2xs">
-                    📁 {selectedCategory}
-                    <button type="button" onClick={() => setSelectedCategory('Hamısı')} className="text-blue-400 hover:text-blue-700">✕</button>
+              {/* Active Filter Chips & Reset */}
+              {activeFiltersCount > 0 && (
+                <div className="bg-blue-50/70 border border-blue-200/90 rounded-2xl p-3 space-y-2 shadow-2xs animate-fade-in">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-extrabold text-blue-900 flex items-center gap-1.5">
+                      <Filter className="w-3.5 h-3.5 text-blue-600" />
+                      <span>{dict.filters?.activeFilters || 'Aktiv Filtrlər'} ({activeFiltersCount})</span>
+                    </span>
+                    <button
+                      type="button"
+                      onClick={handleResetFilters}
+                      className="text-[11px] font-bold text-rose-600 hover:text-rose-800 flex items-center gap-1 cursor-pointer hover:underline"
+                    >
+                      <RotateCcw className="w-3 h-3" />
+                      <span>{dict.filters?.reset || 'Sıfırla'}</span>
+                    </button>
+                  </div>
+
+                  <div className="flex flex-wrap gap-1">
+                    {selectedCategory !== 'Hamısı' && (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-white text-blue-800 text-[11px] font-bold border border-blue-200 shadow-2xs">
+                        📁 {getLocalizedCategory(selectedCategory, language)}
+                        <button type="button" onClick={() => setSelectedCategory('Hamısı')} className="text-blue-400 hover:text-blue-700">✕</button>
+                      </span>
+                    )}
+                    {selectedIndustry !== 'Hamısı' && (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-white text-blue-800 text-[11px] font-bold border border-blue-200 shadow-2xs">
+                        🏢 {getLocalizedIndustry(selectedIndustry, language)}
+                        <button type="button" onClick={() => setSelectedIndustry('Hamısı')} className="text-blue-400 hover:text-blue-700">✕</button>
+                      </span>
+                    )}
+                    {selectedCompany !== 'Hamısı' && (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-white text-blue-800 text-[11px] font-bold border border-blue-200 shadow-2xs">
+                        🏛️ {selectedCompany}
+                        <button type="button" onClick={() => setSelectedCompany('Hamısı')} className="text-blue-400 hover:text-blue-700">✕</button>
+                      </span>
+                    )}
+                    {selectedCity !== 'Hamısı' && (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-white text-blue-800 text-[11px] font-bold border border-blue-200 shadow-2xs">
+                        📍 {getLocalizedCity(selectedCity, language)}
+                        <button type="button" onClick={() => setSelectedCity('Hamısı')} className="text-blue-400 hover:text-blue-700">✕</button>
+                      </span>
+                    )}
+                    {minSalaryFilter > 0 && (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-white text-blue-800 text-[11px] font-bold border border-blue-200 shadow-2xs">
+                        💰 {minSalaryFilter}+ AZN
+                        <button type="button" onClick={() => setMinSalaryFilter(0)} className="text-blue-400 hover:text-blue-700">✕</button>
+                      </span>
+                    )}
+                    {searchQuery && (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-white text-blue-800 text-[11px] font-bold border border-blue-200 shadow-2xs">
+                        🔍 {searchQuery}
+                        <button type="button" onClick={() => setSearchQuery('')} className="text-blue-400 hover:text-blue-700">✕</button>
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* CARD 1: VƏZİFƏLƏRİN KATEQORİYASI (Job Categories) */}
+              <div className="bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-hidden">
+                <div className="p-3.5 bg-slate-50/80 border-b border-slate-100 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-6 h-6 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center font-black text-xs">
+                      📁
+                    </div>
+                    <h3 className="text-xs font-black uppercase tracking-wider text-slate-800">
+                      {dict.filters?.jobCategories || 'Vəzifə Kateqoriyaları'}
+                    </h3>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setIsJobAlertModalOpen(true)}
+                      className="px-2 py-0.5 rounded-md bg-blue-50 hover:bg-blue-100 text-blue-700 text-[10px] font-bold border border-blue-200 transition-colors flex items-center gap-1 cursor-pointer"
+                      title={dict.filters?.followCategoryTip || 'Kateqoriya izləmə tənzimləmələri'}
+                    >
+                      <Bell className="w-2.5 h-2.5" />
+                      <span>{dict.filters?.follow || 'İzlə'}</span>
+                    </button>
+                    <span className="text-[11px] font-bold text-slate-500">
+                      {JOB_CATEGORIES.length}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="p-2 max-h-64 overflow-y-auto scrollbar-thin space-y-0.5">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedCategory('Hamısı')}
+                    className={`w-full px-2.5 py-1.5 rounded-xl text-left text-xs font-semibold flex items-center justify-between transition-colors cursor-pointer ${
+                      selectedCategory === 'Hamısı'
+                        ? 'bg-blue-600 text-white font-bold shadow-xs'
+                        : 'text-slate-700 hover:bg-slate-100'
+                    }`}
+                  >
+                    <span>{dict.filters?.allCategories || 'Bütün Kateqoriyalar'}</span>
+                    <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                      selectedCategory === 'Hamısı' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'
+                    }`}>
+                      {vacancies.filter((v) => v.isApproved !== false).length}
+                    </span>
+                  </button>
+
+                  {JOB_CATEGORIES.map((cat) => {
+                    const count = categoryCounts[cat] || 0;
+                    const isSelected = selectedCategory === cat;
+                    const isAlertSubscribed =
+                      candidateAlertSubscription?.isActive !== false &&
+                      (candidateAlertSubscription?.categories || []).includes(cat);
+
+                    return (
+                      <div key={cat} className="group/cat flex items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() => setSelectedCategory(isSelected ? 'Hamısı' : cat)}
+                          className={`flex-1 px-2.5 py-1.5 rounded-xl text-left text-xs flex items-center justify-between transition-colors cursor-pointer min-w-0 ${
+                            isSelected
+                              ? 'bg-blue-600 text-white font-bold shadow-xs'
+                              : 'text-slate-700 hover:bg-slate-100 font-medium'
+                          }`}
+                        >
+                          <span className="truncate pr-2">{getLocalizedCategory(cat, language)}</span>
+                          <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold shrink-0 ${
+                            isSelected ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'
+                          }`}>
+                            {count}
+                          </span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => handleToggleCategoryAlert(e, cat)}
+                          className={`p-1.5 rounded-lg transition-all cursor-pointer shrink-0 ${
+                            isAlertSubscribed
+                              ? 'text-blue-600 bg-blue-50 hover:bg-blue-100'
+                              : 'text-slate-300 hover:text-blue-600 hover:bg-slate-100 opacity-60 group-hover/cat:opacity-100'
+                          }`}
+                          title={
+                            isAlertSubscribed
+                              ? `"${getLocalizedCategory(cat, language)}" ${dict.filters?.following || 'izlənilir'}`
+                              : `"${getLocalizedCategory(cat, language)}" ${dict.filters?.followTip || 'üzrə yeni vakansiyaları izlə'}`
+                          }
+                        >
+                          {isAlertSubscribed ? (
+                            <BellRing className="w-3.5 h-3.5 text-blue-600" />
+                          ) : (
+                            <Bell className="w-3.5 h-3.5" />
+                          )}
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* CARD 2: ŞİRKƏTLƏRİN KATEQORİYASI / SAHƏLƏRİ (Company Industries) */}
+              <div className="bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-hidden">
+                <div className="p-3.5 bg-slate-50/80 border-b border-slate-100 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-6 h-6 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center font-black text-xs">
+                      🏢
+                    </div>
+                    <h3 className="text-xs font-black uppercase tracking-wider text-slate-800">
+                      {dict.filters?.industries || 'Şirkətlərin Kateqoriyası'}
+                    </h3>
+                  </div>
+                  <span className="text-[11px] font-bold text-slate-500">
+                    {COMPANY_INDUSTRIES.length}
                   </span>
-                )}
-                {selectedIndustry !== 'Hamısı' && (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-white text-blue-800 text-[11px] font-bold border border-blue-200 shadow-2xs">
-                    🏢 {selectedIndustry}
-                    <button type="button" onClick={() => setSelectedIndustry('Hamısı')} className="text-blue-400 hover:text-blue-700">✕</button>
-                  </span>
-                )}
-                {selectedCompany !== 'Hamısı' && (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-white text-blue-800 text-[11px] font-bold border border-blue-200 shadow-2xs">
-                    🏛️ {selectedCompany}
-                    <button type="button" onClick={() => setSelectedCompany('Hamısı')} className="text-blue-400 hover:text-blue-700">✕</button>
-                  </span>
-                )}
-                {selectedCity !== 'Hamısı' && (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-white text-blue-800 text-[11px] font-bold border border-blue-200 shadow-2xs">
-                    📍 {selectedCity}
-                    <button type="button" onClick={() => setSelectedCity('Hamısı')} className="text-blue-400 hover:text-blue-700">✕</button>
-                  </span>
-                )}
-                {minSalaryFilter > 0 && (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-white text-blue-800 text-[11px] font-bold border border-blue-200 shadow-2xs">
-                    💰 {minSalaryFilter}+ AZN
-                    <button type="button" onClick={() => setMinSalaryFilter(0)} className="text-blue-400 hover:text-blue-700">✕</button>
-                  </span>
-                )}
-                {searchQuery && (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-white text-blue-800 text-[11px] font-bold border border-blue-200 shadow-2xs">
-                    🔍 {searchQuery}
-                    <button type="button" onClick={() => setSearchQuery('')} className="text-blue-400 hover:text-blue-700">✕</button>
-                  </span>
-                )}
+                </div>
+
+                <div className="p-2 max-h-56 overflow-y-auto scrollbar-thin space-y-0.5">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedIndustry('Hamısı')}
+                    className={`w-full px-2.5 py-1.5 rounded-xl text-left text-xs font-semibold flex items-center justify-between transition-colors cursor-pointer ${
+                      selectedIndustry === 'Hamısı'
+                        ? 'bg-emerald-600 text-white font-bold shadow-xs'
+                        : 'text-slate-700 hover:bg-slate-100'
+                    }`}
+                  >
+                    <span>{dict.filters?.allIndustries || 'Bütün Sahələr'}</span>
+                    <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                      selectedIndustry === 'Hamısı' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'
+                    }`}>
+                      {vacancies.filter((v) => v.isApproved !== false).length}
+                    </span>
+                  </button>
+
+                  {COMPANY_INDUSTRIES.map((ind) => {
+                    const count = industryStats[ind] || 0;
+                    const isSelected = selectedIndustry === ind;
+                    return (
+                      <button
+                        key={ind}
+                        type="button"
+                        onClick={() => setSelectedIndustry(isSelected ? 'Hamısı' : ind)}
+                        className={`w-full px-2.5 py-1.5 rounded-xl text-left text-xs flex items-center justify-between transition-colors cursor-pointer ${
+                          isSelected
+                            ? 'bg-emerald-600 text-white font-bold shadow-xs'
+                            : 'text-slate-700 hover:bg-slate-100 font-medium'
+                        }`}
+                      >
+                        <span className="truncate pr-2">{getLocalizedIndustry(ind, language)}</span>
+                        <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold shrink-0 ${
+                          isSelected ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'
+                        }`}>
+                          {count}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* CARD 3: ŞİRKƏTLƏRİN ADI (Companies List with search) */}
+              <div className="bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-hidden">
+                <div className="p-3.5 bg-slate-50/80 border-b border-slate-100 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="w-6 h-6 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center font-black text-xs">
+                        🏛️
+                      </div>
+                      <h3 className="text-xs font-black uppercase tracking-wider text-slate-800">
+                        {dict.filters?.companies || 'Şirkətlərin Adı'}
+                      </h3>
+                    </div>
+                    <span className="text-[11px] font-bold text-slate-500">
+                      {companyListWithStats.length}
+                    </span>
+                  </div>
+
+                  {/* Mini Company Search Input */}
+                  <div className="relative">
+                    <Search className="w-3 h-3 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="text"
+                      value={companySearchQuery}
+                      onChange={(e) => setCompanySearchQuery(e.target.value)}
+                      placeholder={dict.filters?.searchCompany || 'Şirkət axtar...'}
+                      className="w-full pl-7 pr-6 py-1.5 bg-white border border-slate-200 rounded-lg text-xs text-slate-800 placeholder:text-slate-400 outline-none focus:border-indigo-500"
+                    />
+                    {companySearchQuery && (
+                      <button
+                        type="button"
+                        onClick={() => setCompanySearchQuery('')}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs"
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                <div className="p-2 max-h-60 overflow-y-auto scrollbar-thin space-y-1">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedCompany('Hamısı')}
+                    className={`w-full px-2.5 py-1.5 rounded-xl text-left text-xs font-semibold flex items-center justify-between transition-colors cursor-pointer ${
+                      selectedCompany === 'Hamısı'
+                        ? 'bg-indigo-600 text-white font-bold shadow-xs'
+                        : 'text-slate-700 hover:bg-slate-100'
+                    }`}
+                  >
+                    <span>{dict.filters?.allCompanies || 'Bütün Şirkətlər'}</span>
+                    <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                      selectedCompany === 'Hamısı' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'
+                    }`}>
+                      {vacancies.filter((v) => v.isApproved !== false).length}
+                    </span>
+                  </button>
+
+                  {filteredCompaniesForSidebar.map((comp) => {
+                    const isSelected = selectedCompany.toLowerCase() === comp.name.toLowerCase();
+                    const isCompSubscribed =
+                      candidateAlertSubscription?.isActive !== false &&
+                      (candidateAlertSubscription?.companies || []).some(
+                        (c) => c.toLowerCase() === comp.name.toLowerCase()
+                      );
+
+                    return (
+                      <div key={comp.name} className="group/comp flex items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() => setSelectedCompany(isSelected ? 'Hamısı' : comp.name)}
+                          className={`flex-1 px-2.5 py-1.5 rounded-xl text-left text-xs flex items-center justify-between transition-colors cursor-pointer min-w-0 ${
+                            isSelected
+                              ? 'bg-indigo-600 text-white font-bold shadow-xs'
+                              : 'text-slate-700 hover:bg-slate-100 font-medium'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2 min-w-0 pr-2">
+                            <img
+                              src={comp.logo}
+                              alt={comp.name}
+                              className="w-4 h-4 rounded object-cover border border-slate-200 shrink-0"
+                              referrerPolicy="no-referrer"
+                            />
+                            <span className="truncate">{comp.name}</span>
+                            {comp.verified && (
+                              <CheckCircle className={`w-3 h-3 shrink-0 ${isSelected ? 'text-white' : 'text-emerald-500'}`} />
+                            )}
+                          </div>
+                          <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold shrink-0 ${
+                            isSelected ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'
+                          }`}>
+                            {comp.count}
+                          </span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => handleToggleCompanyAlert(e, comp.name)}
+                          className={`p-1.5 rounded-lg transition-all cursor-pointer shrink-0 ${
+                            isCompSubscribed
+                              ? 'text-indigo-600 bg-indigo-50 hover:bg-indigo-100'
+                              : 'text-slate-300 hover:text-indigo-600 hover:bg-slate-100 opacity-60 group-hover/comp:opacity-100'
+                          }`}
+                          title={
+                            isCompSubscribed
+                              ? `"${comp.name}" ${dict.filters?.following || 'izlənilir'}`
+                              : `"${comp.name}" ${dict.filters?.followCompanyTip || 'şirkətini izlə'}`
+                          }
+                        >
+                          {isCompSubscribed ? (
+                            <BellRing className="w-3.5 h-3.5 text-indigo-600" />
+                          ) : (
+                            <Bell className="w-3.5 h-3.5" />
+                          )}
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* CARD 4: ŞƏHƏR VƏ MAAŞ FİLTRİ */}
+              <div className="bg-white rounded-2xl border border-slate-200 shadow-2xs p-3.5 space-y-3">
+                <h3 className="text-xs font-black uppercase tracking-wider text-slate-800 flex items-center gap-1.5">
+                  <span>📍</span>
+                  <span>{dict.filters?.cityAndSalary || 'Şəhər və Əməkhaqqı'}</span>
+                </h3>
+
+                <div className="space-y-2 text-xs">
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-500 mb-1">{dict.filters?.city || 'Şəhər'}:</label>
+                    <CitySearchSelect
+                      selectedCity={selectedCity}
+                      onSelectCity={setSelectedCity}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-500 mb-1">{dict.filters?.minSalary || 'Minimum Maaş'}:</label>
+                    <select
+                      value={minSalaryFilter}
+                      onChange={(e) => setMinSalaryFilter(Number(e.target.value))}
+                      className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium text-slate-800 outline-none focus:border-blue-500"
+                    >
+                      <option value={0}>💰 {dict.filters?.allSalaries || 'Bütün Maaşlar'}</option>
+                      <option value={500}>500+ AZN</option>
+                      <option value={800}>800+ AZN</option>
+                      <option value={1000}>1,000+ AZN</option>
+                      <option value={1500}>1,500+ AZN</option>
+                      <option value={2000}>2,000+ AZN</option>
+                      <option value={3000}>3,000+ AZN</option>
+                    </select>
+                  </div>
+                </div>
               </div>
             </div>
           )}
 
-          {/* CARD 1: VƏZİFƏLƏRİN KATEQORİYASI (Job Categories) */}
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-hidden">
-            <div className="p-3.5 bg-slate-50/80 border-b border-slate-100 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="w-6 h-6 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center font-black text-xs">
-                  📁
-                </div>
-                <h3 className="text-xs font-black uppercase tracking-wider text-slate-800">
-                  Vəzifə Kateqoriyaları
-                </h3>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <button
-                  type="button"
-                  onClick={() => setIsJobAlertModalOpen(true)}
-                  className="px-2 py-0.5 rounded-md bg-blue-50 hover:bg-blue-100 text-blue-700 text-[10px] font-bold border border-blue-200 transition-colors flex items-center gap-1 cursor-pointer"
-                  title="Kateqoriya izləmə tənzimləmələri"
-                >
-                  <Bell className="w-2.5 h-2.5" />
-                  <span>İzlə</span>
-                </button>
-                <span className="text-[11px] font-bold text-slate-500">
-                  {JOB_CATEGORIES.length}
-                </span>
-              </div>
-            </div>
-
-            <div className="p-2 max-h-64 overflow-y-auto scrollbar-thin space-y-0.5">
-              <button
-                type="button"
-                onClick={() => setSelectedCategory('Hamısı')}
-                className={`w-full px-2.5 py-1.5 rounded-xl text-left text-xs font-semibold flex items-center justify-between transition-colors cursor-pointer ${
-                  selectedCategory === 'Hamısı'
-                    ? 'bg-blue-600 text-white font-bold shadow-xs'
-                    : 'text-slate-700 hover:bg-slate-100'
+          {/* Vertical Resizing Splitter (Desktop Only) */}
+          {!isFiltersCollapsed && (
+            <div
+              onMouseDown={handleFilterSplitterMouseDown}
+              onTouchStart={handleFilterSplitterTouchStart}
+              className={`hidden lg:flex absolute -right-3 top-0 bottom-0 w-3 cursor-col-resize z-30 items-center justify-center group select-none ${
+                isFilterDragging ? 'opacity-100' : 'opacity-0 hover:opacity-100'
+              } transition-opacity`}
+              title={dict.common?.dragToResize || 'Ölçünü dəyişmək üçün sürüşdürün'}
+            >
+              <div
+                className={`w-1 h-full rounded-full transition-colors ${
+                  isFilterDragging ? 'bg-blue-600 shadow-sm' : 'bg-transparent group-hover:bg-blue-400/80 group-active:bg-blue-600'
+                }`}
+              />
+              <div
+                className={`absolute top-1/2 -translate-y-1/2 left-1/2 -translate-x-1/2 bg-white border border-slate-300 shadow-xs rounded px-0.5 py-1.5 pointer-events-none transition-all ${
+                  isFilterDragging ? 'opacity-100 ring-2 ring-blue-500/30' : 'opacity-0 group-hover:opacity-100'
                 }`}
               >
-                <span>Bütün Kateqoriyalar</span>
-                <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
-                  selectedCategory === 'Hamısı' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'
-                }`}>
-                  {vacancies.filter((v) => v.isApproved !== false).length}
-                </span>
-              </button>
-
-              {JOB_CATEGORIES.map((cat) => {
-                const count = categoryCounts[cat] || 0;
-                const isSelected = selectedCategory === cat;
-                const isAlertSubscribed =
-                  candidateAlertSubscription?.isActive !== false &&
-                  (candidateAlertSubscription?.categories || []).includes(cat);
-
-                return (
-                  <div key={cat} className="group/cat flex items-center gap-1">
-                    <button
-                      type="button"
-                      onClick={() => setSelectedCategory(isSelected ? 'Hamısı' : cat)}
-                      className={`flex-1 px-2.5 py-1.5 rounded-xl text-left text-xs flex items-center justify-between transition-colors cursor-pointer min-w-0 ${
-                        isSelected
-                          ? 'bg-blue-600 text-white font-bold shadow-xs'
-                          : 'text-slate-700 hover:bg-slate-100 font-medium'
-                      }`}
-                    >
-                      <span className="truncate pr-2">{cat}</span>
-                      <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold shrink-0 ${
-                        isSelected ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'
-                      }`}>
-                        {count}
-                      </span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={(e) => handleToggleCategoryAlert(e, cat)}
-                      className={`p-1.5 rounded-lg transition-all cursor-pointer shrink-0 ${
-                        isAlertSubscribed
-                          ? 'text-blue-600 bg-blue-50 hover:bg-blue-100'
-                          : 'text-slate-300 hover:text-blue-600 hover:bg-slate-100 opacity-60 group-hover/cat:opacity-100'
-                      }`}
-                      title={
-                        isAlertSubscribed
-                          ? `"${cat}" izlənilir (Yeni vakansiyalarda bildiriş alırsınız)`
-                          : `"${cat}" üzrə yeni vakansiyaları izlə`
-                      }
-                    >
-                      {isAlertSubscribed ? (
-                        <BellRing className="w-3.5 h-3.5 text-blue-600" />
-                      ) : (
-                        <Bell className="w-3.5 h-3.5" />
-                      )}
-                    </button>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* CARD 2: ŞİRKƏTLƏRİN KATEQORİYASI / SAHƏLƏRİ (Company Industries) */}
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-hidden">
-            <div className="p-3.5 bg-slate-50/80 border-b border-slate-100 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="w-6 h-6 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center font-black text-xs">
-                  🏢
-                </div>
-                <h3 className="text-xs font-black uppercase tracking-wider text-slate-800">
-                  Şirkətlərin Kateqoriyası
-                </h3>
-              </div>
-              <span className="text-[11px] font-bold text-slate-500">
-                {COMPANY_INDUSTRIES.length}
-              </span>
-            </div>
-
-            <div className="p-2 max-h-56 overflow-y-auto scrollbar-thin space-y-0.5">
-              <button
-                type="button"
-                onClick={() => setSelectedIndustry('Hamısı')}
-                className={`w-full px-2.5 py-1.5 rounded-xl text-left text-xs font-semibold flex items-center justify-between transition-colors cursor-pointer ${
-                  selectedIndustry === 'Hamısı'
-                    ? 'bg-emerald-600 text-white font-bold shadow-xs'
-                    : 'text-slate-700 hover:bg-slate-100'
-                }`}
-              >
-                <span>Bütün Sahələr</span>
-                <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
-                  selectedIndustry === 'Hamısı' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'
-                }`}>
-                  {vacancies.filter((v) => v.isApproved !== false).length}
-                </span>
-              </button>
-
-              {COMPANY_INDUSTRIES.map((ind) => {
-                const count = industryStats[ind] || 0;
-                const isSelected = selectedIndustry === ind;
-                return (
-                  <button
-                    key={ind}
-                    type="button"
-                    onClick={() => setSelectedIndustry(isSelected ? 'Hamısı' : ind)}
-                    className={`w-full px-2.5 py-1.5 rounded-xl text-left text-xs flex items-center justify-between transition-colors cursor-pointer ${
-                      isSelected
-                        ? 'bg-emerald-600 text-white font-bold shadow-xs'
-                        : 'text-slate-700 hover:bg-slate-100 font-medium'
-                    }`}
-                  >
-                    <span className="truncate pr-2">{ind}</span>
-                    <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold shrink-0 ${
-                      isSelected ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'
-                    }`}>
-                      {count}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* CARD 3: ŞİRKƏTLƏRİN ADI (Companies List with search) */}
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-hidden">
-            <div className="p-3.5 bg-slate-50/80 border-b border-slate-100 space-y-2">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="w-6 h-6 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center font-black text-xs">
-                    🏛️
-                  </div>
-                  <h3 className="text-xs font-black uppercase tracking-wider text-slate-800">
-                    Şirkətlərin Adı
-                  </h3>
-                </div>
-                <span className="text-[11px] font-bold text-slate-500">
-                  {companyListWithStats.length}
-                </span>
-              </div>
-
-              {/* Mini Company Search Input */}
-              <div className="relative">
-                <Search className="w-3 h-3 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
-                <input
-                  type="text"
-                  value={companySearchQuery}
-                  onChange={(e) => setCompanySearchQuery(e.target.value)}
-                  placeholder="Şirkət axtar..."
-                  className="w-full pl-7 pr-6 py-1.5 bg-white border border-slate-200 rounded-lg text-xs text-slate-800 placeholder:text-slate-400 outline-none focus:border-indigo-500"
-                />
-                {companySearchQuery && (
-                  <button
-                    type="button"
-                    onClick={() => setCompanySearchQuery('')}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs"
-                  >
-                    ✕
-                  </button>
-                )}
+                <GripVertical className="w-3 h-3 text-slate-500" />
               </div>
             </div>
-
-            <div className="p-2 max-h-60 overflow-y-auto scrollbar-thin space-y-1">
-              <button
-                type="button"
-                onClick={() => setSelectedCompany('Hamısı')}
-                className={`w-full px-2.5 py-1.5 rounded-xl text-left text-xs font-semibold flex items-center justify-between transition-colors cursor-pointer ${
-                  selectedCompany === 'Hamısı'
-                    ? 'bg-indigo-600 text-white font-bold shadow-xs'
-                    : 'text-slate-700 hover:bg-slate-100'
-                }`}
-              >
-                <span>Bütün Şirkətlər</span>
-                <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
-                  selectedCompany === 'Hamısı' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'
-                }`}>
-                  {vacancies.filter((v) => v.isApproved !== false).length}
-                </span>
-              </button>
-
-              {filteredCompaniesForSidebar.map((comp) => {
-                const isSelected = selectedCompany.toLowerCase() === comp.name.toLowerCase();
-                const isCompSubscribed =
-                  candidateAlertSubscription?.isActive !== false &&
-                  (candidateAlertSubscription?.companies || []).some(
-                    (c) => c.toLowerCase() === comp.name.toLowerCase()
-                  );
-
-                return (
-                  <div key={comp.name} className="group/comp flex items-center gap-1">
-                    <button
-                      type="button"
-                      onClick={() => setSelectedCompany(isSelected ? 'Hamısı' : comp.name)}
-                      className={`flex-1 px-2.5 py-1.5 rounded-xl text-left text-xs flex items-center justify-between transition-colors cursor-pointer min-w-0 ${
-                        isSelected
-                          ? 'bg-indigo-600 text-white font-bold shadow-xs'
-                          : 'text-slate-700 hover:bg-slate-100 font-medium'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2 min-w-0 pr-2">
-                        <img
-                          src={comp.logo}
-                          alt={comp.name}
-                          className="w-4 h-4 rounded object-cover border border-slate-200 shrink-0"
-                          referrerPolicy="no-referrer"
-                        />
-                        <span className="truncate">{comp.name}</span>
-                        {comp.verified && (
-                          <CheckCircle className={`w-3 h-3 shrink-0 ${isSelected ? 'text-white' : 'text-emerald-500'}`} />
-                        )}
-                      </div>
-                      <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold shrink-0 ${
-                        isSelected ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'
-                      }`}>
-                        {comp.count}
-                      </span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={(e) => handleToggleCompanyAlert(e, comp.name)}
-                      className={`p-1.5 rounded-lg transition-all cursor-pointer shrink-0 ${
-                        isCompSubscribed
-                          ? 'text-indigo-600 bg-indigo-50 hover:bg-indigo-100'
-                          : 'text-slate-300 hover:text-indigo-600 hover:bg-slate-100 opacity-60 group-hover/comp:opacity-100'
-                      }`}
-                      title={
-                        isCompSubscribed
-                          ? `"${comp.name}" izlənilir (Yeni vakansiyalarda bildiriş alırsınız)`
-                          : `"${comp.name}" şirkətini izlə`
-                      }
-                    >
-                      {isCompSubscribed ? (
-                        <BellRing className="w-3.5 h-3.5 text-indigo-600" />
-                      ) : (
-                        <Bell className="w-3.5 h-3.5" />
-                      )}
-                    </button>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* CARD 4: ŞƏHƏR VƏ MAAŞ FİLTRİ */}
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-2xs p-3.5 space-y-3">
-            <h3 className="text-xs font-black uppercase tracking-wider text-slate-800 flex items-center gap-1.5">
-              <span>📍</span>
-              <span>Şəhər və Əməkhaqqı</span>
-            </h3>
-
-            <div className="space-y-2 text-xs">
-              <div>
-                <label className="block text-[11px] font-bold text-slate-500 mb-1">Şəhər:</label>
-                <CitySearchSelect
-                  selectedCity={selectedCity}
-                  onSelectCity={setSelectedCity}
-                />
-              </div>
-
-              <div>
-                <label className="block text-[11px] font-bold text-slate-500 mb-1">Minimum Maaş:</label>
-                <select
-                  value={minSalaryFilter}
-                  onChange={(e) => setMinSalaryFilter(Number(e.target.value))}
-                  className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium text-slate-800 outline-none focus:border-blue-500"
-                >
-                  <option value={0}>💰 Bütün Maaşlar</option>
-                  <option value={500}>500+ AZN</option>
-                  <option value={800}>800+ AZN</option>
-                  <option value={1000}>1,000+ AZN</option>
-                  <option value={1500}>1,500+ AZN</option>
-                  <option value={2000}>2,000+ AZN</option>
-                  <option value={3000}>3,000+ AZN</option>
-                </select>
-              </div>
-            </div>
-          </div>
+          )}
         </aside>
 
         {/* ========================================================================= */}
         {/* RIGHT COLUMN: VACANCIES FEED (TOP PRIORITY - IMMEDIATELY SEEN ON MOBILE)  */}
         {/* ========================================================================= */}
-        <main className="order-1 lg:order-2 lg:col-span-8 xl:col-span-9 space-y-3.5">
+        <main className="flex-1 min-w-0 w-full space-y-3.5">
           {/* Top Bar above Vacancies list */}
           <div className="bg-white rounded-2xl border border-slate-200 shadow-2xs p-3 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="flex items-center gap-2">
               <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
               <h2 className="text-base sm:text-lg font-black text-slate-900 tracking-tight">
-                Vakansiyalar
+                {dict.filters?.vacancies || 'Vakansiyalar'}
               </h2>
               <span className="px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 text-xs font-bold">
-                {filteredAndSortedVacancies.length} elan tapıldı
+                {filteredAndSortedVacancies.length} {dict.filters?.jobsFound || 'elan tapıldı'}
               </span>
             </div>
 
             {/* Sort & Order */}
             <div className="flex items-center gap-2">
-              <span className="text-xs text-slate-500 font-bold hidden sm:inline">Sıralama:</span>
+              <span className="text-xs text-slate-500 font-bold hidden sm:inline">{dict.filters?.sort || 'Sıralama'}:</span>
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as any)}
                 className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 outline-none focus:border-blue-500 cursor-pointer shadow-2xs"
               >
-                <option value="newest">🕒 Ən yeni elanlar</option>
-                <option value="salary-desc">💰 Maaşa görə (çoxdan aza)</option>
-                <option value="views-desc">👁️ Ən çox baxılanlar</option>
-                <option value="title-asc">🔤 Vəzifə (A-Z)</option>
-                <option value="company-asc">🏢 Şirkət (A-Z)</option>
+                <option value="newest">🕒 {dict.filters?.newest || 'Ən yeni elanlar'}</option>
+                <option value="salary-desc">💰 {dict.filters?.salaryDesc || 'Maaşa görə (çoxdan aza)'}</option>
+                <option value="views-desc">👁️ {dict.filters?.viewsDesc || 'Ən çox baxılanlar'}</option>
+                <option value="title-asc">🔤 {dict.filters?.titleAsc || 'Vəzifə (A-Z)'}</option>
+                <option value="company-asc">🏢 {dict.filters?.companyAsc || 'Şirkət (A-Z)'}</option>
               </select>
             </div>
           </div>

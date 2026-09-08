@@ -129,5 +129,55 @@ export const CV_TEMPLATES: CVTemplateMeta[] = [
     description: 'Startaplar və məhsul menecerləri üçün dairəvi kartlar və müasir bənövşəyi vurğular.',
     category: 'Kreativ',
     colorTheme: '#7c3aed'
+  },
+  {
+    id: 'zurich-banking',
+    name: 'İsveçrə Bank & Maliyyə',
+    description: 'Bankirlər, maliyyəçilər, audit və hüquqşünaslar üçün İsveçrə dəqiqliyi və rəsmi nüfuzlu dizayn.',
+    category: 'Rəhbər',
+    colorTheme: '#0a192f',
+    badge: 'Maliyyə & Audit',
+    isPopular: true
+  },
+  {
+    id: 'silicon-dev',
+    name: 'Silikon Vadisi Tech',
+    description: 'Mühəndislər, developerlər və texnologiya liderləri üçün qaranlıq terminal şapkası və kod monospace vurğuları.',
+    category: 'Texnoloji',
+    colorTheme: '#0f172a',
+    badge: 'Tech & Dev',
+    isPopular: true
+  },
+  {
+    id: 'berlin-creative',
+    name: 'Berlin Creative Studio',
+    description: 'Qrafik dizaynerlər, art-direktorlar və marketoloqlar üçün asimmetrik stil və isti terrakota xətləri.',
+    category: 'Kreativ',
+    colorTheme: '#ea580c',
+    badge: 'Dizayn & Art'
+  },
+  {
+    id: 'tokyo-minimal',
+    name: 'Tokyo Zen Minimal',
+    description: 'İncə xətlər, sakit yapon minimalizmi, səliqəli tipoqrafika və nəfəs alan boşluqlar.',
+    category: 'Sadə',
+    colorTheme: '#64748b',
+    badge: 'Zen Minimal'
+  },
+  {
+    id: 'cambridge-scholar',
+    name: 'Cambridge Akademik',
+    description: 'Universitet professorları, elmi işçilər və beynəlxalq qrant tədqiqatçıları üçün rəsmi elmi format.',
+    category: 'Akademik',
+    colorTheme: '#1e293b',
+    badge: 'Oxford / Ivy'
+  },
+  {
+    id: 'scandinavian-edge',
+    name: 'Nordic Meşə Zərif',
+    description: 'Dərin meşə yaşılı (#1b4332) çalarları, balanslaşdırılmış iki sütunlu nizam və müasir skandinav estetika.',
+    category: 'Modern',
+    colorTheme: '#1b4332',
+    badge: 'Nordic Clean'
   }
 ];

@@ -13,8 +13,8 @@ export const AICVAnalyzerLoading: React.FC = () => {
       icon: FileText
     },
     {
-      title: language === 'en' ? 'Factual verification (Zero-hallucination scan)...' : language === 'ru' ? 'Фактическая верификация (Zero-hallucination)...' : 'Faktiki yoxlama (Zero-hallucination scan)...',
-      desc: language === 'en' ? 'Scanning only verified dates, companies, degrees, and skills' : language === 'ru' ? 'Поиск только подтвержденных дат, компаний, степеней и навыков' : 'Yalnız təsdiqlənmiş tarixlər, şirkətlər, ixtisas və bacarıqlar çıxarılır',
+      title: language === 'en' ? 'Factual verification & ATS syntax scan...' : language === 'ru' ? 'Фактическая верификация и ATS синтаксис...' : 'Faktiki məlumatların və ATS strukturunun yoxlanılması...',
+      desc: language === 'en' ? 'Scanning verified dates, companies, degrees, and skills' : language === 'ru' ? 'Поиск подтвержденных дат, компаний, степеней и навыков' : 'Təsdiqlənmiş tarixlər, şirkətlər, ixtisas və bacarıqlar çıxarılır',
       icon: ShieldCheck
     },
     {
@@ -57,10 +57,10 @@ export const AICVAnalyzerLoading: React.FC = () => {
       </h3>
       <p className="text-sm text-slate-600 mb-10 max-w-md mx-auto">
         {language === 'en'
-          ? 'Strict factual extraction in progress: no assumptions, no hallucinated dates or skills.'
+          ? 'Comprehensive ATS parsing in progress: verifying contact clarity, section headers, keywords, and metrics.'
           : language === 'ru'
-          ? 'Строго фактическое извлечение: никаких домыслов, вымышленных дат или навыков.'
-          : 'Dəqiq faktiki çıxarış icra olunur: heç bir fərziyyə, uydurma tarix və ya bacarıq əlavə edilmir.'}
+          ? 'Комплексный парсинг ATS: проверка контактов, заголовков разделов, ключевых слов и метрик.'
+          : 'Hərtərəfli ATS analizi icra olunur: əlaqə məlumatları, bölmə başlıqları, açar sözlər və nəticə göstəriciləri yoxlanılır.'}
       </p>
 
       {/* Steps List */}

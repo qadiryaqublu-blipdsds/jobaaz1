@@ -22,6 +22,7 @@ interface AICVAnalyzerInputProps {
     jobDescription?: string;
   }) => void;
   isLoading: boolean;
+  initialCVText?: string;
 }
 
 const SAMPLE_CV_DEV = `Kamran Məmmədov
@@ -90,10 +91,10 @@ Bacarıqlar:
 Dillər:
 Azərbaycan dili (Əla), İngilis dili (Orta - B1), Rus dili (Yaxşı - B2).`;
 
-export const AICVAnalyzerInput: React.FC<AICVAnalyzerInputProps> = ({ onAnalyze, isLoading }) => {
+export const AICVAnalyzerInput: React.FC<AICVAnalyzerInputProps> = ({ onAnalyze, isLoading, initialCVText }) => {
   const { language } = useLanguage();
-  const [activeMode, setActiveMode] = useState<'upload' | 'text'>('upload');
-  const [cvText, setCvText] = useState('');
+  const [activeMode, setActiveMode] = useState<'upload' | 'text'>(initialCVText ? 'text' : 'upload');
+  const [cvText, setCvText] = useState(initialCVText || '');
   const [jobDescription, setJobDescription] = useState('');
   const [showJobDesc, setShowJobDesc] = useState(false);
   const [selectedFile, setSelectedFile] = useState<{
@@ -315,7 +316,13 @@ export const AICVAnalyzerInput: React.FC<AICVAnalyzerInputProps> = ({ onAnalyze,
 
               <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-200/60 text-slate-700 text-xs font-semibold">
                 <Shield className="w-3.5 h-3.5 text-emerald-600" />
-                <span>Zero-Hallucination Factual Extraction</span>
+                <span>
+                  {language === 'en'
+                    ? 'ATS Standard Factual Verification'
+                    : language === 'ru'
+                    ? 'Фактическая проверка по стандартам ATS'
+                    : 'ATS Standartlarında Dəqiq Yoxlama'}
+                </span>
               </div>
             </div>
           ) : (
@@ -479,7 +486,11 @@ export const AICVAnalyzerInput: React.FC<AICVAnalyzerInputProps> = ({ onAnalyze,
           </span>
         </button>
         <p className="text-[11px] text-slate-400 text-center mt-2">
-          🔒 Factual Extraction First → Zero Hallucination Guarantee
+          {language === 'en'
+            ? '🔒 Enterprise ATS Standard & Data Privacy Guarantee'
+            : language === 'ru'
+            ? '🔒 Стандарты ATS и конфиденциальность данных'
+            : '🔒 Rəsmi ATS Standartı və Məlumat Məxfiliyi Zəmanəti'}
         </p>
       </div>
     </div>

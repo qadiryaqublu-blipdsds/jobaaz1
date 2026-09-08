@@ -7,8 +7,8 @@ import {
   ChevronDown, 
   X, 
   ArrowUpRight,
-  TrendingUp
 } from 'lucide-react';
+import { useLanguage } from '../../context/LanguageContext';
 
 interface SalariaVacatiaBottomDockProps {
   onOpenSalaria: (activeSubTab?: 'salaria' | 'vacatia') => void;
@@ -21,16 +21,26 @@ export const SalariaVacatiaBottomDock: React.FC<SalariaVacatiaBottomDockProps> =
 }) => {
   const [isMinimized, setIsMinimized] = useState(false);
   const [isDismissed, setIsDismissed] = useState(false);
+  const { language } = useLanguage();
 
-  if (isDismissed) {
+  if (isDismissed || currentActiveTab === 'calculia' || currentActiveTab === 'cv' || currentActiveTab === 'cv-analyzer') {
     return null;
   }
+
+  const isEn = language === 'en';
+  const isRu = language === 'ru';
+
+  const tSalary = isEn ? 'Salary' : isRu ? 'Зарплата' : 'Maaş';
+  const tVacation = isEn ? 'Vacation' : isRu ? 'Отпуск' : 'Məzuniyyət';
+  const tCalculators = isEn ? 'Calculation' : isRu ? 'Расчеты' : 'Hesablama';
+  const tLegislation = isEn ? 'Labor Code 2026' : isRu ? 'Трудовой кодекс 2026' : 'Rəsmi Qanunvericilik';
+  const tSoon = isEn ? 'Soon' : isRu ? 'Скоро' : 'Tezliklə';
 
   return (
     <aside 
       id="salaria-vacatia-bottom-dock"
-      aria-label="Salaria və Vacatia Sürətli Keçid Paneli"
-      className="fixed bottom-4 left-1/2 -translate-x-1/2 z-40 w-[94%] max-w-2xl transition-all duration-300 pointer-events-auto select-none"
+      aria-label="Salaria & Vacatia Quick Access Dock"
+      className="fixed bottom-[68px] sm:bottom-[72px] md:bottom-4 left-1/2 -translate-x-1/2 z-30 w-[94%] max-w-2xl transition-all duration-300 pointer-events-auto select-none"
     >
       {/* Outer Obsidian Luxury Glowing Container */}
       <div className="relative rounded-2xl p-[1.5px] bg-gradient-to-r from-blue-500/40 via-indigo-400/30 to-amber-400/40 shadow-xl">
@@ -59,20 +69,20 @@ export const SalariaVacatiaBottomDock: React.FC<SalariaVacatiaBottomDockProps> =
                   onClick={() => onOpenSalaria('salaria')}
                   className="px-3 py-1 rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-xs font-black shadow-sm transition-all cursor-pointer"
                 >
-                  Maaş
+                  {tSalary}
                 </button>
                 <button
                   type="button"
                   onClick={() => onOpenSalaria('vacatia')}
                   className="px-3 py-1 rounded-lg bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white text-xs font-black shadow-sm transition-all cursor-pointer"
                 >
-                  Məzuniyyət
+                  {tVacation}
                 </button>
                 <button
                   type="button"
                   onClick={() => setIsMinimized(false)}
                   className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
-                  title="Genişləndir"
+                  title={isEn ? 'Expand' : isRu ? 'Развернуть' : 'Genişləndir'}
                 >
                   <ChevronUp className="w-4 h-4" />
                 </button>
@@ -91,13 +101,13 @@ export const SalariaVacatiaBottomDock: React.FC<SalariaVacatiaBottomDockProps> =
                 </div>
                 <div>
                   <div className="text-xs font-black tracking-tight text-white flex items-center gap-1.5">
-                    <span>Hesablama</span>
+                    <span>{tCalculators}</span>
                     <span className="bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 text-[8.5px] font-black px-1.5 py-0.2 rounded-full uppercase">
                       2026
                     </span>
                   </div>
                   <p className="text-[10px] text-slate-400 font-medium">
-                    Rəsmi Qanunvericilik
+                    {tLegislation}
                   </p>
                 </div>
               </div>
@@ -124,7 +134,7 @@ export const SalariaVacatiaBottomDock: React.FC<SalariaVacatiaBottomDockProps> =
                       <div className="flex items-center gap-1">
                         <span className="text-xs sm:text-sm font-black tracking-wide text-white truncate">Salaria</span>
                         <span className="text-[8.5px] sm:text-[9px] bg-blue-400/20 text-blue-200 border border-blue-400/30 px-1 sm:px-1.5 py-0.2 rounded font-black uppercase shrink-0">
-                          Maaş
+                          {tSalary}
                         </span>
                       </div>
                       <div className="text-[9px] sm:text-[10px] text-blue-200/80 font-semibold -mt-0.5 truncate hidden xs:block">
@@ -153,11 +163,11 @@ export const SalariaVacatiaBottomDock: React.FC<SalariaVacatiaBottomDockProps> =
                       <div className="flex items-center gap-1">
                         <span className="text-xs sm:text-sm font-black tracking-wide text-amber-200 truncate">Vacatia</span>
                         <span className="text-[8.5px] sm:text-[9px] bg-amber-400/25 text-amber-200 border border-amber-400/40 px-1 sm:px-1.5 py-0.2 rounded font-black uppercase shrink-0">
-                          Tezliklə
+                          {tSoon}
                         </span>
                       </div>
                       <div className="text-[9px] sm:text-[10px] text-amber-300/80 font-semibold -mt-0.5 truncate hidden xs:block">
-                        Məzuniyyət
+                        {tVacation}
                       </div>
                     </div>
                   </div>
@@ -173,7 +183,7 @@ export const SalariaVacatiaBottomDock: React.FC<SalariaVacatiaBottomDockProps> =
                     type="button"
                     onClick={() => setIsMinimized(true)}
                     className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
-                    title="Yığcam et"
+                    title={isEn ? 'Minimize' : isRu ? 'Свернуть' : 'Yığcam et'}
                   >
                     <ChevronDown className="w-4 h-4" />
                   </button>
@@ -181,7 +191,7 @@ export const SalariaVacatiaBottomDock: React.FC<SalariaVacatiaBottomDockProps> =
                     type="button"
                     onClick={() => setIsDismissed(true)}
                     className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
-                    title="Bağla"
+                    title={isEn ? 'Close' : isRu ? 'Закрыть' : 'Bağla'}
                   >
                     <X className="w-4 h-4" />
                   </button>
