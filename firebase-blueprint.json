@@ -1,311 +1,318 @@
 {
-  "rules": {
-    "users": {
-      "description": "User profiles for candidates, employers, and admin accounts",
-      "fields": {
-        "id": "string",
-        "email": "string",
-        "fullName": "string",
-        "firstName": "string (optional)",
-        "lastName": "string (optional)",
-        "role": "string (candidate | business | admin)",
-        "phone": "string",
-        "companyId": "string (optional)",
-        "companyName": "string (optional)",
-        "companyDescription": "string (optional)",
-        "status": "string (active | suspended | pending)",
-        "emailVerified": "boolean",
-        "createdAt": "string",
-        "lastLoginAt": "string",
-        "avatarUrl": "string (optional)"
-      }
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User accounts for candidates, employers, and administrators",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique user identifier" },
+        "email": { "type": "string", "format": "email", "description": "Account email address" },
+        "fullName": { "type": "string", "maxLength": 100, "description": "User full name" },
+        "role": { "type": "string", "enum": ["candidate", "business", "admin"], "description": "Account role" },
+        "phone": { "type": "string", "maxLength": 30, "description": "Phone number" },
+        "companyId": { "type": "string", "description": "Associated company ID if employer" },
+        "status": { "type": "string", "enum": ["active", "suspended", "pending"], "description": "Account state" },
+        "emailVerified": { "type": "boolean", "description": "Whether email is verified" },
+        "createdAt": { "type": "string", "description": "Creation ISO timestamp" },
+        "lastLoginAt": { "type": "string", "description": "Last login ISO timestamp" }
+      },
+      "required": ["id", "email", "role"]
     },
-    "companies": {
-      "description": "Registered company profiles and verification statuses",
-      "fields": {
-        "id": "string",
-        "name": "string",
-        "logo": "string",
-        "email": "string",
-        "phone": "string",
-        "website": "string (optional)",
-        "industry": "string",
-        "size": "string (optional)",
-        "description": "string",
-        "location": "string",
-        "address": "string (optional)",
-        "contactPerson": "string (optional)",
-        "contactPosition": "string (optional)",
-        "verified": "boolean",
-        "verificationStatus": "string (pending | verified | rejected | suspended)",
-        "createdBy": "string (user uid)",
-        "createdAt": "string",
-        "updatedAt": "string"
-      }
+    "Company": {
+      "title": "Company",
+      "description": "Registered company profiles and verification status",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Company ID" },
+        "name": { "type": "string", "maxLength": 150, "description": "Company brand name" },
+        "logo": { "type": "string", "description": "Logo URL" },
+        "email": { "type": "string", "format": "email", "description": "Official company contact email" },
+        "phone": { "type": "string", "maxLength": 30, "description": "Contact phone" },
+        "website": { "type": "string", "description": "Website URL" },
+        "industry": { "type": "string", "maxLength": 100, "description": "Industry sector" },
+        "description": { "type": "string", "maxLength": 3000, "description": "Company overview" },
+        "location": { "type": "string", "maxLength": 100, "description": "City or headquarters location" },
+        "verified": { "type": "boolean", "description": "Official verification badge" },
+        "verificationStatus": { "type": "string", "enum": ["pending", "verified", "rejected", "suspended"] },
+        "createdBy": { "type": "string", "description": "Creator user UID" },
+        "createdAt": { "type": "string", "description": "Creation ISO timestamp" },
+        "updatedAt": { "type": "string", "description": "Update ISO timestamp" }
+      },
+      "required": ["id", "name", "email", "createdBy"]
     },
-    "candidateProfiles": {
-      "description": "Detailed candidate resumes, education, skills, and portfolio",
-      "fields": {
-        "id": "string (user uid)",
-        "userId": "string",
-        "fullName": "string",
-        "professionalTitle": "string",
-        "profilePhoto": "string (optional)",
-        "about": "string",
-        "phone": "string",
-        "email": "string",
-        "location": "string",
-        "skills": "array",
-        "languages": "array",
-        "education": "array",
-        "workExperience": "array",
-        "certifications": "array",
-        "expectedSalary": "number (optional)",
-        "preferredEmploymentType": "string (optional)",
-        "preferredLocation": "string (optional)",
-        "cvUrl": "string (optional)",
-        "cvFileName": "string (optional)",
-        "profileVisibility": "string (public | private)",
-        "createdAt": "string",
-        "updatedAt": "string"
-      }
+    "CandidateProfile": {
+      "title": "CandidateProfile",
+      "description": "Professional candidate resume and portfolio",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Candidate UID" },
+        "userId": { "type": "string", "description": "Associated user account UID" },
+        "fullName": { "type": "string", "maxLength": 100, "description": "Full name" },
+        "professionalTitle": { "type": "string", "maxLength": 150, "description": "Primary job title" },
+        "about": { "type": "string", "maxLength": 4000, "description": "Summary bio" },
+        "phone": { "type": "string", "maxLength": 30, "description": "Phone number" },
+        "email": { "type": "string", "format": "email", "description": "Email address" },
+        "location": { "type": "string", "maxLength": 100, "description": "City/Region" },
+        "skills": { "type": "array", "description": "List of core competencies" },
+        "expectedSalary": { "type": "number", "description": "Salary expectation in AZN" },
+        "profileVisibility": { "type": "string", "enum": ["public", "private"] },
+        "createdAt": { "type": "string", "description": "Creation timestamp" },
+        "updatedAt": { "type": "string", "description": "Update timestamp" }
+      },
+      "required": ["id", "userId", "fullName"]
     },
-    "jobs": {
+    "Job": {
+      "title": "Job",
       "description": "Recruitment vacancies published by verified companies",
-      "fields": {
-        "id": "string",
-        "title": "string",
-        "department": "string (optional)",
-        "category": "string",
-        "companyId": "string",
-        "companyName": "string",
-        "companyLogo": "string",
-        "companyVerified": "boolean",
-        "city": "string",
-        "location": "string",
-        "workplaceType": "string (remote | hybrid | on-site)",
-        "employmentType": "string",
-        "experienceLevel": "string",
-        "education": "string (optional)",
-        "minSalary": "number (optional)",
-        "maxSalary": "number (optional)",
-        "currency": "string",
-        "hideSalary": "boolean",
-        "skills": "array",
-        "description": "string",
-        "responsibilities": "array",
-        "requirements": "array",
-        "benefits": "array",
-        "deadline": "string",
-        "postedDate": "string",
-        "status": "string (draft | pending_review | published | rejected | paused | closed)",
-        "isApproved": "boolean",
-        "isFeatured": "boolean",
-        "viewsCount": "number",
-        "applicantsCount": "number",
-        "contactPhone": "string (optional)",
-        "contactWhatsapp": "string (optional)",
-        "isBlueCollarFriendly": "boolean (optional)",
-        "createdBy": "string (employer user uid)",
-        "createdAt": "string",
-        "updatedAt": "string"
-      }
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Vacancy ID" },
+        "title": { "type": "string", "maxLength": 200, "description": "Job title" },
+        "category": { "type": "string", "maxLength": 100, "description": "Functional domain" },
+        "companyId": { "type": "string", "description": "Company ID" },
+        "companyName": { "type": "string", "maxLength": 150, "description": "Company name" },
+        "companyLogo": { "type": "string", "description": "Company logo URL" },
+        "city": { "type": "string", "maxLength": 100, "description": "City" },
+        "workplaceType": { "type": "string", "enum": ["remote", "hybrid", "on-site"] },
+        "employmentType": { "type": "string", "description": "Full-time, part-time, etc." },
+        "experienceLevel": { "type": "string", "description": "Junior, Mid, Senior, etc." },
+        "minSalary": { "type": "number", "description": "Minimum salary" },
+        "maxSalary": { "type": "number", "description": "Maximum salary" },
+        "currency": { "type": "string", "description": "AZN, USD, EUR" },
+        "description": { "type": "string", "maxLength": 10000, "description": "Full job description" },
+        "status": { "type": "string", "enum": ["draft", "pending_review", "published", "rejected", "paused", "closed"] },
+        "isApproved": { "type": "boolean", "description": "Admin approved" },
+        "isFeatured": { "type": "boolean", "description": "Featured placement" },
+        "viewsCount": { "type": "number", "description": "View impressions count" },
+        "applicantsCount": { "type": "number", "description": "Applicants total count" },
+        "createdBy": { "type": "string", "description": "Employer UID" },
+        "createdAt": { "type": "string", "description": "Creation timestamp" },
+        "updatedAt": { "type": "string", "description": "Update timestamp" }
+      },
+      "required": ["id", "title", "category", "companyId", "status", "createdBy"]
     },
-    "applications": {
-      "description": "Real candidate applications to published jobs",
-      "fields": {
-        "id": "string",
-        "jobId": "string",
-        "vacancyId": "string",
-        "vacancyTitle": "string",
-        "companyId": "string",
-        "companyName": "string",
-        "companyLogo": "string (optional)",
-        "candidateId": "string (user uid)",
-        "candidateName": "string",
-        "candidateEmail": "string",
-        "candidatePhone": "string",
-        "candidatePhoto": "string (optional)",
-        "appliedDate": "string",
-        "status": "string (Müraciət edildi | Baxılır | Qısa Siyahı | Müsahibə | Təklif Göndərildi | Qəbul Edildi | İmtina)",
-        "coverNote": "string (optional)",
-        "cvUrl": "string (optional)",
-        "cvData": "object (optional)",
-        "matchScore": "number (optional)",
-        "recruiterNotes": "string (optional)",
-        "createdAt": "string",
-        "updatedAt": "string"
-      }
+    "Application": {
+      "title": "Application",
+      "description": "Candidate job applications",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Application record ID" },
+        "jobId": { "type": "string", "description": "Associated vacancy ID" },
+        "vacancyTitle": { "type": "string", "maxLength": 200, "description": "Vacancy title" },
+        "companyId": { "type": "string", "description": "Target company ID" },
+        "candidateId": { "type": "string", "description": "Candidate user UID" },
+        "candidateName": { "type": "string", "maxLength": 100, "description": "Candidate full name" },
+        "candidateEmail": { "type": "string", "format": "email", "description": "Candidate email" },
+        "candidatePhone": { "type": "string", "maxLength": 30, "description": "Candidate contact number" },
+        "appliedDate": { "type": "string", "description": "Application ISO timestamp" },
+        "status": { "type": "string", "description": "Application review stage" },
+        "coverNote": { "type": "string", "maxLength": 2000, "description": "Optional cover letter" },
+        "matchScore": { "type": "number", "description": "ATS compatibility percentage" },
+        "createdAt": { "type": "string", "description": "Creation timestamp" },
+        "updatedAt": { "type": "string", "description": "Update timestamp" }
+      },
+      "required": ["id", "jobId", "candidateId", "status"]
     },
-    "subscriptions": {
-      "description": "Active and historic subscription plans for employers and candidates",
-      "fields": {
-        "id": "string",
-        "userId": "string",
-        "userEmail": "string",
-        "userName": "string",
-        "role": "string (candidate | business)",
-        "planId": "string",
-        "tier": "string (FREE | PRO | BUSINESS | PREMIUM)",
-        "status": "string (ACTIVE | CANCELLED | EXPIRED)",
-        "billingCycle": "string (monthly | yearly)",
-        "startDate": "string",
-        "endDate": "string",
-        "amount": "number",
-        "currency": "string",
-        "paymentProvider": "string",
-        "paymentId": "string",
-        "autoRenew": "boolean",
-        "createdAt": "string",
-        "updatedAt": "string"
-      }
+    "Subscription": {
+      "title": "Subscription",
+      "description": "Active subscriptions for candidates and business accounts",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Subscription ID" },
+        "userId": { "type": "string", "description": "User UID" },
+        "userEmail": { "type": "string", "format": "email", "description": "User email" },
+        "role": { "type": "string", "enum": ["candidate", "business"] },
+        "planId": { "type": "string", "description": "Subscription plan key" },
+        "tier": { "type": "string", "enum": ["FREE", "PRO", "BUSINESS", "PREMIUM"] },
+        "status": { "type": "string", "enum": ["ACTIVE", "CANCELLED", "EXPIRED"] },
+        "amount": { "type": "number", "description": "Subscription fee" },
+        "currency": { "type": "string", "description": "Currency code" },
+        "startDate": { "type": "string", "description": "Start date timestamp" },
+        "endDate": { "type": "string", "description": "End date timestamp" }
+      },
+      "required": ["id", "userId", "planId", "status"]
     },
-    "payments": {
-      "description": "Financial transactions and receipts for subscription purchases",
-      "fields": {
-        "id": "string",
-        "userId": "string",
-        "userEmail": "string",
-        "userName": "string",
-        "subscriptionId": "string",
-        "planName": "string",
-        "amount": "number",
-        "currency": "string",
-        "status": "string (SUCCESS | FAILED | PENDING | REFUNDED)",
-        "paymentMethod": "string",
-        "cardLast4": "string (optional)",
-        "transactionDate": "string",
-        "createdAt": "string"
-      }
+    "Payment": {
+      "title": "Payment",
+      "description": "Transaction receipts for plan upgrades",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Payment ID" },
+        "userId": { "type": "string", "description": "User UID" },
+        "amount": { "type": "number", "description": "Charged amount" },
+        "currency": { "type": "string", "description": "Currency" },
+        "status": { "type": "string", "enum": ["SUCCESS", "FAILED", "PENDING", "REFUNDED"] },
+        "transactionDate": { "type": "string", "description": "Transaction timestamp" }
+      },
+      "required": ["id", "userId", "amount", "status"]
     },
-    "invoices": {
-      "description": "Formal billing invoices generated for business and candidate subscriptions",
-      "fields": {
-        "id": "string",
-        "invoiceNumber": "string",
-        "userId": "string",
-        "companyName": "string (optional)",
-        "userEmail": "string",
-        "amount": "number",
-        "currency": "string",
-        "planName": "string",
-        "billingCycle": "string",
-        "issueDate": "string",
-        "dueDate": "string",
-        "status": "string (PAID | VOID | UNPAID)",
-        "paymentMethod": "string",
-        "createdAt": "string"
-      }
+    "Invoice": {
+      "title": "Invoice",
+      "description": "Formal billing invoices",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Invoice ID" },
+        "invoiceNumber": { "type": "string", "description": "Formatted invoice number" },
+        "userId": { "type": "string", "description": "Customer user ID" },
+        "amount": { "type": "number", "description": "Invoice total" },
+        "status": { "type": "string", "enum": ["PAID", "VOID", "UNPAID"] }
+      },
+      "required": ["id", "invoiceNumber", "userId", "amount", "status"]
     },
-    "savedJobs": {
-      "description": "Candidate bookmarked vacancies",
-      "fields": {
-        "id": "string",
-        "userId": "string",
-        "jobId": "string",
-        "savedAt": "string"
-      }
+    "SavedJob": {
+      "title": "SavedJob",
+      "description": "Bookmarked job vacancies",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Saved record ID" },
+        "userId": { "type": "string", "description": "Candidate UID" },
+        "jobId": { "type": "string", "description": "Target job ID" },
+        "savedAt": { "type": "string", "description": "Timestamp" }
+      },
+      "required": ["id", "userId", "jobId"]
     },
-    "notifications": {
-      "description": "Real-time user notifications for status changes, offers and applications",
-      "fields": {
-        "id": "string",
-        "userId": "string",
-        "title": "string",
-        "message": "string",
-        "type": "string (application_submitted | status_changed | interview_invite | job_offer | company_verification | vacancy_approval | new_applicant | new_matching_vacancy | payment_success)",
-        "isRead": "boolean",
-        "link": "string (optional)",
-        "data": "object (optional)",
-        "createdAt": "string"
-      }
+    "Notification": {
+      "title": "Notification",
+      "description": "In-app notifications",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Notification ID" },
+        "userId": { "type": "string", "description": "Recipient UID" },
+        "title": { "type": "string", "maxLength": 150, "description": "Notification title" },
+        "message": { "type": "string", "maxLength": 1000, "description": "Notification message" },
+        "type": { "type": "string", "description": "Notification event type" },
+        "isRead": { "type": "boolean", "description": "Read status" },
+        "createdAt": { "type": "string", "description": "Creation timestamp" }
+      },
+      "required": ["id", "userId", "title", "message", "isRead"]
     },
-    "jobAlertSubscriptions": {
-      "description": "Candidate subscriptions to specific job categories or companies for instant in-app alerts",
-      "fields": {
-        "id": "string",
-        "userId": "string",
-        "userEmail": "string (optional)",
-        "userName": "string (optional)",
-        "categories": "array",
-        "companies": "array",
-        "companyIds": "array (optional)",
-        "isActive": "boolean",
-        "frequency": "string (instant | daily)",
-        "createdAt": "string",
-        "updatedAt": "string"
-      }
+    "JobAlertSubscription": {
+      "title": "JobAlertSubscription",
+      "description": "Candidate job alert preferences",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Subscription ID" },
+        "userId": { "type": "string", "description": "Candidate UID" },
+        "categories": { "type": "array", "description": "Watched categories" },
+        "companies": { "type": "array", "description": "Watched companies" },
+        "isActive": { "type": "boolean", "description": "Subscription status" }
+      },
+      "required": ["id", "userId", "isActive"]
     },
-    "jobOffers": {
-      "description": "Official job offers made from employers to candidates",
-      "fields": {
-        "id": "string",
-        "jobId": "string (optional)",
-        "candidateId": "string",
-        "candidateName": "string",
-        "candidateEmail": "string",
-        "candidatePhone": "string (optional)",
-        "companyId": "string",
-        "companyName": "string",
-        "companyLogo": "string (optional)",
-        "companyAddress": "string (optional)",
-        "companyEmail": "string (optional)",
-        "companyPhone": "string (optional)",
-        "hrContactPerson": "string (optional)",
-        "hrContactPosition": "string (optional)",
-        "position": "string",
-        "department": "string (optional)",
-        "employmentType": "string",
-        "workLocation": "string",
-        "startDate": "string",
-        "grossSalary": "number",
-        "netSalary": "number",
-        "probationPeriod": "string (optional)",
-        "workingSchedule": "string (optional)",
-        "annualLeave": "string (optional)",
-        "bonus": "string (optional)",
-        "benefits": "array",
-        "additionalTerms": "string (optional)",
-        "templateId": "string (optional)",
-        "language": "string (az | en)",
-        "status": "string (DRAFT | SENT | ACCEPTED | DECLINED | EXPIRED)",
-        "secureToken": "string",
-        "acceptedAt": "string (optional)",
-        "declinedAt": "string (optional)",
-        "declineReason": "object (optional)",
-        "createdBy": "string (employer user uid)",
-        "createdAt": "string",
-        "updatedAt": "string"
-      }
+    "JobOffer": {
+      "title": "JobOffer",
+      "description": "Formal digital employment offers",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Job offer ID" },
+        "candidateId": { "type": "string", "description": "Candidate UID" },
+        "companyId": { "type": "string", "description": "Company ID" },
+        "position": { "type": "string", "maxLength": 150, "description": "Offered position" },
+        "grossSalary": { "type": "number", "description": "Gross salary in AZN" },
+        "netSalary": { "type": "number", "description": "Net salary in AZN" },
+        "status": { "type": "string", "enum": ["DRAFT", "SENT", "ACCEPTED", "DECLINED", "EXPIRED"] },
+        "secureToken": { "type": "string", "description": "Secure validation token" }
+      },
+      "required": ["id", "candidateId", "companyId", "position", "status"]
     },
-    "adminLogs": {
-      "description": "Audit trails for moderation, system security and administrative actions",
-      "fields": {
-        "id": "string",
-        "adminId": "string",
-        "adminEmail": "string",
-        "action": "string",
-        "targetType": "string (user | vacancy | company | subscription | payment | setting)",
-        "targetId": "string",
-        "details": "string",
-        "timestamp": "string",
-        "ipAddress": "string (optional)"
-      }
+    "AdminLog": {
+      "title": "AdminLog",
+      "description": "Audit trail records for moderation",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Log record ID" },
+        "adminId": { "type": "string", "description": "Admin UID" },
+        "adminEmail": { "type": "string", "format": "email", "description": "Admin email" },
+        "action": { "type": "string", "description": "Moderation action" },
+        "targetType": { "type": "string", "description": "Target entity type" },
+        "targetId": { "type": "string", "description": "Target document ID" },
+        "timestamp": { "type": "string", "description": "Timestamp" }
+      },
+      "required": ["id", "adminId", "action", "timestamp"]
     },
-    "platformSettings": {
-      "description": "Global system configurations, commission rates, banner notices, and maintenance status",
-      "fields": {
-        "id": "string",
-        "maintenanceMode": "boolean",
-        "allowNewRegistrations": "boolean",
-        "requireEmailVerification": "boolean",
-        "featuredJobPrice": "number",
-        "supportEmail": "string",
-        "supportPhone": "string",
-        "currency": "string",
-        "updatedAt": "string",
-        "updatedBy": "string"
-      }
+    "PlatformSetting": {
+      "title": "PlatformSetting",
+      "description": "Global application configuration",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Setting ID" },
+        "maintenanceMode": { "type": "boolean", "description": "Maintenance flag" },
+        "allowNewRegistrations": { "type": "boolean", "description": "Registration flag" },
+        "updatedAt": { "type": "string", "description": "Timestamp" }
+      },
+      "required": ["id"]
+    },
+    "TestConnection": {
+      "title": "TestConnection",
+      "description": "Heartbeat diagnostic document",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Doc ID" },
+        "status": { "type": "string", "description": "Connection status" }
+      },
+      "required": ["id"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User accounts and authentication profiles"
+    },
+    "/companies/{companyId}": {
+      "schema": "Company",
+      "description": "Verified companies and employer profiles"
+    },
+    "/candidateProfiles/{profileId}": {
+      "schema": "CandidateProfile",
+      "description": "Candidate CVs and professional portfolios"
+    },
+    "/jobs/{jobId}": {
+      "schema": "Job",
+      "description": "Job vacancies and opportunities"
+    },
+    "/applications/{applicationId}": {
+      "schema": "Application",
+      "description": "Candidate job applications"
+    },
+    "/subscriptions/{subscriptionId}": {
+      "schema": "Subscription",
+      "description": "User plan subscriptions"
+    },
+    "/payments/{paymentId}": {
+      "schema": "Payment",
+      "description": "Payment history and transaction receipts"
+    },
+    "/invoices/{invoiceId}": {
+      "schema": "Invoice",
+      "description": "Billing invoices"
+    },
+    "/savedJobs/{savedJobId}": {
+      "schema": "SavedJob",
+      "description": "Bookmarked vacancies"
+    },
+    "/notifications/{notificationId}": {
+      "schema": "Notification",
+      "description": "Real-time user alerts"
+    },
+    "/jobAlertSubscriptions/{subscriptionId}": {
+      "schema": "JobAlertSubscription",
+      "description": "Candidate alert subscriptions"
+    },
+    "/jobOffers/{offerId}": {
+      "schema": "JobOffer",
+      "description": "Digital employment offers"
+    },
+    "/adminLogs/{logId}": {
+      "schema": "AdminLog",
+      "description": "Audit and moderation logs"
+    },
+    "/platformSettings/{settingId}": {
+      "schema": "PlatformSetting",
+      "description": "Platform settings and feature flags"
+    },
+    "/test/{docId}": {
+      "schema": "TestConnection",
+      "description": "Connection verification check"
     }
   }
 }

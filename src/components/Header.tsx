@@ -1,9 +1,8 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { UserRole, User, UserSubscription, Company, AppNotification } from '../types';
 import { JobiaLogo } from './JobiaLogo';
 import { useLanguage } from '../context/LanguageContext';
 import { LanguageSwitcher } from './LanguageSwitcher';
-import { NotificationCenterOverlay } from './notifications/NotificationCenterOverlay';
 import { 
   Menu, 
   Crown, 
@@ -11,7 +10,6 @@ import {
   LogOut, 
   Plus, 
   Sparkles,
-  Bell,
   User as UserIcon,
   Settings
 } from 'lucide-react';
@@ -68,11 +66,9 @@ export const Header: React.FC<HeaderProps> = ({
   companies = [],
 }) => {
   const { dict, language } = useLanguage();
-  const [isNotificationOverlayOpen, setIsNotificationOverlayOpen] = useState(false);
   const planTier = currentSubscription?.tier || 'FREE';
   const isPaidUser = planTier !== 'FREE';
 
-  const unreadCount = notifications.filter((n) => !n.isRead).length;
   // STRICT ADMIN APPROVAL: Only verified companies approved by admin are shown in directory
   const realCompaniesWithJobs = companies.filter(
     (c) => c.name && c.name.trim().length > 0 && (c.verified === true || c.verificationStatus === 'verified')
@@ -140,7 +136,7 @@ export const Header: React.FC<HeaderProps> = ({
                         className={`group shrink-0 flex flex-col items-center gap-0.5 p-1 rounded-xl transition-all cursor-pointer select-none ${
                           isSelected ? 'scale-105' : 'hover:scale-105'
                         }`}
-                        title={`${company.name} vakansiyaları`}
+                        title={`${company.name} ${language === 'en' ? 'vacancies' : language === 'ru' ? 'вакансии' : 'vakansiyaları'}`}
                       >
                         <div
                           className={`relative w-9 h-9 sm:w-10 sm:h-10 rounded-xl p-0.5 bg-white flex items-center justify-center transition-all ${
@@ -183,45 +179,10 @@ export const Header: React.FC<HeaderProps> = ({
             )}
           </div>
 
-          {/* RIGHT ACTION BAR: NOTIFICATIONS + SUBSCRIPTION (VIP) + LANGUAGE SWITCHER + AUTH */}
+          {/* RIGHT ACTION BAR: SUBSCRIPTION (VIP) + LANGUAGE SWITCHER + AUTH */}
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 pl-1 border-l border-slate-200">
             
-            {/* 1. REAL-TIME NOTIFICATION CENTER BELL & FLYOUT OVERLAY */}
-            <div className="relative shrink-0">
-              <button
-                id="header-notification-center-btn"
-                type="button"
-                onClick={() => setIsNotificationOverlayOpen(!isNotificationOverlayOpen)}
-                className={`relative p-2 rounded-xl transition-all cursor-pointer flex items-center justify-center ${
-                  isNotificationOverlayOpen
-                    ? 'bg-blue-600 text-white shadow-xs'
-                    : unreadCount > 0
-                    ? 'bg-blue-50 text-blue-700 border border-blue-200/90 hover:bg-blue-100 hover:text-blue-800'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100 border border-transparent hover:border-slate-200'
-                }`}
-                title={language === 'en' ? 'Notifications' : language === 'ru' ? 'Уведомления' : 'Bildirişlər'}
-                aria-label="Notifications"
-              >
-                <Bell className={`w-4 h-4 ${unreadCount > 0 ? 'animate-wiggle' : ''}`} />
-                
-                {unreadCount > 0 && (
-                  <span className="absolute -top-1 -right-1 flex h-4 min-w-[16px] px-1 items-center justify-center rounded-full bg-red-600 text-[9px] font-black text-white shadow-xs ring-2 ring-white animate-pulse">
-                    {unreadCount > 9 ? '9+' : unreadCount}
-                  </span>
-                )}
-              </button>
-
-              {/* Notification Center Flyout Overlay */}
-              <NotificationCenterOverlay
-                currentUser={currentUser || null}
-                notifications={notifications}
-                isOpen={isNotificationOverlayOpen}
-                onClose={() => setIsNotificationOverlayOpen(false)}
-                onNavigateNotification={onNavigateNotification}
-              />
-            </div>
-
-            {/* 2. VIP / Subscription Plan Button (Visible on Desktop / Tablet md+) */}
+            {/* VIP / Subscription Plan Button (Visible on Desktop / Tablet md+) */}
             {onOpenPricing && (
               <button
                 id="header-vip-pricing-btn"
@@ -258,7 +219,7 @@ export const Header: React.FC<HeaderProps> = ({
                   type="button"
                   onClick={() => onOpenProfileModal?.('settings')}
                   className="flex items-center gap-1.5 cursor-pointer text-left focus:outline-hidden"
-                  title="Profil və Bildiriş Tənzimləmələri"
+                  title={language === 'en' ? 'Profile & Notification Settings' : language === 'ru' ? 'Настройки профиля и уведомлений' : 'Profil və Bildiriş Tənzimləmələri'}
                 >
                   <div className="relative">
                     <img
@@ -267,9 +228,9 @@ export const Header: React.FC<HeaderProps> = ({
                       className="w-6 h-6 rounded-lg object-cover border border-slate-300"
                     />
                     {currentUser.emailVerified ? (
-                      <span className="absolute -bottom-1 -right-1 w-2.5 h-2.5 bg-emerald-500 rounded-full border border-white" title="E-poçt Təsdiqlənib" />
+                      <span className="absolute -bottom-1 -right-1 w-2.5 h-2.5 bg-emerald-500 rounded-full border border-white" title={language === 'en' ? 'Email Verified' : language === 'ru' ? 'Email подтвержден' : 'E-poçt Təsdiqlənib'} />
                     ) : (
-                      <span className="absolute -bottom-1 -right-1 w-2.5 h-2.5 bg-amber-500 rounded-full border border-white" title="E-poçt Təsdiqlənməyib" />
+                      <span className="absolute -bottom-1 -right-1 w-2.5 h-2.5 bg-amber-500 rounded-full border border-white" title={language === 'en' ? 'Email Not Verified' : language === 'ru' ? 'Email не подтвержден' : 'E-poçt Təsdiqlənməyib'} />
                     )}
                   </div>
                   <div className="flex flex-col text-left">
@@ -326,7 +287,7 @@ export const Header: React.FC<HeaderProps> = ({
                   type="button"
                   onClick={() => onOpenAuthModal('login', currentRole)}
                   className="hidden md:flex animate-auth-trigger items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white cursor-pointer shadow-xs hover:shadow-md active:scale-95 transition-all shrink-0 whitespace-nowrap"
-                  title="Daxil ol / Qeydiyyat"
+                  title={language === 'en' ? 'Sign In / Register' : language === 'ru' ? 'Вход / Регистрация' : 'Daxil ol / Qeydiyyat'}
                 >
                   <Sparkles className="w-3.5 h-3.5 text-blue-200 shrink-0" />
                   <span className="tracking-tight whitespace-nowrap font-bold">

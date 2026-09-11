@@ -1787,7 +1787,7 @@ export default function App() {
         {/* Scrollable Main Area (Body + Footer scroll smoothly under frozen header & sidebar) */}
         <div id="main-content-scroll" className="flex-1 overflow-y-auto min-h-0 w-full flex flex-col scroll-smooth">
           {/* Main App Container */}
-          <main className="flex-1 w-full max-w-full px-3 sm:px-6 lg:px-8 xl:px-10 2xl:px-12 py-4 sm:py-6 lg:py-8 pb-20 md:pb-8">
+          <main className="flex-1 w-full max-w-full px-3 sm:px-4 md:px-5 lg:px-6 xl:px-8 py-3.5 sm:py-5 lg:py-6 pb-20 md:pb-8">
             {/* Unverified Account Security Alert Banner */}
             {currentUser && !currentUser.emailVerified && (
               <div className="mb-5 p-4 rounded-2xl bg-gradient-to-r from-amber-500/15 via-orange-500/10 to-amber-500/15 border border-amber-300/80 shadow-xs animate-fadeIn">

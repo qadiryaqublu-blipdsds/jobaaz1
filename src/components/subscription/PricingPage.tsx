@@ -7,6 +7,7 @@ import {
   UserSubscription 
 } from '../../types';
 import { SUBSCRIPTION_PLANS } from '../../services/subscriptionService';
+import { useLanguage } from '../../context/LanguageContext';
 import { 
   Check, 
   Sparkles, 
@@ -38,6 +39,7 @@ export const PricingPage: React.FC<PricingPageProps> = ({
   onBack,
   onRequireAuth,
 }) => {
+  const { language } = useLanguage();
   const [activeTab, setActiveTab] = useState<'business' | 'candidate'>(
     currentRole === 'business' ? 'business' : 'candidate'
   );
@@ -59,6 +61,9 @@ export const PricingPage: React.FC<PricingPageProps> = ({
     onSelectPlan(plan, billingCycle);
   };
 
+  const isEn = language === 'en';
+  const isRu = language === 'ru';
+
   return (
     <div className="min-h-screen bg-slate-50/50 pb-20 animate-fade-in">
       {/* Top Header Section */}
@@ -69,20 +74,24 @@ export const PricingPage: React.FC<PricingPageProps> = ({
             className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-slate-900 transition-colors mb-4 cursor-pointer"
           >
             <ArrowLeft className="w-4 h-4" />
-            <span>Əvvəlki səhifəyə qayıt</span>
+            <span>{isEn ? 'Back to previous page' : isRu ? 'Вернуться назад' : 'Əvvəlki səhifəyə qayıt'}</span>
           </button>
 
           <div className="text-center max-w-4xl mx-auto space-y-3">
             <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-50 border border-blue-200 text-blue-700 rounded-full text-xs font-bold uppercase tracking-wider">
               <Sparkles className="w-3.5 h-3.5" />
-              <span>Şəffaf və Sərfəli Qiymətlər</span>
+              <span>{isEn ? 'Transparent & Affordable Pricing' : isRu ? 'Прозрачные и выгодные тарифы' : 'Şəffaf və Sərfəli Qiymətlər'}</span>
             </div>
 
             <h1 className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight">
-              İşə Qəbulu və Karyeranızı Sürətləndirin
+              {isEn ? 'Accelerate Hiring & Your Career' : isRu ? 'Ускорьте наём сотрудников и свою карьеру' : 'İşə Qəbulu və Karyeranızı Sürətləndirin'}
             </h1>
             <p className="text-sm text-slate-600 leading-relaxed">
-              İşəgötürənlər üçün güclü AI rekrutinq alətləri, namizədlər üçün isə arzulanan işi tapmaq üçün karyera həlləri.
+              {isEn 
+                ? 'Powerful AI recruiting tools for employers, and smart career solutions for candidates to secure dream jobs.'
+                : isRu 
+                ? 'Мощные инструменты ИИ-рекрутинга для работодателей и решения для успешного трудоустройства соискателей.'
+                : 'İşəgötürənlər üçün güclü AI rekrutinq alətləri, namizədlər üçün isə arzulanan işi tapmaq üçün karyera həlləri.'}
             </p>
 
             {/* Role Switcher: Employer vs Candidate */}
@@ -98,7 +107,7 @@ export const PricingPage: React.FC<PricingPageProps> = ({
                   }`}
                 >
                   <Building2 className="w-4 h-4 text-slate-800" />
-                  <span>İşəgötürənlər üçün</span>
+                  <span>{isEn ? 'For Employers' : isRu ? 'Для работодателей' : 'İşəgötürənlər üçün'}</span>
                 </button>
                 <button
                   type="button"
@@ -110,7 +119,7 @@ export const PricingPage: React.FC<PricingPageProps> = ({
                   }`}
                 >
                   <UserIcon className="w-4 h-4 text-blue-600" />
-                  <span>Namizədlər üçün</span>
+                  <span>{isEn ? 'For Candidates' : isRu ? 'Для соискателей' : 'Namizədlər üçün'}</span>
                 </button>
               </div>
             </div>
@@ -118,7 +127,7 @@ export const PricingPage: React.FC<PricingPageProps> = ({
             {/* Monthly vs Yearly Billing Toggle */}
             <div className="flex items-center justify-center gap-3 pt-2">
               <span className={`text-xs font-bold ${billingCycle === 'monthly' ? 'text-slate-900' : 'text-slate-500'}`}>
-                Aylıq Ödəniş
+                {isEn ? 'Monthly' : isRu ? 'Ежемесячно' : 'Aylıq Ödəniş'}
               </span>
               <button
                 type="button"
@@ -132,9 +141,9 @@ export const PricingPage: React.FC<PricingPageProps> = ({
                 />
               </button>
               <span className={`text-xs font-bold flex items-center gap-1.5 ${billingCycle === 'yearly' ? 'text-slate-900' : 'text-slate-500'}`}>
-                <span>İllik Ödəniş</span>
+                <span>{isEn ? 'Yearly' : isRu ? 'Ежегодно' : 'İllik Ödəniş'}</span>
                 <span className="bg-emerald-100 text-emerald-800 text-[10px] px-2 py-0.5 rounded-full font-extrabold">
-                  -20% Qənaət
+                  {isEn ? '-20% Off' : isRu ? '-20% Скидка' : '-20% Qənaət'}
                 </span>
               </span>
             </div>
@@ -179,11 +188,15 @@ export const PricingPage: React.FC<PricingPageProps> = ({
                       <span className="text-3xl sm:text-4xl font-black text-slate-900">
                         {price} AZN
                       </span>
-                      <span className="text-xs text-slate-500 font-medium">/ay</span>
+                      <span className="text-xs text-slate-500 font-medium">{isEn ? '/mo' : isRu ? '/мес' : '/ay'}</span>
                     </div>
                     {billingCycle === 'yearly' && plan.priceMonthly > 0 && (
                       <span className="text-[11px] text-emerald-600 font-bold block mt-1">
-                        İllik {plan.priceYearly * 12} AZN (Aylıq hesablandıqda {plan.priceMonthly} AZN yerinə)
+                        {isEn 
+                          ? `Billed annually at ${plan.priceYearly * 12} AZN (instead of ${plan.priceMonthly} AZN/mo)`
+                          : isRu
+                          ? `При годовой оплате ${plan.priceYearly * 12} AZN (вместо ${plan.priceMonthly} AZN/мес)`
+                          : `İllik ${plan.priceYearly * 12} AZN (Aylıq hesablandıqda ${plan.priceMonthly} AZN yerinə)`}
                       </span>
                     )}
                   </div>
@@ -191,7 +204,7 @@ export const PricingPage: React.FC<PricingPageProps> = ({
                   {/* Features List */}
                   <div className="mt-6 space-y-3">
                     <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
-                      Paketə Daxildir:
+                      {isEn ? 'Included in Plan:' : isRu ? 'В тариф входит:' : 'Paketə Daxildir:'}
                     </span>
                     <ul className="space-y-2.5">
                       {plan.features.map((feat, i) => (
@@ -211,14 +224,14 @@ export const PricingPage: React.FC<PricingPageProps> = ({
                   {isCurrent ? (
                     <div className="w-full py-2.5 bg-slate-100 text-slate-700 font-bold text-xs rounded-xl text-center border border-slate-200 flex items-center justify-center gap-1.5">
                       <Check className="w-4 h-4 text-emerald-600" />
-                      <span>Cari Aktiv Planınız</span>
+                      <span>{isEn ? 'Current Active Plan' : isRu ? 'Текущий активный тариф' : 'Cari Aktiv Planınız'}</span>
                     </div>
                   ) : plan.tier === 'FREE' ? (
                     <button
                       disabled
                       className="w-full py-2.5 bg-slate-100 text-slate-400 font-bold text-xs rounded-xl text-center border border-slate-200 cursor-not-allowed"
                     >
-                      Baza Paketi
+                      {isEn ? 'Free Plan' : isRu ? 'Базовый тариф' : 'Baza Paketi'}
                     </button>
                   ) : (
                     <button
@@ -230,7 +243,7 @@ export const PricingPage: React.FC<PricingPageProps> = ({
                           : 'bg-slate-900 hover:bg-slate-800 text-white'
                       }`}
                     >
-                      <span>{plan.tier}-a Yüksəlt</span>
+                      <span>{isEn ? `Upgrade to ${plan.tier}` : isRu ? `Перейти на ${plan.tier}` : `${plan.tier}-a Yüksəlt`}</span>
                       <ChevronRight className="w-4 h-4" />
                     </button>
                   )}
@@ -243,39 +256,65 @@ export const PricingPage: React.FC<PricingPageProps> = ({
         {/* Enterprise & Custom Inquiries Banner */}
         <div className="mt-12 bg-gradient-to-r from-slate-900 to-blue-950 rounded-2xl p-6 sm:p-8 text-white flex flex-col sm:flex-row items-center justify-between gap-6 shadow-xl">
           <div className="space-y-1">
-            <h3 className="text-lg font-bold">Xüsusi Korporativ və ya Holdinq Tələbləriniz Var?</h3>
+            <h3 className="text-lg font-bold">
+              {isEn ? 'Have Custom Enterprise or Holding Requirements?' : isRu ? 'Нужен индивидуальный корпоративный тариф?' : 'Xüsusi Korporativ və ya Holdinq Tələbləriniz Var?'}
+            </h3>
             <p className="text-xs text-slate-300 max-w-xl">
-              100-dən çox vakansiya, API inteqrasiyası və fərdi ATS sinxronizasiyası üçün korporativ satış komandamız ilə əlaqə saxlayın.
+              {isEn 
+                ? 'Contact our enterprise team for 100+ vacancies, custom API integrations, and direct ATS synchronization.'
+                : isRu 
+                ? 'Свяжитесь с нашим отделом для публикации 100+ вакансий, API-интеграций и синхронизации с корпоративной ATS.'
+                : '100-dən çox vakansiya, API inteqrasiyası və fərdi ATS sinxronizasiyası üçün korporativ satış komandamız ilə əlaqə saxlayın.'}
             </p>
           </div>
           <a
             href="mailto:support@jobia.az"
             className="px-6 py-2.5 bg-white text-slate-950 hover:bg-slate-100 font-bold text-xs rounded-xl shrink-0 transition-colors"
           >
-            Korporativ Təklif Al
+            {isEn ? 'Get Enterprise Quote' : isRu ? 'Корпоративное предложение' : 'Korporativ Təklif Al'}
           </a>
         </div>
 
         {/* FAQ Section */}
         <div className="mt-16 max-w-3xl mx-auto space-y-6">
-          <h2 className="text-xl font-black text-slate-900 text-center">Tez-Tez Verilən Suallar</h2>
+          <h2 className="text-xl font-black text-slate-900 text-center">
+            {isEn ? 'Frequently Asked Questions' : isRu ? 'Часто задаваемые вопросы' : 'Tez-Tez Verilən Suallar'}
+          </h2>
           <div className="space-y-3">
             <div className="p-4 bg-white rounded-xl border border-slate-200">
-              <h4 className="text-xs font-bold text-slate-900 mb-1">Ödənişi hansı üsullarla edə bilərəm?</h4>
+              <h4 className="text-xs font-bold text-slate-900 mb-1">
+                {isEn ? 'Which payment methods are accepted?' : isRu ? 'Какие способы оплаты поддерживаются?' : 'Ödənişi hansı üsullarla edə bilərəm?'}
+              </h4>
               <p className="text-xs text-slate-600">
-                Bütün yerli və xarici bank kartları (Birbank Visa, Mastercard, Leobank, ABB və s.) vasitəsilə 256-bit SSL təhlükəsizliyi ilə dərhal ödəniş edə bilərsiniz.
+                {isEn 
+                  ? 'All local and international bank cards (Visa, Mastercard, Leobank, Birbank, ABB, etc.) with instant 256-bit SSL encrypted checkout.'
+                  : isRu 
+                  ? 'Все местные и международные банковские карты (Visa, Mastercard, Leobank, Birbank, ABB и др.) с безопасной оплатой по 256-битному SSL.'
+                  : 'Bütün yerli və xarici bank kartları (Birbank Visa, Mastercard, Leobank, ABB və s.) vasitəsilə 256-bit SSL təhlükəsizliyi ilə dərhal ödəniş edə bilərsiniz.'}
               </p>
             </div>
             <div className="p-4 bg-white rounded-xl border border-slate-200">
-              <h4 className="text-xs font-bold text-slate-900 mb-1">Abunəliyimi istədiyim vaxt dayandıra bilərəmmi?</h4>
+              <h4 className="text-xs font-bold text-slate-900 mb-1">
+                {isEn ? 'Can I cancel my subscription at any time?' : isRu ? 'Могу ли я отменить подписку в любое время?' : 'Abunəliyimi istədiyim vaxt dayandıra bilərəmmi?'}
+              </h4>
               <p className="text-xs text-slate-600">
-                Bəli, istənilən vaxt profilinizdən və ya dəstək xidmətindən abunəliyi ləğv edə bilərsiniz. Ödənilmiş müddət bitənə qədər bütün imkanlar aktiv qalacaq.
+                {isEn 
+                  ? 'Yes, you can cancel your subscription at any time from your profile settings or by contacting support. Your access will remain active until the end of the paid billing period.'
+                  : isRu 
+                  ? 'Да, вы можете отменить подписку в любое время в настройках профиля или через службу поддержки. Доступ сохранится до окончания оплаченного периода.'
+                  : 'Bəli, istənilən vaxt profilinizdən və ya dəstək xidmətindən abunəliyi ləğv edə bilərsiniz. Ödənilmiş müddət bitənə qədər bütün imkanlar aktiv qalacaq.'}
               </p>
             </div>
             <div className="p-4 bg-white rounded-xl border border-slate-200">
-              <h4 className="text-xs font-bold text-slate-900 mb-1">Namizədlər üçün ödəniş etmək məcburidirmi?</h4>
+              <h4 className="text-xs font-bold text-slate-900 mb-1">
+                {isEn ? 'Is it mandatory for candidates to pay?' : isRu ? 'Обязательна ли оплата для соискателей?' : 'Namizədlər üçün ödəniş etmək məcburidirmi?'}
+              </h4>
               <p className="text-xs text-slate-600">
-                Xeyr! Namizədlər üçün CV yaratmaq, vakansiyaları axtarmaq və müraciət etmək tamamilə pulsuzdur. Yalnız AI ATS analizi və qabaqcıl hazırlıq alətləri Premium paketinə daxildir.
+                {isEn 
+                  ? 'No! Creating a CV, searching jobs, and applying to vacancies is 100% free for candidates. Advanced AI ATS optimization and premium interview prep are optional features.'
+                  : isRu 
+                  ? 'Нет! Создание резюме, поиск работы и отклики абсолютно бесплатны для всех соискателей. Премиум-пакет включает расширенный AI ATS анализ и углубленную подготовку к интервью.'
+                  : 'Xeyr! Namizədlər üçün CV yaratmaq, vakansiyaları axtarmaq və müraciət etmək tamamilə pulsuzdur. Yalnız AI ATS analizi və qabaqcıl hazırlıq alətləri Premium paketinə daxildir.'}
               </p>
             </div>
           </div>
@@ -284,3 +323,4 @@ export const PricingPage: React.FC<PricingPageProps> = ({
     </div>
   );
 };
+

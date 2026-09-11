@@ -79,6 +79,7 @@ import {
   getLocalizedCity,
   getLocalizedIndustry,
   getLocalizedSortOption,
+  getLocalizedJobTitle,
   getLocalizedVacancyTitle,
   getLocalizedVacancyDescription,
   getLocalizedVacancyRequirements
@@ -121,29 +122,40 @@ const CitySearchSelect: React.FC<CitySearchSelectProps> = ({
   onSelectCity,
   className = '',
 }) => {
+  const { language } = useLanguage();
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const dropdownRef = React.useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
+    const handleOutsideClick = (e: MouseEvent | TouchEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
         setIsOpen(false);
       }
     };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setIsOpen(false);
+      }
+    };
+
     if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('mousedown', handleOutsideClick);
+      document.addEventListener('touchstart', handleOutsideClick);
+      document.addEventListener('keydown', handleKeyDown);
     }
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('mousedown', handleOutsideClick);
+      document.removeEventListener('touchstart', handleOutsideClick);
+      document.removeEventListener('keydown', handleKeyDown);
     };
   }, [isOpen]);
 
   const filteredCities = useMemo(() => {
     const q = searchQuery.toLowerCase().trim();
     if (!q) return CITIES;
-    return CITIES.filter((c) => c.toLowerCase().includes(q));
-  }, [searchQuery]);
+    return CITIES.filter((c) => c.toLowerCase().includes(q) || getLocalizedCity(c, language).toLowerCase().includes(q));
+  }, [searchQuery, language]);
 
   const isCustomCity = searchQuery.trim() !== '' && !CITIES.some((c) => c.toLowerCase() === searchQuery.toLowerCase().trim());
 
@@ -151,28 +163,32 @@ const CitySearchSelect: React.FC<CitySearchSelectProps> = ({
     <div className={`relative ${className}`} ref={dropdownRef}>
       <button
         type="button"
-        onClick={() => setIsOpen(!isOpen)}
+        id="city-search-select-trigger"
+        onClick={() => setIsOpen((prev) => !prev)}
         className="w-full flex items-center justify-between pl-8 pr-2.5 py-2.5 bg-slate-50 hover:bg-slate-100/90 border border-slate-200 focus:border-blue-600 rounded-xl text-xs font-semibold text-slate-800 outline-none transition-all cursor-pointer truncate shadow-2xs text-left"
-        title="Şəhər seç və ya axtar"
+        title={language === 'en' ? 'Select or search city' : language === 'ru' ? 'Выбрать или найти город' : 'Şəhər seç və ya axtar'}
       >
         <MapPin className="w-3.5 h-3.5 text-blue-600 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
         <span className="truncate">
-          {selectedCity === 'Hamısı' ? '📍 Bütün Şəhərlər' : `📍 ${selectedCity}`}
+          {selectedCity === 'Hamısı' ? (language === 'en' ? '📍 All Cities' : language === 'ru' ? '📍 Все города' : '📍 Bütün Şəhərlər') : `📍 ${getLocalizedCity(selectedCity, language)}`}
         </span>
         <div className="flex items-center gap-1 shrink-0 ml-1">
           {selectedCity !== 'Hamısı' && (
             <span
+              role="button"
+              tabIndex={0}
               onClick={(e) => {
                 e.stopPropagation();
+                e.preventDefault();
                 onSelectCity('Hamısı');
               }}
-              className="p-0.5 hover:bg-slate-200 rounded text-slate-400 hover:text-slate-700 cursor-pointer"
-              title="Şəhəri sıfırla"
+              className="p-1 hover:bg-slate-200/80 rounded-md text-slate-400 hover:text-slate-700 cursor-pointer transition-colors"
+              title={language === 'en' ? 'Reset city' : language === 'ru' ? 'Сбросить город' : 'Şəhəri sıfırla'}
             >
-              <X className="w-3 h-3" />
+              <X className="w-3.5 h-3.5" />
             </span>
           )}
-          <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+          <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
         </div>
       </button>
 
@@ -186,7 +202,7 @@ const CitySearchSelect: React.FC<CitySearchSelectProps> = ({
               autoFocus
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Şəhər axtar və ya daxil et..."
+              placeholder={language === 'en' ? 'Search or enter city...' : language === 'ru' ? 'Поиск или ввод города...' : 'Şəhər axtar və ya daxil et...'}
               className="w-full pl-8 pr-7 py-1.5 bg-slate-50 border border-slate-200 focus:border-blue-500 rounded-lg text-xs font-medium text-slate-800 outline-none"
             />
             {searchQuery && (
@@ -217,7 +233,9 @@ const CitySearchSelect: React.FC<CitySearchSelectProps> = ({
                     : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
                 }`}
               >
-                {quickCity}
+                {quickCity === 'Hamısı'
+                  ? (language === 'en' ? 'All' : language === 'ru' ? 'Все' : 'Hamısı')
+                  : getLocalizedCity(quickCity, language)}
               </button>
             ))}
           </div>
@@ -235,7 +253,7 @@ const CitySearchSelect: React.FC<CitySearchSelectProps> = ({
                 selectedCity === 'Hamısı' ? 'bg-blue-50 text-blue-700 font-bold' : 'hover:bg-slate-50 text-slate-700'
               }`}
             >
-              <span>📍 Bütün Şəhərlər</span>
+              <span>{language === 'en' ? '📍 All Cities' : language === 'ru' ? '📍 Все города' : '📍 Bütün Şəhərlər'}</span>
               {selectedCity === 'Hamısı' && <Check className="w-3.5 h-3.5 text-blue-600" />}
             </button>
 
@@ -254,7 +272,7 @@ const CitySearchSelect: React.FC<CitySearchSelectProps> = ({
                     isSelected ? 'bg-blue-50 text-blue-700 font-bold' : 'hover:bg-slate-50 text-slate-700'
                   }`}
                 >
-                  <span>{city}</span>
+                  <span>{getLocalizedCity(city, language)}</span>
                   {isSelected && <Check className="w-3.5 h-3.5 text-blue-600" />}
                 </button>
               );
@@ -273,9 +291,13 @@ const CitySearchSelect: React.FC<CitySearchSelectProps> = ({
               >
                 <div className="flex items-center gap-1.5 truncate">
                   <Sparkles className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-                  <span className="truncate">"{searchQuery.trim()}" şəhəri üzrə axtar</span>
+                  <span className="truncate">
+                    {language === 'en' ? `Search for city "${searchQuery.trim()}"` : language === 'ru' ? `Поиск по городу "${searchQuery.trim()}"` : `"${searchQuery.trim()}" şəhəri üzrə axtar`}
+                  </span>
                 </div>
-                <span className="text-[10px] font-black text-amber-700 uppercase shrink-0">+ Seç</span>
+                <span className="text-[10px] font-black text-amber-700 uppercase shrink-0">
+                  {language === 'en' ? '+ Select' : language === 'ru' ? '+ Выбрать' : '+ Seç'}
+                </span>
               </button>
             )}
           </div>
@@ -351,7 +373,7 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
   // Task 1: Category Filters Column Dynamic Resizing & Collapsible State
   const MIN_FILTER_WIDTH = 220;
   const MAX_FILTER_WIDTH = 440;
-  const DEFAULT_FILTER_WIDTH = 280;
+  const DEFAULT_FILTER_WIDTH = 250;
 
   const [filterColumnWidth, setFilterColumnWidth] = useState<number>(() => {
     try {
@@ -1258,15 +1280,19 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Vəzifə, şirkət və ya açar sözlə axtarın..."
+                onKeyDown={(e) => {
+                  if (e.key === 'Escape') setSearchQuery('');
+                }}
+                placeholder={language === 'en' ? 'Search by title, company or keyword...' : language === 'ru' ? 'Поиск по должности, компании или ключевым словам...' : 'Vəzifə, şirkət və ya açar sözlə axtarın...'}
                 className="w-full pl-10 pr-9 py-2.5 bg-slate-50 hover:bg-slate-100/70 border border-slate-200 focus:border-blue-600 focus:bg-white rounded-xl text-xs sm:text-sm font-semibold text-slate-900 placeholder:text-slate-400 outline-none transition-all shadow-2xs"
               />
               {searchQuery && (
                 <button
                   type="button"
+                  id="top-quick-search-clear-btn"
                   onClick={() => setSearchQuery('')}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1 cursor-pointer"
-                  title="Təmizlə"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 hover:bg-slate-200/80 p-1 rounded-lg cursor-pointer transition-colors"
+                  title={language === 'en' ? 'Clear search' : language === 'ru' ? 'Очистить' : 'Təmizlə'}
                 >
                   <X className="w-3.5 h-3.5" />
                 </button>
@@ -1282,8 +1308,35 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
             </div>
           </div>
 
-          {/* Rejim Switch & AI / Salary Trends / Map / Alerts */}
-          <div className="flex items-center gap-1.5 flex-wrap sm:flex-nowrap shrink-0">
+          {/* Rejim Switch & AI / Salary Trends / Map / Alerts / Filters */}
+          <div className="flex items-center gap-1.5 flex-wrap shrink-0">
+            {/* Filter Toggle Button (Desktop & Mobile) */}
+            <button
+              type="button"
+              id="btn-toggle-filters-top"
+              onClick={() => {
+                if (window.innerWidth < 1024) {
+                  setMobileFilterModal('filters');
+                } else {
+                  handleToggleFiltersCollapse();
+                }
+              }}
+              className={`px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shrink-0 shadow-2xs whitespace-nowrap ${
+                (!isFiltersCollapsed && window.innerWidth >= 1024) || activeFiltersCount > 0
+                  ? 'bg-blue-600 text-white shadow-xs'
+                  : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200'
+              }`}
+              title="Filtrlər Paneli"
+            >
+              <SlidersHorizontal className="w-3.5 h-3.5 shrink-0" />
+              <span>{dict.filters?.title || 'Filtrlər'}</span>
+              {activeFiltersCount > 0 && (
+                <span className="px-1.5 py-0.2 rounded-full bg-white text-blue-700 text-[10px] font-black">
+                  {activeFiltersCount}
+                </span>
+              )}
+            </button>
+
             {/* Job Alert & Notifications Quick Launch */}
             <button
               type="button"
@@ -1373,7 +1426,23 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
 
         {/* AI SMART SEARCH BAR (Accessible directly from top) */}
         {isAiModeActive && (
-          <div className="bg-gradient-to-r from-blue-50/90 via-indigo-50/80 to-slate-50 p-3.5 rounded-xl border border-indigo-200/90 space-y-2.5 animate-fade-in">
+          <div className="bg-gradient-to-r from-blue-50/90 via-indigo-50/80 to-slate-50 p-3.5 rounded-xl border border-indigo-200/90 space-y-2.5 animate-fade-in relative">
+            <div className="flex items-center justify-between pb-1 border-b border-indigo-100">
+              <div className="flex items-center gap-1.5 text-xs font-extrabold text-indigo-950">
+                <Sparkles className="w-4 h-4 text-indigo-600" />
+                <span>{language === 'en' ? 'AI Smart Search Assistant' : language === 'ru' ? 'AI Умный поиск' : 'AI Ağıllı Axtarış Köməkçisi'}</span>
+              </div>
+              <button
+                type="button"
+                id="btn-close-ai-search-panel"
+                onClick={() => setIsAiModeActive(false)}
+                className="px-2 py-0.5 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-indigo-100 text-xs font-bold transition-colors flex items-center gap-1 cursor-pointer"
+                title={language === 'en' ? 'Close AI Search' : language === 'ru' ? 'Закрыть AI поиск' : 'AI Axtarış panelini bağla'}
+              >
+                <X className="w-3.5 h-3.5" />
+                <span>{language === 'en' ? 'Close' : language === 'ru' ? 'Закрыть' : 'Bağla'}</span>
+              </button>
+            </div>
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
               <div className="relative flex-1">
                 <Sparkles className="w-4 h-4 text-indigo-600 absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -1532,7 +1601,7 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
       {/* ========================================================================= */}
       {/* 2. MAIN 2-COLUMN LAYOUT: LEFT FILTERS + RIGHT VACANCIES (IMMEDIATE)       */}
       {/* ========================================================================= */}
-      <div className="flex flex-col lg:flex-row gap-5 items-start relative">
+      <div className="flex flex-col lg:flex-row gap-3.5 sm:gap-4 xl:gap-5 items-start relative">
         {/* ========================================================================= */}
         {/* LEFT COLUMN: DESKTOP FILTERS (Hidden on mobile for instant vacancy view)  */}
         {/* ========================================================================= */}
@@ -1566,7 +1635,7 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
                 type="button"
                 onClick={handleToggleFiltersCollapse}
                 className="p-2 rounded-xl text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer text-sm"
-                title={dict.filters?.jobCategories || 'Vəzifə Kateqoriyaları'}
+                title={dict.filters?.categories || 'Vəzifə Kateqoriyaları'}
               >
                 📁
               </button>
@@ -1673,7 +1742,7 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
                       📁
                     </div>
                     <h3 className="text-xs font-black uppercase tracking-wider text-slate-800">
-                      {dict.filters?.jobCategories || 'Vəzifə Kateqoriyaları'}
+                      {dict.filters?.categories || 'Vəzifə Kateqoriyaları'}
                     </h3>
                   </div>
                   <div className="flex items-center gap-1.5">
@@ -1845,7 +1914,7 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
                       type="text"
                       value={companySearchQuery}
                       onChange={(e) => setCompanySearchQuery(e.target.value)}
-                      placeholder={dict.filters?.searchCompany || 'Şirkət axtar...'}
+                      placeholder={dict.filters?.searchCompanyPlaceholder || 'Şirkət axtar...'}
                       className="w-full pl-7 pr-6 py-1.5 bg-white border border-slate-200 rounded-lg text-xs text-slate-800 placeholder:text-slate-400 outline-none focus:border-indigo-500"
                     />
                     {companySearchQuery && (
@@ -1950,7 +2019,9 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
 
                 <div className="space-y-2 text-xs">
                   <div>
-                    <label className="block text-[11px] font-bold text-slate-500 mb-1">{dict.filters?.city || 'Şəhər'}:</label>
+                    <label className="block text-[11px] font-bold text-slate-500 mb-1">
+                      {language === 'en' ? 'City' : language === 'ru' ? 'Город' : 'Şəhər'}:
+                    </label>
                     <CitySearchSelect
                       selectedCity={selectedCity}
                       onSelectCity={setSelectedCity}
@@ -1958,7 +2029,9 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
                   </div>
 
                   <div>
-                    <label className="block text-[11px] font-bold text-slate-500 mb-1">{dict.filters?.minSalary || 'Minimum Maaş'}:</label>
+                    <label className="block text-[11px] font-bold text-slate-500 mb-1">
+                      {dict.jobExplorer?.minSalary || 'Minimum Maaş'}:
+                    </label>
                     <select
                       value={minSalaryFilter}
                       onChange={(e) => setMinSalaryFilter(Number(e.target.value))}
@@ -2100,7 +2173,7 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
                         key={job.id}
                         id={`simple-job-row-${job.id}`}
                         onClick={() => onSelectVacancy(job)}
-                        className="group relative bg-white hover:bg-slate-50/70 border border-slate-200/90 hover:border-blue-500 rounded-xl p-3.5 sm:p-4 transition-all duration-150 cursor-pointer shadow-2xs hover:shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-4"
+                        className="group relative bg-white hover:bg-slate-50/70 border border-slate-200/90 hover:border-blue-500 rounded-2xl p-3.5 sm:p-4 transition-all duration-150 cursor-pointer shadow-2xs hover:shadow-xs flex flex-col 2xl:flex-row 2xl:items-center justify-between gap-3"
                       >
                         {/* Left & Middle Info Block */}
                         <div className="flex items-start sm:items-center gap-3 sm:gap-3.5 min-w-0 flex-1">
@@ -2175,7 +2248,7 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
                         </div>
 
                         {/* Right Meta & Action Items */}
-                        <div className="flex flex-wrap items-center justify-between lg:justify-end gap-2.5 shrink-0 pt-2.5 md:pt-0 border-t md:border-t-0 border-slate-100 w-full md:w-auto">
+                        <div className="flex flex-wrap items-center justify-between 2xl:justify-end gap-2.5 shrink-0 pt-2.5 2xl:pt-0 border-t 2xl:border-t-0 border-slate-100 w-full 2xl:w-auto">
                           {/* Salary Badge & Meta Stats Group */}
                           <div className="flex items-center gap-2 shrink-0">
                             {/* Salary Badge */}
@@ -2212,10 +2285,10 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
                                 setQuickApplyJob(job);
                               }}
                               className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold text-xs flex items-center gap-1.5 transition-all shadow-2xs hover:shadow-xs cursor-pointer whitespace-nowrap shrink-0"
-                              title="1 Kliklə Müraciət Et"
+                              title={language === 'en' ? '1-Click Quick Apply' : language === 'ru' ? 'Быстрый отклик в 1 клик' : '1 Kliklə Müraciət Et'}
                             >
                               <Send className="w-3 h-3 text-emerald-100 shrink-0" />
-                              <span>1 Klik</span>
+                              <span>{language === 'en' ? '1-Click' : language === 'ru' ? '1 Клик' : '1 Klik'}</span>
                             </button>
 
                             {/* Direct WhatsApp Contact */}
@@ -2226,7 +2299,7 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
                                 handleOpenWhatsApp(job);
                               }}
                               className="p-1.5 sm:px-2.5 sm:py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-lg font-semibold text-xs flex items-center gap-1 transition-all cursor-pointer whitespace-nowrap shrink-0"
-                              title="WhatsApp ilə birbaşa əlaqə"
+                              title={language === 'en' ? 'Direct contact via WhatsApp' : language === 'ru' ? 'Связаться через WhatsApp' : 'WhatsApp ilə birbaşa əlaqə'}
                             >
                               <MessageCircle className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
                               <span className="hidden sm:inline">WhatsApp</span>
@@ -2238,7 +2311,7 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
                                 href={`tel:${job.contactPhone}`}
                                 onClick={(e) => e.stopPropagation()}
                                 className="p-1.5 bg-slate-100 hover:bg-blue-50 text-slate-700 hover:text-blue-700 border border-slate-200 rounded-lg font-bold text-xs flex items-center justify-center transition-all shrink-0"
-                                title={`Zəng et: ${job.contactPhone}`}
+                                title={language === 'en' ? `Call: ${job.contactPhone}` : language === 'ru' ? `Позвонить: ${job.contactPhone}` : `Zəng et: ${job.contactPhone}`}
                               >
                                 <Phone className="w-3.5 h-3.5 text-blue-600 shrink-0" />
                               </a>
@@ -2274,9 +2347,9 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
                         onClick={() => setVisibleCount((prev) => prev + 20)}
                         className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 active:scale-98 text-white text-xs font-black rounded-xl shadow-xs transition-all flex items-center gap-2 cursor-pointer"
                       >
-                        <span>Daha çox elan göstər (+20)</span>
+                        <span>{language === 'en' ? 'Show more jobs (+20)' : language === 'ru' ? 'Показать еще (+20)' : 'Daha çox elan göstər (+20)'}</span>
                         <span className="bg-white/20 text-white text-[10px] px-2 py-0.5 rounded-full font-bold">
-                          Qalan: {filteredAndSortedVacancies.length - visibleCount}
+                          {language === 'en' ? 'Remaining:' : language === 'ru' ? 'Осталось:' : 'Qalan:'} {filteredAndSortedVacancies.length - visibleCount}
                         </span>
                       </button>
                       <button
@@ -2284,7 +2357,7 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
                         onClick={() => setVisibleCount(filteredAndSortedVacancies.length)}
                         className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition-all cursor-pointer"
                       >
-                        Bütün {filteredAndSortedVacancies.length} elanı göstər
+                        {language === 'en' ? `Show all ${filteredAndSortedVacancies.length} jobs` : language === 'ru' ? `Показать все ${filteredAndSortedVacancies.length} вакансий` : `Bütün ${filteredAndSortedVacancies.length} elanı göstər`}
                       </button>
                     </div>
                   )}
@@ -2425,7 +2498,7 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
                   </button>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                <div className="grid grid-cols-1 xl:grid-cols-2 gap-3.5">
                   {visibleVacancies.map((job) => {
                     const isSaved = savedJobIds.includes(job.id);
                     const aiMatch = aiMatchesMap[job.id];
@@ -2451,7 +2524,7 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
                               />
                               <div>
                                 <h3 className="font-black text-slate-900 group-hover:text-blue-600 transition-colors text-sm line-clamp-1">
-                                  {job.title}
+                                  {getLocalizedJobTitle(job.title, language)}
                                 </h3>
                                 <p className="text-xs text-slate-600 font-semibold">{job.companyName}</p>
                               </div>
@@ -2463,6 +2536,7 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
                                 onToggleBookmark(job.id);
                               }}
                               className="text-slate-400 hover:text-amber-500 p-1"
+                              title={isSaved ? dict.jobExplorer.saved : dict.jobExplorer.saveJob}
                             >
                               <Bookmark className="w-4 h-4" fill={isSaved ? 'currentColor' : 'none'} />
                             </button>
@@ -2470,10 +2544,10 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
 
                           <div className="flex flex-wrap gap-1.5 text-xs text-slate-500">
                             <span className="flex items-center gap-1 bg-slate-50 px-2 py-1 rounded-md">
-                              <MapPin className="w-3 h-3" /> {job.city}
+                              <MapPin className="w-3 h-3" /> {getLocalizedCity(job.city, language)}
                             </span>
                             <span className="flex items-center gap-1 bg-slate-50 px-2 py-1 rounded-md">
-                              <Clock className="w-3 h-3" /> {job.employmentType}
+                              <Clock className="w-3 h-3" /> {getLocalizedEmploymentType(job.employmentType, language)}
                             </span>
                           </div>
 
@@ -2482,7 +2556,7 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
                             <div className="p-2 bg-indigo-50 border border-indigo-200 rounded-xl flex items-center justify-between text-xs font-bold text-indigo-900">
                               <span className="flex items-center gap-1">
                                 <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
-                                <span>AI Uyğunluq:</span>
+                                <span>{language === 'en' ? 'AI Match:' : language === 'ru' ? 'AI Совпадение:' : 'AI Uyğunluq:'}</span>
                               </span>
                               <span className="text-indigo-700 font-black">
                                 {aiMatch.matchScore}%
@@ -2493,7 +2567,9 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
                           {/* Salary Tag */}
                           <div>
                             {job.hideSalary ? (
-                              <span className="text-xs font-semibold text-slate-500">Maaş razılaşma ilə</span>
+                              <span className="text-xs font-semibold text-slate-500">
+                                {language === 'en' ? 'Salary negotiable' : language === 'ru' ? 'По договоренности' : 'Maaş razılaşma ilə'}
+                              </span>
                             ) : (
                               <span className="text-xs sm:text-sm font-black text-emerald-700">
                                 {job.minSalary} - {job.maxSalary} {job.currency}
@@ -2507,7 +2583,7 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
                             {formatJobDate(job.postedDate)}
                           </span>
                           <span className="text-blue-600 font-bold flex items-center gap-1 group-hover:translate-x-0.5 transition-transform">
-                            Ətraflı bax <ChevronRight className="w-3 h-3" />
+                            {language === 'en' ? 'View Details' : language === 'ru' ? 'Подробнее' : 'Ətraflı bax'} <ChevronRight className="w-3 h-3" />
                           </span>
                         </div>
                       </div>
@@ -2524,9 +2600,9 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
                     onClick={() => setVisibleCount((prev) => prev + 20)}
                     className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 active:scale-98 text-white text-xs font-black rounded-xl shadow-xs transition-all flex items-center gap-2 cursor-pointer"
                   >
-                    <span>Daha çox elan göstər (+20)</span>
+                    <span>{language === 'en' ? 'Show more jobs (+20)' : language === 'ru' ? 'Показать еще (+20)' : 'Daha çox elan göstər (+20)'}</span>
                     <span className="bg-white/20 text-white text-[10px] px-2 py-0.5 rounded-full font-bold">
-                      Qalan: {filteredAndSortedVacancies.length - visibleCount}
+                      {language === 'en' ? 'Remaining:' : language === 'ru' ? 'Осталось:' : 'Qalan:'} {filteredAndSortedVacancies.length - visibleCount}
                     </span>
                   </button>
                   <button
@@ -2534,7 +2610,7 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
                     onClick={() => setVisibleCount(filteredAndSortedVacancies.length)}
                     className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition-all cursor-pointer"
                   >
-                    Bütün {filteredAndSortedVacancies.length} elanı göstər
+                    {language === 'en' ? `Show all ${filteredAndSortedVacancies.length} jobs` : language === 'ru' ? `Показать все ${filteredAndSortedVacancies.length} вакансий` : `Bütün ${filteredAndSortedVacancies.length} elanı göstər`}
                   </button>
                 </div>
               )}
@@ -2550,13 +2626,19 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
         <div className="text-center max-w-2xl mx-auto space-y-2">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 text-blue-700 text-xs font-black tracking-wide uppercase border border-blue-100">
             <Award className="w-3.5 h-3.5" />
-            <span>NİYƏ {brandAcronym || 'JOBİA.AZ'}?</span>
+            <span>
+              {language === 'en' ? `WHY ${brandAcronym || 'JOBIA.AZ'}?` : language === 'ru' ? `ПОЧЕМУ ${brandAcronym || 'JOBIA.AZ'}?` : `NİYƏ ${brandAcronym || 'JOBİA.AZ'}?`}
+            </span>
           </div>
           <h2 className="text-xl sm:text-2xl lg:text-3xl font-black text-slate-900 tracking-tight">
-            Karyeranızı Etibarlı Əllərə Əmanət Edin
+            {language === 'en' ? 'Trust Your Career in Reliable Hands' : language === 'ru' ? 'Доверьте свою карьеру надежным рукам' : 'Karyeranızı Etibarlı Əllərə Əmanət Edin'}
           </h2>
           <p className="text-xs sm:text-sm text-slate-500 font-medium">
-            Azərbaycanda iş axtarışını sürətli, şəffaf və peşəkar edən 3 əsas dəyərimiz
+            {language === 'en'
+              ? 'Our 3 core values making job search fast, transparent, and professional'
+              : language === 'ru'
+              ? 'Наши 3 ключевые ценности, делающие поиск работы быстрым, прозрачным и надежным'
+              : 'Azərbaycanda iş axtarışını sürətli, şəffaf və peşəkar edən 3 əsas dəyərimiz'}
           </p>
         </div>
 
@@ -2567,10 +2649,14 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
               <ShieldCheck className="w-6 h-6" />
             </div>
             <h3 className="text-base font-bold text-slate-900">
-              100% Yoxlanılmış Şirkətlər
+              {language === 'en' ? '100% Verified Companies' : language === 'ru' ? '100% Проверенные компании' : '100% Yoxlanılmış Şirkətlər'}
             </h3>
             <p className="text-xs sm:text-sm text-slate-600 leading-relaxed font-medium">
-              Yalnız rəsmi VÖEN və hüquqi qeydiyyatı təsdiq olunmuş korporativ şirkətlərin elanları dərc olunur. Saxta elanlara və vasitəçi komissiyalarına qətiyyən yer verilmir.
+              {language === 'en'
+                ? 'Only officially verified corporate listings are published. No fake jobs or agency commissions.'
+                : language === 'ru'
+                ? 'Публикуются вакансии только официально подтвержденных компаний. Без фейков и скрытых комиссий.'
+                : 'Yalnız rəsmi VÖEN və hüquqi qeydiyyatı təsdiq olunmuş korporativ şirkətlərin elanları dərc olunur. Saxta elanlara və vasitəçi komissiyalarına qətiyyən yer verilmir.'}
             </p>
           </div>
 
@@ -2580,10 +2666,14 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
               <Zap className="w-6 h-6" />
             </div>
             <h3 className="text-base font-bold text-slate-900">
-              Şəffaf Maaşlar və Birbaşa Əlaqə
+              {language === 'en' ? 'Transparent Salaries & Direct Contact' : language === 'ru' ? 'Прозрачные зарплаты и прямой контакт' : 'Şəffaf Maaşlar və Birbaşa Əlaqə'}
             </h3>
             <p className="text-xs sm:text-sm text-slate-600 leading-relaxed font-medium">
-              Bazar standartlarına uyğun dəqiq maaş intervalları, 1-kliklə müraciət, birbaşa WhatsApp və rəsmi rəqəmsal iş təklifi (Job Offer) imkanı.
+              {language === 'en'
+                ? 'Clear salary ranges matching market standards, 1-click apply, direct WhatsApp and official digital Job Offer feature.'
+                : language === 'ru'
+                ? 'Четкие диапазоны зарплат по рынку, отклик в 1 клик, прямой WhatsApp и возможность официального цифрового Job Offer.'
+                : 'Bazar standartlarına uyğun dəqiq maaş intervalları, 1-kliklə müraciət, birbaşa WhatsApp və rəsmi rəqəmsal iş təklifi (Job Offer) imkanı.'}
             </p>
           </div>
 
@@ -2593,10 +2683,14 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
               <Sparkles className="w-6 h-6" />
             </div>
             <h3 className="text-base font-bold text-slate-900">
-              Süni İntellekt Dəstəyi
+              {language === 'en' ? 'AI-Powered Search & Matching' : language === 'ru' ? 'ИИ-поиск и подбор вакансий' : 'Süni İntellekt Dəstəyi'}
             </h3>
             <p className="text-xs sm:text-sm text-slate-600 leading-relaxed font-medium">
-              Ağıllı axtarış və tövsiyələr sayəsində ixtisasınıza və gözləntilərinizə ən uyğun vakansiyaları dərhal kəşf edin.
+              {language === 'en'
+                ? 'Discover vacancies that best match your qualifications and career expectations through smart AI recommendations.'
+                : language === 'ru'
+                ? 'Мгновенно находите вакансии, наиболее подходящие под вашу квалификацию с помощью умных рекомендаций.'
+                : 'Ağıllı axtarış və tövsiyələr sayəsində ixtisasınıza və gözləntilərinizə ən uyğun vakansiyaları dərhal kəşf edin.'}
             </p>
           </div>
         </div>
@@ -2604,7 +2698,7 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
 
       {/* Dynamic Animated Section Footer with Job Intelligence & Automation */}
       <JobiaSectionFooter 
-        extraTagline="Azərbaycanın aparıcı şirkətləri ilə minlərlə peşəkarı birləşdirən rəqəmsal platforma"
+        extraTagline={language === 'en' ? 'Digital platform connecting leading companies with thousands of professionals' : language === 'ru' ? 'Цифровая платформа, объединяющая ведущие компании с тысячами специалистов' : 'Azərbaycanın aparıcı şirkətləri ilə minlərlə peşəkarı birləşdirən rəqəmsal platforma'}
         showBackToTop={true}
       />
 
@@ -2620,8 +2714,10 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
                   ⚡
                 </div>
                 <div>
-                  <h3 className="text-sm font-black">1 Kliklə Sürətli Müraciət</h3>
-                  <p className="text-xs text-emerald-100 truncate max-w-xs">{quickApplyJob.title}</p>
+                  <h3 className="text-sm font-black">
+                    {language === 'en' ? '1-Click Fast Apply' : language === 'ru' ? 'Быстрый отклик в 1 клик' : '1 Kliklə Sürətli Müraciət'}
+                  </h3>
+                  <p className="text-xs text-emerald-100 truncate max-w-xs">{getLocalizedJobTitle(quickApplyJob.title, language)}</p>
                 </div>
               </div>
               <button
@@ -2638,9 +2734,15 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
                 <div className="w-14 h-14 bg-emerald-100 text-emerald-600 rounded-full mx-auto flex items-center justify-center">
                   <Check className="w-8 h-8" />
                 </div>
-                <h4 className="text-base font-black text-slate-900">Müraciətiniz Qəbul Olundu!</h4>
+                <h4 className="text-base font-black text-slate-900">
+                  {language === 'en' ? 'Application Received!' : language === 'ru' ? 'Отклик принят!' : 'Müraciətiniz Qəbul Olundu!'}
+                </h4>
                 <p className="text-xs text-slate-500">
-                  {quickApplyJob.companyName} şirkəti sizinlə ən qısa zamanda əlaqə saxlayacaqdır.
+                  {language === 'en'
+                    ? `${quickApplyJob.companyName} will contact you as soon as possible.`
+                    : language === 'ru'
+                    ? `Компания ${quickApplyJob.companyName} свяжется с вами в кратчайшие сроки.`
+                    : `${quickApplyJob.companyName} şirkəti sizinlə ən qısa zamanda əlaqə saxlayacaqdır.`}
                 </p>
               </div>
             ) : (
@@ -2653,9 +2755,9 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
                     referrerPolicy="no-referrer"
                   />
                   <div>
-                    <h4 className="text-xs font-bold text-slate-900">{quickApplyJob.title}</h4>
+                    <h4 className="text-xs font-bold text-slate-900">{getLocalizedJobTitle(quickApplyJob.title, language)}</h4>
                     <p className="text-xs text-slate-500 font-medium">
-                      {quickApplyJob.companyName} • {quickApplyJob.city}
+                      {quickApplyJob.companyName} • {getLocalizedCity(quickApplyJob.city, language)}
                     </p>
                   </div>
                 </div>
@@ -2663,28 +2765,28 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
                 <div className="space-y-3">
                   <div>
                     <label className="block text-xs font-bold text-slate-700 mb-1">
-                      Adınız və Soyadınız:
+                      {language === 'en' ? 'Your Full Name:' : language === 'ru' ? 'Ваше имя и фамилия:' : 'Adınız və Soyadınız:'}
                     </label>
                     <input
                       type="text"
                       required
                       value={quickApplicantName}
                       onChange={(e) => setQuickApplicantName(e.target.value)}
-                      placeholder="Adınız və Soyadınız"
+                      placeholder={language === 'en' ? 'Full Name' : language === 'ru' ? 'Имя Фамилия' : 'Adınız və Soyadınız'}
                       className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl text-xs sm:text-sm font-medium focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none"
                     />
                   </div>
 
                   <div>
                     <label className="block text-xs font-bold text-slate-700 mb-1">
-                      Əlaqə Telefonunuz (WhatsApp):
+                      {language === 'en' ? 'Phone / WhatsApp:' : language === 'ru' ? 'Номер телефона / WhatsApp:' : 'Əlaqə Telefonunuz (WhatsApp):'}
                     </label>
                     <input
                       type="tel"
                       required
                       value={quickApplicantPhone}
                       onChange={(e) => setQuickApplicantPhone(e.target.value)}
-                      placeholder="Məs: +994 50 123 45 67"
+                      placeholder={language === 'en' ? 'e.g. +994 50 123 45 67' : language === 'ru' ? 'напр. +994 50 123 45 67' : 'Məs: +994 50 123 45 67'}
                       className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl text-xs sm:text-sm font-medium focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none"
                     />
                   </div>
@@ -2696,14 +2798,14 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
                     onClick={() => setQuickApplyJob(null)}
                     className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl cursor-pointer"
                   >
-                    Ləğv et
+                    {dict.common?.cancel || (language === 'en' ? 'Cancel' : language === 'ru' ? 'Отмена' : 'Ləğv et')}
                   </button>
                   <button
                     type="submit"
                     className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs sm:text-sm font-black rounded-xl shadow-xs flex items-center gap-1.5 transition-all cursor-pointer"
                   >
                     <Send className="w-4 h-4" />
-                    <span>Müraciəti Tamamla</span>
+                    <span>{language === 'en' ? 'Submit Application' : language === 'ru' ? 'Отправить заявку' : 'Müraciəti Tamamla'}</span>
                   </button>
                 </div>
               </form>
@@ -2723,11 +2825,11 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
               <div className="flex items-center gap-2">
                 <Filter className="w-4 h-4 text-blue-400" />
                 <h3 className="text-sm font-black">
-                  {mobileFilterModal === 'categories' && '📁 Vəzifə Kateqoriyaları'}
-                  {mobileFilterModal === 'companies' && '🏛️ Şirkətlər'}
-                  {mobileFilterModal === 'industries' && '🏢 Şirkət Sahələri'}
-                  {mobileFilterModal === 'filters' && '⚙️ Bütün Filtrlər'}
-                  {mobileFilterModal === 'ai' && '🤖 AI Ağıllı Axtarış'}
+                  {mobileFilterModal === 'categories' && (language === 'en' ? '📁 Job Categories' : language === 'ru' ? '📁 Категории вакансий' : '📁 Vəzifə Kateqoriyaları')}
+                  {mobileFilterModal === 'companies' && (language === 'en' ? '🏛️ Companies' : language === 'ru' ? '🏛️ Компании' : '🏛️ Şirkətlər')}
+                  {mobileFilterModal === 'industries' && (language === 'en' ? '🏢 Industries' : language === 'ru' ? '🏢 Сферы деятельности' : '🏢 Şirkət Sahələri')}
+                  {mobileFilterModal === 'filters' && (language === 'en' ? '⚙️ All Filters' : language === 'ru' ? '⚙️ Все фильтры' : '⚙️ Bütün Filtrlər')}
+                  {mobileFilterModal === 'ai' && (language === 'en' ? '🤖 AI Smart Search' : language === 'ru' ? '🤖 Умный ИИ-поиск' : '🤖 AI Ağıllı Axtarış')}
                 </h3>
               </div>
               <button
@@ -2748,7 +2850,7 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
                   mobileFilterModal === 'categories' ? 'bg-blue-600 text-white shadow-2xs' : 'text-slate-600 hover:bg-slate-200'
                 }`}
               >
-                📁 Kateqoriyalar
+                📁 {language === 'en' ? 'Categories' : language === 'ru' ? 'Категории' : 'Kateqoriyalar'}
               </button>
               <button
                 type="button"
@@ -2757,7 +2859,7 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
                   mobileFilterModal === 'companies' ? 'bg-blue-600 text-white shadow-2xs' : 'text-slate-600 hover:bg-slate-200'
                 }`}
               >
-                🏛️ Şirkətlər
+                🏛️ {language === 'en' ? 'Companies' : language === 'ru' ? 'Компании' : 'Şirkətlər'}
               </button>
               <button
                 type="button"
@@ -2766,7 +2868,7 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
                   mobileFilterModal === 'industries' ? 'bg-emerald-600 text-white shadow-2xs' : 'text-slate-600 hover:bg-slate-200'
                 }`}
               >
-                🏢 Sahələr
+                🏢 {language === 'en' ? 'Industries' : language === 'ru' ? 'Сферы' : 'Sahələr'}
               </button>
               <button
                 type="button"
@@ -2775,7 +2877,7 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
                   mobileFilterModal === 'filters' ? 'bg-indigo-600 text-white shadow-2xs' : 'text-slate-600 hover:bg-slate-200'
                 }`}
               >
-                ⚙️ Parametrlər
+                ⚙️ {language === 'en' ? 'Parameters' : language === 'ru' ? 'Параметры' : 'Parametrlər'}
               </button>
             </div>
 
@@ -2796,7 +2898,7 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
                         : 'bg-slate-50 text-slate-800 hover:bg-slate-100 border border-slate-200'
                     }`}
                   >
-                    <span>📁 Bütün Kateqoriyalar</span>
+                    <span>📁 {language === 'en' ? 'All Categories' : language === 'ru' ? 'Все категории' : 'Bütün Kateqoriyalar'}</span>
                     <span className={`text-[10px] px-2 py-0.5 rounded-full ${
                       selectedCategory === 'Hamısı' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-600'
                     }`}>
@@ -2821,7 +2923,7 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
                             : 'bg-slate-50 text-slate-800 hover:bg-slate-100 border border-slate-200'
                         }`}
                       >
-                        <span className="truncate pr-2">{cat}</span>
+                        <span className="truncate pr-2">{getLocalizedCategory(cat, language)}</span>
                         <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold shrink-0 ${
                           isSelected ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-600'
                         }`}>
@@ -2842,7 +2944,7 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
                       type="text"
                       value={companySearchQuery}
                       onChange={(e) => setCompanySearchQuery(e.target.value)}
-                      placeholder="Şirkət adı üzrə axtar..."
+                      placeholder={language === 'en' ? 'Search by company name...' : language === 'ru' ? 'Поиск по названию компании...' : 'Şirkət adı üzrə axtar...'}
                       className="w-full pl-9 pr-8 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-900 outline-none focus:border-blue-500 font-medium"
                     />
                     {companySearchQuery && (
@@ -2869,7 +2971,7 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
                           : 'bg-slate-50 text-slate-800 hover:bg-slate-100 border border-slate-200'
                       }`}
                     >
-                      <span>🏛️ Bütün Şirkətlər</span>
+                      <span>🏛️ {language === 'en' ? 'All Companies' : language === 'ru' ? 'Все компании' : 'Bütün Şirkətlər'}</span>
                       <span className={`text-[10px] px-2 py-0.5 rounded-full ${
                         selectedCompany === 'Hamısı' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-600'
                       }`}>
@@ -2932,7 +3034,7 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
                         : 'bg-slate-50 text-slate-800 hover:bg-slate-100 border border-slate-200'
                     }`}
                   >
-                    <span>🏢 Bütün Sahələr</span>
+                    <span>🏢 {language === 'en' ? 'All Industries' : language === 'ru' ? 'Все сферы' : 'Bütün Sahələr'}</span>
                     <span className={`text-[10px] px-2 py-0.5 rounded-full ${
                       selectedIndustry === 'Hamısı' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-600'
                     }`}>
@@ -2957,7 +3059,7 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
                             : 'bg-slate-50 text-slate-800 hover:bg-slate-100 border border-slate-200 font-medium'
                         }`}
                       >
-                        <span className="truncate pr-2">{ind}</span>
+                        <span className="truncate pr-2">{getLocalizedCategory(ind, language)}</span>
                         <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold shrink-0 ${
                           isSelected ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-600'
                         }`}>
@@ -2973,7 +3075,9 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
               {mobileFilterModal === 'filters' && (
                 <div className="space-y-3.5 text-xs">
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">📍 Şəhər:</label>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      {language === 'en' ? '📍 City:' : language === 'ru' ? '📍 Город:' : '📍 Şəhər:'}
+                    </label>
                     <CitySearchSelect
                       selectedCity={selectedCity}
                       onSelectCity={setSelectedCity}
@@ -2981,13 +3085,15 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">💰 Minimum Əməkhaqqı:</label>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      {language === 'en' ? '💰 Minimum Salary:' : language === 'ru' ? '💰 Минимальная зарплата:' : '💰 Minimum Əməkhaqqı:'}
+                    </label>
                     <select
                       value={minSalaryFilter}
                       onChange={(e) => setMinSalaryFilter(Number(e.target.value))}
                       className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold text-slate-900 outline-none"
                     >
-                      <option value={0}>Bütün Maaşlar</option>
+                      <option value={0}>{dict.filters?.allSalaries || (language === 'en' ? 'All Salaries' : language === 'ru' ? 'Все зарплаты' : 'Bütün Maaşlar')}</option>
                       <option value={500}>500+ AZN</option>
                       <option value={800}>800+ AZN</option>
                       <option value={1000}>1,000+ AZN</option>
@@ -2998,17 +3104,19 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">🕒 Dərc Olunma Vaxtı:</label>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      {language === 'en' ? '🕒 Posted Time:' : language === 'ru' ? '🕒 Время публикации:' : '🕒 Dərc Olunma Vaxtı:'}
+                    </label>
                     <select
                       value={postedDateFilter}
                       onChange={(e) => setPostedDateFilter(e.target.value as any)}
                       className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold text-slate-900 outline-none"
                     >
-                      <option value="all">Bütün dövr</option>
-                      <option value="1_day">Son 24 saat</option>
-                      <option value="3_days">Son 3 gün</option>
-                      <option value="1_week">Son 1 həftə</option>
-                      <option value="2_weeks">Son 2 həftə</option>
+                      <option value="all">{language === 'en' ? 'All time' : language === 'ru' ? 'Все время' : 'Bütün dövr'}</option>
+                      <option value="1_day">{language === 'en' ? 'Last 24 hours' : language === 'ru' ? 'Последние 24 часа' : 'Son 24 saat'}</option>
+                      <option value="3_days">{language === 'en' ? 'Last 3 days' : language === 'ru' ? 'Последние 3 дня' : 'Son 3 gün'}</option>
+                      <option value="1_week">{language === 'en' ? 'Last 7 days' : language === 'ru' ? 'Последняя неделя' : 'Son 1 həftə'}</option>
+                      <option value="2_weeks">{language === 'en' ? 'Last 2 weeks' : language === 'ru' ? 'Последние 2 недели' : 'Son 2 həftə'}</option>
                     </select>
                   </div>
 
@@ -3018,14 +3126,14 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
                       onClick={handleResetFilters}
                       className="text-xs font-bold text-rose-600 hover:underline"
                     >
-                      Filtrləri Sıfırla
+                      {dict.filters?.reset || (language === 'en' ? 'Reset Filters' : language === 'ru' ? 'Сбросить фильтры' : 'Filtrləri Sıfırla')}
                     </button>
                     <button
                       type="button"
                       onClick={() => setMobileFilterModal('none')}
                       className="px-5 py-2 bg-blue-600 text-white rounded-xl text-xs font-black shadow-xs"
                     >
-                      Tətbiq et ({filteredAndSortedVacancies.length} elan)
+                      {language === 'en' ? `Apply (${filteredAndSortedVacancies.length} jobs)` : language === 'ru' ? `Применить (${filteredAndSortedVacancies.length} вак.)` : `Tətbiq et (${filteredAndSortedVacancies.length} elan)`}
                     </button>
                   </div>
                 </div>
@@ -3035,14 +3143,14 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
             {/* Modal Bottom Close */}
             <div className="p-3 bg-slate-50 border-t border-slate-200 flex items-center justify-between">
               <span className="text-xs font-bold text-slate-600">
-                {filteredAndSortedVacancies.length} vakansiya tapıldı
+                {filteredAndSortedVacancies.length} {language === 'en' ? 'vacancies found' : language === 'ru' ? 'вакансий найдено' : 'vakansiya tapıldı'}
               </span>
               <button
                 type="button"
                 onClick={() => setMobileFilterModal('none')}
                 className="px-4 py-1.5 bg-slate-900 text-white text-xs font-bold rounded-xl cursor-pointer"
               >
-                Vakansiyalara Bax
+                {language === 'en' ? 'View Vacancies' : language === 'ru' ? 'Смотреть вакансии' : 'Vakansiyalara Bax'}
               </button>
             </div>
           </div>

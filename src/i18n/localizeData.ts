@@ -397,3 +397,31 @@ export function getLocalizedJobTitle(title: string, lang: Language): string {
   }
   return title;
 }
+
+export function getLocalizedExperience(level: string, lang: Language): string {
+  return getLocalizedExperienceLevel(level, lang);
+}
+
+export function getLocalizedSortOption(sortKey: string, lang: Language): string {
+  const map: Record<string, Record<Language, string>> = {
+    'newest': { az: 'Ən yenilər', en: 'Newest', ru: 'Сначала новые' },
+    'salary-desc': { az: 'Maaş (Yüksəkdən aşağıya)', en: 'Highest Salary', ru: 'Сначала высокооплачиваемые' },
+    'salary-asc': { az: 'Maaş (Aşağıdan yuxarıya)', en: 'Lowest Salary', ru: 'Сначала с низкой зарплатой' },
+    'popular': { az: 'Populyarlıq', en: 'Most Popular', ru: 'Популярные' },
+    'views': { az: 'Baxış sayına görə', en: 'Most Viewed', ru: 'По просмотрам' },
+  };
+  return map[sortKey]?.[lang] || sortKey;
+}
+
+export function getLocalizedVacancyTitle(title: string, lang: Language): string {
+  return getLocalizedJobTitle(title, lang);
+}
+
+export function getLocalizedVacancyDescription(desc: string, _lang: Language): string {
+  return desc || '';
+}
+
+export function getLocalizedVacancyRequirements(req: string, _lang: Language): string {
+  return req || '';
+}
+

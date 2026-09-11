@@ -63,36 +63,42 @@ export const Footer: React.FC<FooterProps> = ({
           {/* Acronym Brand Explanation Badge */}
           <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-blue-50 text-blue-800 border border-blue-200 text-xs font-black tracking-wide mb-2 shadow-2xs">
             <Sparkles className="w-3.5 h-3.5 text-blue-600" />
-            <span>Azərbaycanın Ən Ağıllı Vakansiya və Karyera Platforması</span>
+            <span>
+              {language === 'en'
+                ? "Azerbaijan's Smartest Job & Career Platform"
+                : language === 'ru'
+                ? 'Самая умная платформа вакансий и карьеры в Азербайджане'
+                : 'Azərbaycanın Ən Ağıllı Vakansiya və Karyera Platforması'}
+            </span>
           </div>
 
           {/* Primary Slogan */}
           <h2 className="text-xl sm:text-2xl md:text-3xl font-black text-slate-900 tracking-tight leading-snug">
-            {dict.brand.heroHeadline || 'Gələcəyin İş İmkanları və Süni İntellekt Dəstəkli İşə Qəbul'}
+            {dict.brand.heroHeadline || (language === 'en' ? 'Future Job Opportunities & AI-Powered Recruitment' : language === 'ru' ? 'Возможности будущего и подбор персонала на базе ИИ' : 'Gələcəyin İş İmkanları və Süni İntellekt Dəstəkli İşə Qəbul')}
           </h2>
 
           {/* Subtitle with localized explanation */}
           <p className="mt-2 text-xs sm:text-sm text-slate-600 max-w-2xl mx-auto leading-relaxed">
-            {dict.brand.heroSubtitle || 'Jobia.az ilə minlərlə rəsmi vakansiyanı xəritədə tapın, AI ilə CV-nizi təhlil edin və iş təkliflərini birbaşa qəbul edin.'}
+            {dict.brand.heroSubtitle || (language === 'en' ? 'Find thousands of official vacancies on map, analyze your CV with AI, and receive direct job offers with Jobia.az.' : language === 'ru' ? 'С Jobia.az находите тысячи официальных вакансий на карте, анализируйте резюме с помощью ИИ и получайте предложения работы.' : 'Jobia.az ilə minlərlə rəsmi vakansiyanı xəritədə tapın, AI ilə CV-nizi təhlil edin və iş təkliflərini birbaşa qəbul edin.')}
           </p>
 
           {/* Feature Trust Pills */}
           <div className="mt-5 flex flex-wrap items-center justify-center gap-2 sm:gap-3 text-xs font-semibold text-slate-700">
             <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-blue-50 text-blue-700 border border-blue-100 shadow-2xs">
               <Zap className="w-3.5 h-3.5 text-blue-600" />
-              100% Pulsuz Müraciət
+              {language === 'en' ? '100% Free Application' : language === 'ru' ? '100% Бесплатный отклик' : '100% Pulsuz Müraciət'}
             </span>
             <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100 shadow-2xs">
               <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
-              AI CV Generator & Analiz
+              {language === 'en' ? 'AI CV Generator & Analysis' : language === 'ru' ? 'Генератор и анализ резюме на ИИ' : 'AI CV Generator & Analiz'}
             </span>
             <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-100 shadow-2xs">
               <Building2 className="w-3.5 h-3.5 text-indigo-600" />
-              Rəsmi İş Təklifləri Portalı
+              {language === 'en' ? 'Verified Job Offers Portal' : language === 'ru' ? 'Портал официальных вакансий' : 'Rəsmi İş Təklifləri Portalı'}
             </span>
             <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-100 text-slate-800 border border-slate-200 shadow-2xs">
               <Lock className="w-3.5 h-3.5 text-slate-600" />
-              256-Bit SSL Şifrələnmə
+              {language === 'en' ? '256-Bit SSL Encryption' : language === 'ru' ? '256-битное шифрование SSL' : '256-Bit SSL Şifrələnmə'}
             </span>
           </div>
         </div>
@@ -108,19 +114,23 @@ export const Footer: React.FC<FooterProps> = ({
               <JobiaLogo size="sm" withSubtitle={true} subtitle="Job Intelligence & Automation" />
             </div>
             <p className="text-xs text-slate-500 leading-relaxed">
-              Jobia.az — Azərbaycanın rəqəmsal əmək bazarında iş axtaranlar ilə aparıcı şirkətləri birləşdirən müasir platformadır.
+              {language === 'en' 
+                ? 'Jobia.az — Modern employment platform connecting job seekers with leading employers across Azerbaijan.'
+                : language === 'ru'
+                ? 'Jobia.az — современная платформа, соединяющая соискателей с ведущими компаниями на рынке труда Азербайджана.'
+                : 'Jobia.az — Azərbaycanın rəqəmsal əmək bazarında iş axtaranlar ilə aparıcı şirkətləri birləşdirən müasir platformadır.'}
             </p>
             <div className="pt-1 text-xs text-slate-600 font-medium space-y-1.5">
               <div className="flex items-center gap-1.5 text-emerald-600 font-bold">
                 <CheckCircle className="w-4 h-4 shrink-0" />
-                <span>Gündəlik Yenilənən Rəsmi Vakansiyalar</span>
+                <span>{language === 'en' ? 'Daily Updated Official Jobs' : language === 'ru' ? 'Ежедневно обновляемые вакансии' : 'Gündəlik Yenilənən Rəsmi Vakansiyalar'}</span>
               </div>
               <div className="text-[11px] text-slate-500 font-mono">
                 {brandAcronymFull}
               </div>
               <div className="text-[11px] text-slate-500 flex items-center gap-1.5">
                 <Scale className="w-3.5 h-3.5 text-blue-600 shrink-0" />
-                <span>VÖEN: <strong>1406283921</strong> (Dövlət Qeydiyyatı)</span>
+                <span>{language === 'en' ? 'TIN' : language === 'ru' ? 'ИНН' : 'VÖEN'}: <strong>1406283921</strong> ({language === 'en' ? 'State Registration' : language === 'ru' ? 'Госрегистрация' : 'Dövlət Qeydiyyatı'})</span>
               </div>
             </div>
             <div className="pt-2">
@@ -131,7 +141,7 @@ export const Footer: React.FC<FooterProps> = ({
           {/* Col 2: İş Axtaranlar (For Candidates) */}
           <div>
             <h4 className="text-xs font-bold uppercase tracking-wider text-slate-900 mb-3">
-              İş Axtaranlar
+              {language === 'en' ? 'Job Seekers' : language === 'ru' ? 'Соискателям' : 'İş Axtaranlar'}
             </h4>
             <ul className="space-y-2 text-xs text-slate-600">
               <li>
@@ -144,7 +154,7 @@ export const Footer: React.FC<FooterProps> = ({
                   className="hover:text-blue-600 flex items-center gap-1.5 transition-colors cursor-pointer text-left"
                 >
                   <Briefcase className="w-3.5 h-3.5 text-slate-400" />
-                  <span>Vakansiyalar</span>
+                  <span>{dict.nav.jobs}</span>
                 </button>
               </li>
               <li>
@@ -157,7 +167,7 @@ export const Footer: React.FC<FooterProps> = ({
                   className="hover:text-blue-600 flex items-center gap-1.5 transition-colors cursor-pointer text-left font-semibold text-blue-600"
                 >
                   <MapIcon className="w-3.5 h-3.5 text-blue-600" />
-                  <span>Xəritə ilə Axtarış</span>
+                  <span>{dict.nav.nearbyJobs || (language === 'en' ? 'Jobs on Map' : language === 'ru' ? 'Поиск на карте' : 'Xəritə ilə Axtarış')}</span>
                 </button>
               </li>
               <li>
@@ -170,7 +180,7 @@ export const Footer: React.FC<FooterProps> = ({
                   className="hover:text-blue-600 flex items-center gap-1.5 transition-colors cursor-pointer text-left"
                 >
                   <TrendingUp className="w-3.5 h-3.5 text-slate-400" />
-                  <span>Maaş İndeksi & Trendlər</span>
+                  <span>{dict.nav.salaryTrends}</span>
                 </button>
               </li>
               <li>
@@ -184,7 +194,7 @@ export const Footer: React.FC<FooterProps> = ({
                   className="hover:text-emerald-700 flex items-center gap-1.5 transition-colors cursor-pointer text-left font-bold text-emerald-600"
                 >
                   <Calculator className="w-3.5 h-3.5 text-emerald-500" />
-                  <span>Calculia (Net/Gross & Məzuniyyət)</span>
+                  <span>Calculia ({language === 'en' ? 'Net/Gross & Vacation' : language === 'ru' ? 'Зарплата и отпускные' : 'Net/Gross & Məzuniyyət'})</span>
                 </button>
               </li>
             </ul>
@@ -193,7 +203,7 @@ export const Footer: React.FC<FooterProps> = ({
           {/* Col 3: İşəgötürənlər (For Employers) */}
           <div>
             <h4 className="text-xs font-bold uppercase tracking-wider text-slate-900 mb-3">
-              İşəgötürənlər
+              {language === 'en' ? 'Employers' : language === 'ru' ? 'Работодателям' : 'İşəgötürənlər'}
             </h4>
             <ul className="space-y-2 text-xs text-slate-600">
               <li>
@@ -205,7 +215,7 @@ export const Footer: React.FC<FooterProps> = ({
                   className="hover:text-blue-600 flex items-center gap-1.5 transition-colors cursor-pointer text-left"
                 >
                   <Building2 className="w-3.5 h-3.5 text-slate-400" />
-                  <span>İşəgötürən Kabineti</span>
+                  <span>{language === 'en' ? 'Employer Cabinet' : language === 'ru' ? 'Кабинет работодателя' : 'İşəgötürən Kabineti'}</span>
                 </button>
               </li>
               <li>
@@ -217,7 +227,7 @@ export const Footer: React.FC<FooterProps> = ({
                   className="hover:text-blue-600 flex items-center gap-1.5 transition-colors cursor-pointer text-left font-semibold text-blue-600"
                 >
                   <Zap className="w-3.5 h-3.5 text-blue-600" />
-                  <span>Vakansiya Yerləşdir</span>
+                  <span>{language === 'en' ? 'Post a Vacancy' : language === 'ru' ? 'Разместить вакансию' : 'Vakansiya Yerləşdir'}</span>
                 </button>
               </li>
               <li>
@@ -229,7 +239,7 @@ export const Footer: React.FC<FooterProps> = ({
                   className="hover:text-blue-600 flex items-center gap-1.5 transition-colors cursor-pointer text-left"
                 >
                   <UserCheck className="w-3.5 h-3.5 text-slate-400" />
-                  <span>Şirkət Profili & Verifikasiya</span>
+                  <span>{language === 'en' ? 'Company Profile & Verification' : language === 'ru' ? 'Профиль компании и верификация' : 'Şirkət Profili & Verifikasiya'}</span>
                 </button>
               </li>
               <li>
@@ -241,7 +251,7 @@ export const Footer: React.FC<FooterProps> = ({
                   className="hover:text-blue-600 flex items-center gap-1.5 transition-colors cursor-pointer text-left"
                 >
                   <FileText className="w-3.5 h-3.5 text-slate-400" />
-                  <span>Rəsmi İş Təklifi (Job Offer) Portalı</span>
+                  <span>{language === 'en' ? 'Official Job Offer Portal' : language === 'ru' ? 'Официальный портал офферов' : 'Rəsmi İş Təklifi (Job Offer) Portalı'}</span>
                 </button>
               </li>
               <li>
@@ -253,7 +263,7 @@ export const Footer: React.FC<FooterProps> = ({
                   className="hover:text-blue-600 flex items-center gap-1.5 transition-colors cursor-pointer text-left"
                 >
                   <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-                  <span>Recruiting Analytics & Qiymətlər</span>
+                  <span>{language === 'en' ? 'Recruiting Analytics & Pricing' : language === 'ru' ? 'Аналитика рекрутинга и цены' : 'Recruiting Analytics & Qiymətlər'}</span>
                 </button>
               </li>
               <li>
@@ -265,7 +275,7 @@ export const Footer: React.FC<FooterProps> = ({
                   className="hover:text-blue-600 flex items-center gap-1.5 transition-colors cursor-pointer text-left font-semibold text-slate-700"
                 >
                   <ShieldCheck className="w-3.5 h-3.5 text-blue-600" />
-                  <span>Admin & Moderasiya Paneli</span>
+                  <span>{dict.nav.admin}</span>
                 </button>
               </li>
             </ul>
@@ -274,7 +284,7 @@ export const Footer: React.FC<FooterProps> = ({
           {/* Col 4: Hüquqi & Əlaqə */}
           <div>
             <h4 className="text-xs font-bold uppercase tracking-wider text-slate-900 mb-3">
-              Hüquqi & Təhlükəsizlik
+              {language === 'en' ? 'Legal & Security' : language === 'ru' ? 'Правовая информация' : 'Hüquqi & Təhlükəsizlik'}
             </h4>
             <ul className="space-y-2 text-xs text-slate-600">
               <li>
@@ -284,7 +294,7 @@ export const Footer: React.FC<FooterProps> = ({
                   className="hover:text-blue-600 flex items-center gap-1.5 transition-colors cursor-pointer text-left"
                 >
                   <Lock className="w-3.5 h-3.5 text-slate-400" />
-                  <span>Məxfilik Siyasəti (Privacy Policy)</span>
+                  <span>{language === 'en' ? 'Privacy Policy' : language === 'ru' ? 'Политика конфиденциальности' : 'Məxfilik Siyasəti (Privacy Policy)'}</span>
                 </button>
               </li>
               <li>
@@ -294,7 +304,7 @@ export const Footer: React.FC<FooterProps> = ({
                   className="hover:text-blue-600 flex items-center gap-1.5 transition-colors cursor-pointer text-left"
                 >
                   <FileCheck className="w-3.5 h-3.5 text-slate-400" />
-                  <span>İstifadəçi Müqaviləsi (Terms of Service)</span>
+                  <span>{language === 'en' ? 'Terms of Service' : language === 'ru' ? 'Пользовательское соглашение' : 'İstifadəçi Müqaviləsi (Terms of Service)'}</span>
                 </button>
               </li>
               <li>
@@ -304,7 +314,7 @@ export const Footer: React.FC<FooterProps> = ({
                   className="hover:text-blue-600 flex items-center gap-1.5 transition-colors cursor-pointer text-left"
                 >
                   <Globe className="w-3.5 h-3.5 text-slate-400" />
-                  <span>Kuki (Cookie) Siyasəti</span>
+                  <span>{language === 'en' ? 'Cookie Policy' : language === 'ru' ? 'Политика файлов cookie' : 'Kuki (Cookie) Siyasəti'}</span>
                 </button>
               </li>
               <li>
@@ -314,7 +324,7 @@ export const Footer: React.FC<FooterProps> = ({
                   className="hover:text-blue-600 flex items-center gap-1.5 transition-colors cursor-pointer text-left"
                 >
                   <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
-                  <span>Təhlükəsizlik & SSL Standartları</span>
+                  <span>{language === 'en' ? 'Security & SSL Standards' : language === 'ru' ? 'Безопасность и стандарты SSL' : 'Təhlükəsizlik & SSL Standartları'}</span>
                 </button>
               </li>
               <li>
@@ -324,7 +334,7 @@ export const Footer: React.FC<FooterProps> = ({
                   className="hover:text-blue-600 flex items-center gap-1.5 transition-colors cursor-pointer text-left font-semibold text-slate-800"
                 >
                   <Scale className="w-3.5 h-3.5 text-blue-600" />
-                  <span>AR Əmək Məcəlləsi Uyğunluğu</span>
+                  <span>{language === 'en' ? 'Labor Code Compliance' : language === 'ru' ? 'Соответствие трудовому кодексу АР' : 'AR Əmək Məcəlləsi Uyğunluğu'}</span>
                 </button>
               </li>
               <li className="pt-2 text-slate-500 text-[11px] space-y-1">
@@ -338,7 +348,7 @@ export const Footer: React.FC<FooterProps> = ({
                 </div>
                 <div className="flex items-center gap-1.5">
                   <MapPin className="w-3 h-3 text-slate-400" />
-                  <span>Bakı, Azure Biznes Mərkəzi</span>
+                  <span>{language === 'en' ? 'Baku, Azure Business Center' : language === 'ru' ? 'Баку, Azure Бизнес-центр' : 'Bakı, Azure Biznes Mərkəzi'}</span>
                 </div>
               </li>
             </ul>
@@ -351,11 +361,11 @@ export const Footer: React.FC<FooterProps> = ({
           <div className="flex items-center gap-2">
             <span className="font-black text-slate-800">Jobia.az</span>
             <span>—</span>
-            <span>© 2026 Bütün hüquqlar qorunur.</span>
+            <span>{language === 'en' ? '© 2026 All rights reserved.' : language === 'ru' ? '© 2026 Все права защищены.' : '© 2026 Bütün hüquqlar qorunur.'}</span>
           </div>
 
           <div className="flex items-center gap-1.5 text-slate-600 text-xs font-semibold">
-            <span>{dict.brand.slogan || 'Azərbaycanın Ən Ağıllı Vakansiya və Karyera Platforması'}</span>
+            <span>{dict.brand.slogan || (language === 'en' ? "Azerbaijan's Smartest Job & Career Platform" : language === 'ru' ? 'Самая умная платформа вакансий и карьеры в Азербайджане' : 'Azərbaycanın Ən Ağıllı Vakansiya və Karyera Platforması')}</span>
             <Heart className="w-3.5 h-3.5 text-red-500 fill-red-500 inline ml-0.5" />
           </div>
         </div>
@@ -369,11 +379,11 @@ export const Footer: React.FC<FooterProps> = ({
               <div className="flex items-center gap-2">
                 <JobiaLogo size="sm" />
                 <h3 className="font-bold text-slate-900 text-base">
-                  {activeLegalModal === 'privacy' && 'Məxfilik Siyasəti (Privacy Policy)'}
-                  {activeLegalModal === 'terms' && 'İstifadəçi Müqaviləsi və Şərtlər (Terms of Service)'}
-                  {activeLegalModal === 'cookies' && 'Kuki (Cookie) Siyasəti və Tənzimləmələri'}
-                  {activeLegalModal === 'security' && 'Təhlükəsizlik və Məlumatların Qorunması'}
-                  {activeLegalModal === 'compliance' && 'AR Əmək Qanunvericiliyi və Hüquqi Uyğunluq'}
+                  {activeLegalModal === 'privacy' && (language === 'en' ? 'Privacy Policy' : language === 'ru' ? 'Политика конфиденциальности' : 'Məxfilik Siyasəti (Privacy Policy)')}
+                  {activeLegalModal === 'terms' && (language === 'en' ? 'Terms of Service' : language === 'ru' ? 'Пользовательское соглашение' : 'İstifadəçi Müqaviləsi və Şərtlər (Terms of Service)')}
+                  {activeLegalModal === 'cookies' && (language === 'en' ? 'Cookie Policy' : language === 'ru' ? 'Политика файлов cookie' : 'Kuki (Cookie) Siyasəti və Tənzimləmələri')}
+                  {activeLegalModal === 'security' && (language === 'en' ? 'Security & Data Protection' : language === 'ru' ? 'Безопасность и защита данных' : 'Təhlükəsizlik və Məlumatların Qorunması')}
+                  {activeLegalModal === 'compliance' && (language === 'en' ? 'Labor Law & Legal Compliance' : language === 'ru' ? 'Трудовое законодательство и соответствие' : 'AR Əmək Qanunvericiliyi və Hüquqi Uyğunluq')}
                 </h3>
               </div>
               <button
@@ -388,45 +398,63 @@ export const Footer: React.FC<FooterProps> = ({
               {activeLegalModal === 'privacy' && (
                 <>
                   <p>
-                    <strong>Jobia.az</strong> olaraq istifadəçilərimizin fərdi məlumatlarının məxfiliyinə və təhlükəsizliyinə xüsusi həssaslıqla yanaşırıq. Bu Məxfilik Siyasəti Azərbaycan Respublikasının "Fərdi məlumatlar haqqında" Qanununa və beynəlxalq standartlara tam uyğun hazırlanmışdır.
+                    <strong>Jobia.az</strong> {language === 'en' ? 'takes user data privacy and security with the utmost sensitivity. This Privacy Policy is prepared in full compliance with the Law on Personal Data and international standards.' : language === 'ru' ? 'уделяет первостепенное внимание конфиденциальности и безопасности персональных данных. Настоящая Политика конфиденциальности составлена в полном соответствии с Законом о персональных данных и международными стандартами.' : 'olaraq istifadəçilərimizin fərdi məlumatlarının məxfiliyinə və təhlükəsizliyinə xüsusi həssaslıqla yanaşırıq. Bu Məxfilik Siyasəti Azərbaycan Respublikasının "Fərdi məlumatlar haqqında" Qanununa və beynəlxalq standartlara tam uyğun hazırlanmışdır.'}
                   </p>
-                  <h4 className="font-bold text-slate-800 text-xs">1. Toplanan Məlumatlar</h4>
-                  <p>Qeydiyyat zamanı təqdim etdiyiniz ad, soyad, e-poçt, telefon nömrəsi, CV məlumatları və iş müraciətləri yalnız platformanın təyinatı üzrə istifadə olunur.</p>
-                  <h4 className="font-bold text-slate-800 text-xs">2. Məlumatların Qorunması</h4>
-                  <p>Bütün məlumatlar 256-Bit SSL şifrələnmə ilə qorunur və heç bir halda üçüncü şəxslərə kommersiya məqsədilə satılmır.</p>
+                  <h4 className="font-bold text-slate-800 text-xs">
+                    {language === 'en' ? '1. Collected Information' : language === 'ru' ? '1. Собираемая информация' : '1. Toplanan Məlumatlar'}
+                  </h4>
+                  <p>
+                    {language === 'en' ? 'Information provided during registration (full name, email, phone, CV details, and applications) is strictly used for platform purposes only.' : language === 'ru' ? 'Информация, предоставленная при регистрации (ФИО, email, телефон, данные резюме и отклики), используется исключительно в целях функционирования платформы.' : 'Qeydiyyat zamanı təqdim etdiyiniz ad, soyad, e-poçt, telefon nömrəsi, CV məlumatları və iş müraciətləri yalnız platformanın təyinatı üzrə istifadə olunur.'}
+                  </p>
+                  <h4 className="font-bold text-slate-800 text-xs">
+                    {language === 'en' ? '2. Data Protection' : language === 'ru' ? '2. Защита данных' : '2. Məlumatların Qorunması'}
+                  </h4>
+                  <p>
+                    {language === 'en' ? 'All data is secured with 256-Bit SSL encryption and is never sold to third parties for commercial gain.' : language === 'ru' ? 'Все данные защищены 256-битным SSL-шифрованием и ни при каких обстоятельствах не продаются третьим лицам в коммерческих целях.' : 'Bütün məlumatlar 256-Bit SSL şifrələnmə ilə qorunur və heç bir halda üçüncü şəxslərə kommersiya məqsədilə satılmır.'}
+                  </p>
                 </>
               )}
 
               {activeLegalModal === 'terms' && (
                 <>
                   <p>
-                    Jobia.az platformasından istifadə etməklə siz aşağıdakı qaydaları və şərtləri qəbul etmiş olursunuz:
+                    {language === 'en' ? 'By using the Jobia.az platform, you agree to the following terms and conditions:' : language === 'ru' ? 'Используя платформу Jobia.az, вы принимаете следующие условия и правила:' : 'Jobia.az platformasından istifadə etməklə siz aşağıdakı qaydaları və şərtləri qəbul etmiş olursunuz:'}
                   </p>
-                  <h4 className="font-bold text-slate-800 text-xs">1. Xidmətin Təyinatı</h4>
-                  <p>Jobia.az iş axtaranlar (namizədlər) və işəgötürənlər arasında etibarlı, sürətli və şəffaf əlaqə yaradan süni intellekt dəstəkli platformadır.</p>
-                  <h4 className="font-bold text-slate-800 text-xs">2. Elan Yerləşdirmə Standartları</h4>
-                  <p>Dərc edilən bütün vakansiyalar AR Əmək Məcəlləsinin ayrı-seçkiliyə yol verilməməsi (yaş, cins və s. məhdudiyyətlərin qadağan olunması) tələblərinə cavab verməlidir.</p>
+                  <h4 className="font-bold text-slate-800 text-xs">
+                    {language === 'en' ? '1. Purpose of Service' : language === 'ru' ? '1. Назначение сервиса' : '1. Xidmətin Təyinatı'}
+                  </h4>
+                  <p>
+                    {language === 'en' ? 'Jobia.az is an AI-powered platform providing reliable, fast, and transparent connections between job seekers and employers.' : language === 'ru' ? 'Jobia.az — платформа на базе искусственного интеллекта, обеспечивающая надежную, быструю и прозрачную связь между соискателями и работодателями.' : 'Jobia.az iş axtaranlar (namizədlər) və işəgötürənlər arasında etibarlı, sürətli və şəffaf əlaqə yaradan süni intellekt dəstəkli platformadır.'}
+                  </p>
+                  <h4 className="font-bold text-slate-800 text-xs">
+                    {language === 'en' ? '2. Job Posting Standards' : language === 'ru' ? '2. Стандарты размещения вакансий' : '2. Elan Yerləşdirmə Standartları'}
+                  </h4>
+                  <p>
+                    {language === 'en' ? 'All published job openings must comply with anti-discrimination regulations in labor laws.' : language === 'ru' ? 'Все публикуемые вакансии должны соответствовать требованиям трудового законодательства о недопущении дискриминации.' : 'Dərc edilən bütün vakansiyalar AR Əmək Məcəlləsinin ayrı-seçkiliyə yol verilməməsi (yaş, cins və s. məhdudiyyətlərin qadağan olunması) tələblərinə cavab verməlidir.'}
+                  </p>
                 </>
               )}
 
               {activeLegalModal === 'cookies' && (
                 <>
                   <p>
-                    Platformamız sayt təcrübənizi yaxşılaşdırmaq, sessiyanızı yadda saxlamaq və analitik ölçmələr aparmaq üçün təhlükəsiz kukilərdən (cookies) istifadə edir.
+                    {language === 'en' ? 'Our platform uses secure cookies to improve your browsing experience, maintain session state, and perform analytics.' : language === 'ru' ? 'Наша платформа использует безопасные файлы cookie для улучшения пользовательского опыта, сохранения сессий и проведения аналитики.' : 'Platformamız sayt təcrübənizi yaxşılaşdırmaq, sessiyanızı yadda saxlamaq və analitik ölçmələr aparmaq üçün təhlükəsiz kukilərdən (cookies) istifadə edir.'}
                   </p>
-                  <p>İstədiyiniz zaman brauzerinizin parametrlərindən kukiləri silə və ya məhdudlaşdıra bilərsiniz.</p>
+                  <p>
+                    {language === 'en' ? 'You can clear or restrict cookies at any time through your browser settings.' : language === 'ru' ? 'Вы можете в любой момент удалить или ограничить файлы cookie в настройках браузера.' : 'İstədiyiniz zaman brauzerinizin parametrlərindən kukiləri silə və ya məhdudlaşdıra bilərsiniz.'}
+                  </p>
                 </>
               )}
 
               {activeLegalModal === 'security' && (
                 <>
                   <p>
-                    Jobia.az platformasında istifadəçi hesabları və məlumat bazası ən yüksək təhlükəsizlik protokolları ilə qorunur:
+                    {language === 'en' ? 'User accounts and databases on Jobia.az are protected by the highest industry security protocols:' : language === 'ru' ? 'Учетные записи и базы данных на платформе Jobia.az защищены по высочайшим стандартам безопасности:' : 'Jobia.az platformasında istifadəçi hesabları və məlumat bazası ən yüksək təhlükəsizlik protokolları ilə qorunur:'}
                   </p>
                   <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 space-y-1.5">
-                    <div>• <strong>256-bit TLS/SSL Şifrələmə:</strong> Bütün şəbəkə sorğuları təhlükəsiz kanal üzərindən ötürülür.</div>
-                    <div>• <strong>E-poçt və Hesab Doğrulaması:</strong> Saxta profillərin qarşısını almaq üçün 6-rəqəmli OTP və e-poçt təsdiqi tətbiq olunur.</div>
-                    <div>• <strong>Rol Əsaslı İcazələr (RBAC):</strong> Hər bir istifadəçi yalnız öz roluna aid funksiyalara daxil ola bilər.</div>
+                    <div>• <strong>256-bit TLS/SSL:</strong> {language === 'en' ? 'All network requests are transmitted over encrypted tunnels.' : language === 'ru' ? 'Все сетевые запросы передаются по зашифрованному каналу.' : 'Bütün şəbəkə sorğuları təhlükəsiz kanal üzərindən ötürülür.'}</div>
+                    <div>• <strong>OTP & Verification:</strong> {language === 'en' ? '6-digit OTP codes and email validation prevent fake accounts.' : language === 'ru' ? '6-значные OTP-коды и верификация почты предотвращают фейковые профили.' : 'Saxta profillərin qarşısını almaq üçün 6-rəqəmli OTP və e-poçt təsdiqi tətbiq olunur.'}</div>
+                    <div>• <strong>RBAC Permissions:</strong> {language === 'en' ? 'Role-based access control guarantees users only access functions permitted to their account type.' : language === 'ru' ? 'Ролевая модель гарантирует доступ только к функциям конкретной учетной записи.' : 'Hər bir istifadəçi yalnız öz roluna aid funksiyalara daxil ola bilər.'}</div>
                   </div>
                 </>
               )}
@@ -434,13 +462,13 @@ export const Footer: React.FC<FooterProps> = ({
               {activeLegalModal === 'compliance' && (
                 <>
                   <p>
-                    <strong>Jobia.az</strong> fəaliyyətini Azərbaycan Respublikasının Məşğulluq Haqqında Qanununa və AR Əmək Məcəlləsinə tam uyğun olaraq həyata keçirir.
+                    <strong>Jobia.az</strong> {language === 'en' ? 'operates strictly in line with Employment Law and Labor Code regulations.' : language === 'ru' ? 'осуществляет деятельность в полном соответствии с Законом о занятости и Трудовым кодексом.' : 'fəaliyyətini Azərbaycan Respublikasının Məşğulluq Haqqında Qanununa və AR Əmək Məcəlləsinə tam uyğun olaraq həyata keçirir.'}
                   </p>
                   <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 space-y-1.5">
-                    <div>• <strong>Hüquqi Şəxs:</strong> Jobia.az Rəqəmsal Karyera Platforması</div>
-                    <div>• <strong>VÖEN:</strong> 1406283921</div>
-                    <div>• <strong>Məkan:</strong> Bakı şəhəri, Azure Biznes Mərkəzi</div>
-                    <div>• <strong>Əlaqə:</strong> support@jobia.az</div>
+                    <div>• <strong>{language === 'en' ? 'Legal Entity:' : language === 'ru' ? 'Юридическое лицо:' : 'Hüquqi Şəxs:'}</strong> Jobia.az</div>
+                    <div>• <strong>{language === 'en' ? 'TIN:' : language === 'ru' ? 'ИНН:' : 'VÖEN:'}</strong> 1406283921</div>
+                    <div>• <strong>{language === 'en' ? 'Location:' : language === 'ru' ? 'Адрес:' : 'Məkan:'}</strong> {language === 'en' ? 'Baku, Azure Business Center' : language === 'ru' ? 'Баку, Azure Бизнес-центр' : 'Bakı şəhəri, Azure Biznes Mərkəzi'}</div>
+                    <div>• <strong>{language === 'en' ? 'Contact:' : language === 'ru' ? 'Контакты:' : 'Əlaqə:'}</strong> support@jobia.az</div>
                   </div>
                 </>
               )}
@@ -451,7 +479,7 @@ export const Footer: React.FC<FooterProps> = ({
                 onClick={() => setActiveLegalModal(null)}
                 className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl transition cursor-pointer"
               >
-                Anladım və Bağla
+                {language === 'en' ? 'Understood & Close' : language === 'ru' ? 'Понятно, закрыть' : 'Anladım və Bağla'}
               </button>
             </div>
           </div>

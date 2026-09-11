@@ -35,6 +35,7 @@ export const translations = {
       upgradePlan: 'Planı Yüksəlt',
       currentPlan: 'Cari Plan:',
       activePortal: 'AKTİV PORTAL',
+      settings: 'Tənzimləmələr',
     },
     hero: {
       badge: 'AĞILLI KARYERA VƏ VAKANSİYA PLATFORMASI',
@@ -412,6 +413,7 @@ export const translations = {
       upgradePlan: 'Upgrade Plan',
       currentPlan: 'Current Plan:',
       activePortal: 'ACTIVE PORTAL',
+      settings: 'Settings',
     },
     hero: {
       badge: 'SMART CAREER & AI RECRUITMENT PLATFORM',
@@ -789,6 +791,7 @@ export const translations = {
       upgradePlan: 'Повысить план',
       currentPlan: 'Текущий план:',
       activePortal: 'АКТИВНЫЙ ПОРТАЛ',
+      settings: 'Настройки',
     },
     hero: {
       badge: 'УМНАЯ КАРЬЕРНАЯ И AI ПЛАТФОРМА',

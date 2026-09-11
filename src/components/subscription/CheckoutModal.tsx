@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { SubscriptionPlan, BillingCycle, User, UserRole, UserSubscription } from '../../types';
 import { processCardPayment, formatCardNumber } from '../../services/paymentService';
 import { applySubscriptionUpgrade } from '../../services/subscriptionService';
+import { useLanguage } from '../../context/LanguageContext';
 import { 
   X, 
   CreditCard, 
@@ -40,6 +41,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   onSuccess,
   onRequireAuth,
 }) => {
+  const { language } = useLanguage();
   const [cycle, setCycle] = useState<BillingCycle>(billingCycle);
   const [cardNumber, setCardNumber] = useState('');
   const [cardHolder, setCardHolder] = useState(currentUser?.fullName || '');
@@ -54,6 +56,9 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   const [txReceipt, setTxReceipt] = useState<{ id: string; amount: number; planName: string } | null>(null);
 
   if (!isOpen) return null;
+
+  const isEn = language === 'en';
+  const isRu = language === 'ru';
 
   const unitPrice = cycle === 'yearly' ? plan.priceYearly : plan.priceMonthly;
   const totalAmount = cycle === 'yearly' ? plan.priceYearly * 12 : plan.priceMonthly;
@@ -85,17 +90,17 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
     }
 
     if (cardNumber.replace(/\s/g, '').length < 16) {
-      setErrorMsg('Kart nömrəsi tam 16 rəqəm olmalıdır.');
+      setErrorMsg(isEn ? 'Card number must be 16 digits.' : isRu ? 'Номер карты должен содержать 16 цифр.' : 'Kart nömrəsi tam 16 rəqəm olmalıdır.');
       return;
     }
 
     if (!cardHolder.trim()) {
-      setErrorMsg('Kart sahibinin adını qeyd edin.');
+      setErrorMsg(isEn ? 'Please enter cardholder name.' : isRu ? 'Укажите имя владельца карты.' : 'Kart sahibinin adını qeyd edin.');
       return;
     }
 
     if (cvv.length < 3) {
-      setErrorMsg('CVV kodu 3 rəqəm olmalıdır.');
+      setErrorMsg(isEn ? 'CVV must be 3 digits.' : isRu ? 'CVV должен содержать 3 цифры.' : 'CVV kodu 3 rəqəm olmalıdır.');
       return;
     }
 
@@ -144,7 +149,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
         onSuccess(subscription);
       }, 1500);
     } catch (err: any) {
-      setErrorMsg(err.message || 'Ödəniş həyata keçirilərkən xəta baş verdi.');
+      setErrorMsg(err.message || (isEn ? 'An error occurred during payment.' : isRu ? 'Произошла ошибка при оплате.' : 'Ödəniş həyata keçirilərkən xəta baş verdi.'));
     } finally {
       setLoading(false);
     }
@@ -158,12 +163,12 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
           <div>
             <div className="flex items-center gap-2 mb-1">
               <span className="bg-blue-100 text-blue-800 text-[10px] font-extrabold px-2 py-0.5 rounded-full uppercase tracking-wider">
-                Təhlükəsiz Ödəniş Portalı
+                {isEn ? 'Secure Payment Portal' : isRu ? 'Безопасный платежный шлюз' : 'Təhlükəsiz Ödəniş Portalı'}
               </span>
             </div>
             <h2 className="text-xl font-black text-slate-900 flex items-center gap-2">
               <CreditCard className="w-5 h-5 text-blue-600" />
-              <span>Abunəlik Ödənişi</span>
+              <span>{isEn ? 'Subscription Checkout' : isRu ? 'Оплата подписки' : 'Abunəlik Ödənişi'}</span>
             </h2>
           </div>
 
@@ -184,30 +189,32 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 <CheckCircle2 className="w-10 h-10" />
               </div>
               <div>
-                <h3 className="text-xl font-black text-slate-900">Ödəniş Uğurla Tamamlandı!</h3>
+                <h3 className="text-xl font-black text-slate-900">
+                  {isEn ? 'Payment Successfully Completed!' : isRu ? 'Оплата успешно завершена!' : 'Ödəniş Uğurla Tamamlandı!'}
+                </h3>
                 <p className="text-xs text-slate-500 mt-1">
-                  <strong>{txReceipt?.planName}</strong> abunəliyiniz dərhal aktivləşdirildi.
+                  <strong>{txReceipt?.planName}</strong> {isEn ? 'subscription has been activated instantly.' : isRu ? 'подписка была моментально активирована.' : 'abunəliyiniz dərhal aktivləşdirildi.'}
                 </p>
               </div>
 
               <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 text-left text-xs space-y-2 max-w-sm mx-auto">
                 <div className="flex justify-between">
-                  <span className="text-slate-500">Tranzaksiya ID:</span>
+                  <span className="text-slate-500">{isEn ? 'Transaction ID:' : isRu ? 'ID транзакции:' : 'Tranzaksiya ID:'}</span>
                   <span className="font-mono font-bold text-slate-800">{txReceipt?.id}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-slate-500">Ödənilən Məbləğ:</span>
+                  <span className="text-slate-500">{isEn ? 'Amount Paid:' : isRu ? 'Оплаченная сумма:' : 'Ödənilən Məbləğ:'}</span>
                   <span className="font-bold text-emerald-700">{txReceipt?.amount} AZN</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-slate-500">Status:</span>
+                  <span className="text-slate-500">{isEn ? 'Status:' : isRu ? 'Статус:' : 'Status:'}</span>
                   <span className="font-bold text-emerald-600 flex items-center gap-1">
-                    <CheckCircle2 className="w-3.5 h-3.5" /> Uğurlu (Aktiv)
+                    <CheckCircle2 className="w-3.5 h-3.5" /> {isEn ? 'Successful (Active)' : isRu ? 'Успешно (Активен)' : 'Uğurlu (Aktiv)'}
                   </span>
                 </div>
               </div>
 
-              <p className="text-xs text-slate-400">Dashboard-a yönləndirilirsiniz...</p>
+              <p className="text-xs text-slate-400">{isEn ? 'Redirecting to dashboard...' : isRu ? 'Перенаправление в панель...' : 'Dashboard-a yönləndirilirsiniz...'}</p>
             </div>
           ) : (
             /* Checkout Form */
@@ -236,7 +243,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                         cycle === 'monthly' ? 'bg-blue-600 text-white' : 'text-slate-600'
                       }`}
                     >
-                      Aylıq
+                      {isEn ? 'Monthly' : isRu ? 'Месяц' : 'Aylıq'}
                     </button>
                     <button
                       type="button"
@@ -245,13 +252,13 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                         cycle === 'yearly' ? 'bg-blue-600 text-white' : 'text-slate-600'
                       }`}
                     >
-                      İllik (-20%)
+                      {isEn ? 'Yearly (-20%)' : isRu ? 'Год (-20%)' : 'İllik (-20%)'}
                     </button>
                   </div>
                   <div className="mt-1 text-right">
                     <span className="text-base font-black text-blue-700">{totalAmount} AZN</span>
                     <span className="text-[11px] text-slate-500 block">
-                      {cycle === 'yearly' ? '12 aylıq cəmi ödəniş' : 'aylıq ödəniş'}
+                      {cycle === 'yearly' ? (isEn ? 'total 12-month billing' : isRu ? 'итого за 12 месяцев' : '12 aylıq cəmi ödəniş') : (isEn ? 'monthly billing' : isRu ? 'ежемесячно' : 'aylıq ödəniş')}
                     </span>
                   </div>
                 </div>
@@ -270,14 +277,14 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 <div className="flex items-center justify-between">
                   <label className="text-xs font-bold text-slate-700 flex items-center gap-1">
                     <CreditCard className="w-3.5 h-3.5 text-blue-600" />
-                    <span>Bank Kartı Məlumatları</span>
+                    <span>{isEn ? 'Bank Card Details' : isRu ? 'Данные банковской карты' : 'Bank Kartı Məlumatları'}</span>
                   </label>
                   <button
                     type="button"
                     onClick={handleFillTestCard}
                     className="text-[11px] text-blue-600 hover:text-blue-800 font-bold hover:underline cursor-pointer"
                   >
-                    + Test Kartını Doldur
+                    {isEn ? '+ Auto-Fill Test Card' : isRu ? '+ Заполнить тест-карту' : '+ Test Kartını Doldur'}
                   </button>
                 </div>
 
@@ -294,11 +301,13 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
 
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                   <div className="col-span-2 sm:col-span-1">
-                    <label className="block text-[11px] font-bold text-slate-600 mb-1">Kart Sahibi</label>
+                    <label className="block text-[11px] font-bold text-slate-600 mb-1">
+                      {isEn ? 'Cardholder Name' : isRu ? 'Имя на карте' : 'Kart Sahibi'}
+                    </label>
                     <input
                       type="text"
                       required
-                      placeholder="AD SOYAD"
+                      placeholder={isEn ? 'FULL NAME' : isRu ? 'ИМЯ ФАМИЛИЯ' : 'AD SOYAD'}
                       value={cardHolder}
                       onChange={(e) => setCardHolder(e.target.value.toUpperCase())}
                       className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs uppercase font-medium text-slate-900 focus:bg-white focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 transition-all"
@@ -306,7 +315,9 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                   </div>
 
                   <div>
-                    <label className="block text-[11px] font-bold text-slate-600 mb-1">Bitmə Tarixi</label>
+                    <label className="block text-[11px] font-bold text-slate-600 mb-1">
+                      {isEn ? 'Expiry Date' : isRu ? 'Срок действия' : 'Bitmə Tarixi'}
+                    </label>
                     <div className="flex items-center gap-1">
                       <select
                         value={expiryMonth}
@@ -353,7 +364,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
               <div className="flex items-center justify-between py-2 border-t border-b border-slate-100 text-[11px] text-slate-500">
                 <span className="flex items-center gap-1">
                   <Lock className="w-3.5 h-3.5 text-emerald-600" />
-                  <span>256-bit SSL Təhlükəsizlik</span>
+                  <span>{isEn ? '256-bit SSL Protection' : isRu ? '256-битное шифрование SSL' : '256-bit SSL Təhlükəsizlik'}</span>
                 </span>
                 <span className="flex items-center gap-2">
                   <span className="font-bold text-slate-700">Visa Secure</span>
@@ -371,12 +382,12 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 {loading ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>Ödəniş həyata keçirilir...</span>
+                    <span>{isEn ? 'Processing payment...' : isRu ? 'Обработка платежа...' : 'Ödəniş həyata keçirilir...'}</span>
                   </>
                 ) : (
                   <>
                     <ShieldCheck className="w-4 h-4" />
-                    <span>{totalAmount} AZN Ödə və Planı Aktivləşdir</span>
+                    <span>{totalAmount} AZN {isEn ? 'Pay & Activate Plan' : isRu ? 'Оплатить и активировать' : 'Ödə və Planı Aktivləşdir'}</span>
                   </>
                 )}
               </button>
@@ -386,7 +397,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
 
         {/* Animated Moving Brand Logo at Modal Bottom */}
         <ModalBottomLogo
-          tagline="Jobia.az Təhlükəsiz Abunəlik və Ödəniş Sistemi"
+          tagline={isEn ? 'Jobia.az Secure Subscription & Payment System' : isRu ? 'Jobia.az Безопасная система подписки и оплаты' : 'Jobia.az Təhlükəsiz Abunəlik və Ödəniş Sistemi'}
           variant="slate"
           size="xs"
         />

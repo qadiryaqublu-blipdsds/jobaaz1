@@ -298,15 +298,15 @@ export const JobDetailModal: React.FC<JobDetailModalProps> = ({
     const phone = applicantPhone.trim() || (isCandidateUser && currentUser?.phone ? currentUser.phone : '');
 
     if (!name) {
-      setFormValidationError('Zəhmət olmasa ad və soyadınızı daxil edin.');
+      setFormValidationError(language === 'en' ? 'Please enter your full name.' : language === 'ru' ? 'Пожалуйста, введите имя и фамилию.' : 'Zəhmət olmasa ad və soyadınızı daxil edin.');
       return;
     }
     if (!phone) {
-      setFormValidationError('Zəhmət olmasa əlaqə telefonunuzu daxil edin.');
+      setFormValidationError(language === 'en' ? 'Please enter your phone number.' : language === 'ru' ? 'Пожалуйста, введите номер телефона.' : 'Zəhmət olmasa əlaqə telefonunuzu daxil edin.');
       return;
     }
     if (!email) {
-      setFormValidationError('Zəhmət olmasa e-poçt ünvanınızı daxil edin.');
+      setFormValidationError(language === 'en' ? 'Please enter your email address.' : language === 'ru' ? 'Пожалуйста, введите адрес электронной почты.' : 'Zəhmət olmasa e-poçt ünvanınızı daxil edin.');
       return;
     }
 
@@ -359,13 +359,17 @@ export const JobDetailModal: React.FC<JobDetailModalProps> = ({
                   }`}
                   title={
                     isFollowingCategory
-                      ? `"${vacancy.category}" kateqoriyası izlənilir (Bildiriş aktivdir)`
-                      : `"${vacancy.category}" kateqoriyası üzrə yeni vakansiyaları izlə`
+                      ? `"${vacancy.category}" ${language === 'en' ? 'category followed' : language === 'ru' ? 'категория отслеживается' : 'kateqoriyası izlənilir'}`
+                      : `"${vacancy.category}" ${language === 'en' ? 'follow category' : language === 'ru' ? 'отслеживать категорию' : 'kateqoriyası üzrə yeni vakansiyaları izlə'}`
                   }
                 >
                   <Bell className={`w-3 h-3 ${isFollowingCategory ? 'fill-current' : ''}`} />
-                  <span>{vacancy.category}</span>
-                  {isFollowingCategory && <span className="text-[9px] opacity-90 font-black">✓ İzlənilir</span>}
+                  <span>{getLocalizedCategory(vacancy.category, language)}</span>
+                  {isFollowingCategory && (
+                    <span className="text-[9px] opacity-90 font-black">
+                      ✓ {language === 'en' ? 'Following' : language === 'ru' ? 'Отслеживается' : 'İzlənilir'}
+                    </span>
+                  )}
                 </button>
                 {vacancy.isFeatured && (
                   <span className="text-[10px] sm:text-[11px] font-bold px-2 py-0.5 rounded-md bg-amber-50 text-amber-700 border border-amber-200">
@@ -377,7 +381,9 @@ export const JobDetailModal: React.FC<JobDetailModalProps> = ({
                 </span>
               </div>
               <h2 className="text-base sm:text-xl md:text-2xl font-bold text-slate-900 mt-1 leading-tight break-words">
-                {isApplying ? `Müraciət: ${vacancy.title}` : vacancy.title}
+                {isApplying 
+                  ? (language === 'en' ? `Apply: ${getLocalizedJobTitle(vacancy.title, language)}` : language === 'ru' ? `Отклик: ${getLocalizedJobTitle(vacancy.title, language)}` : `Müraciət: ${vacancy.title}`)
+                  : getLocalizedJobTitle(vacancy.title, language)}
               </h2>
               <div className="flex flex-wrap items-center gap-y-1 gap-x-3 sm:gap-x-4 text-[11px] sm:text-xs text-slate-600 mt-1.5 sm:mt-2 font-medium">
                 <div className="flex items-center gap-1.5">
@@ -395,21 +401,21 @@ export const JobDetailModal: React.FC<JobDetailModalProps> = ({
                     }`}
                     title={
                       isFollowingCompany
-                        ? `"${vacancy.companyName}" izlənilir (Yeni vakansiyalarda bildiriş alırsınız)`
-                        : `"${vacancy.companyName}" şirkətinin vakansiyalarını izlə`
+                        ? `"${vacancy.companyName}" ${language === 'en' ? 'company followed' : language === 'ru' ? 'компания отслеживается' : 'izlənilir'}`
+                        : `"${vacancy.companyName}" ${language === 'en' ? 'follow company' : language === 'ru' ? 'отслеживать компанию' : 'şirkətinin vakansiyalarını izlə'}`
                     }
                   >
                     <BellRing className={`w-2.5 h-2.5 ${isFollowingCompany ? 'text-blue-700' : 'text-slate-500'}`} />
-                    <span>{isFollowingCompany ? 'İzlənilir' : 'İzlə'}</span>
+                    <span>{isFollowingCompany ? (language === 'en' ? 'Following' : language === 'ru' ? 'Отслеживается' : 'İzlənilir') : (language === 'en' ? 'Follow' : language === 'ru' ? 'Подписаться' : 'İzlə')}</span>
                   </button>
                 </div>
                 <span className="flex items-center gap-1">
                   <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                  {vacancy.city}
+                  {getLocalizedCity(vacancy.city, language)}
                 </span>
                 <span className="flex items-center gap-1">
                   <Briefcase className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                  {vacancy.employmentType}
+                  {getLocalizedEmploymentType(vacancy.employmentType, language)}
                 </span>
                 <span className="flex items-center gap-1 text-blue-700 font-bold">
                   <DollarSign className="w-3.5 h-3.5 text-blue-600 shrink-0" />
@@ -459,7 +465,9 @@ export const JobDetailModal: React.FC<JobDetailModalProps> = ({
                   className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-600 hover:text-blue-800 hover:underline cursor-pointer"
                 >
                   <ArrowLeft className="w-3.5 h-3.5" />
-                  <span>Vakansiya tələblərinə qayıt</span>
+                  <span>
+                    {language === 'en' ? 'Back to vacancy details' : language === 'ru' ? 'Вернуться к описанию вакансии' : 'Vakansiya tələblərinə qayıt'}
+                  </span>
                 </button>
                 <span className="text-[11px] text-slate-500 font-medium">
                   {vacancy.companyName}
@@ -485,7 +493,7 @@ export const JobDetailModal: React.FC<JobDetailModalProps> = ({
                       <div className="font-bold text-slate-900 flex items-center gap-1.5">
                         <span>{currentUser?.fullName || applicantName}</span>
                         <span className="text-[10px] bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full font-bold">
-                          Qeydiyyatlı Namizəd
+                          {language === 'en' ? 'Registered Candidate' : language === 'ru' ? 'Зарегистрированный кандидат' : 'Qeydiyyatlı Namizəd'}
                         </span>
                       </div>
                       <div className="text-[11px] text-slate-500">
@@ -496,7 +504,9 @@ export const JobDetailModal: React.FC<JobDetailModalProps> = ({
 
                   <div className="flex items-center gap-1.5 text-[11px] text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200 font-bold">
                     <CheckCircle className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                    <span>Sistemdəki Aktiv CV-niz istifadə olunacaq</span>
+                    <span>
+                      {language === 'en' ? 'Your active CV on the platform will be used' : language === 'ru' ? 'Будет использовано ваше активное резюме' : 'Sistemdəki Aktiv CV-niz istifadə olunacaq'}
+                    </span>
                   </div>
                 </div>
               ) : (
@@ -504,7 +514,9 @@ export const JobDetailModal: React.FC<JobDetailModalProps> = ({
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex items-center gap-1.5 font-bold text-amber-950">
                       <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
-                      <span>Qeydiyyatsız Birbaşa Müraciət</span>
+                      <span>
+                        {language === 'en' ? 'Direct Application without Registration' : language === 'ru' ? 'Прямой отклик без регистрации' : 'Qeydiyyatsız Birbaşa Müraciət'}
+                      </span>
                     </div>
                     {onOpenAuthModal && (
                       <button
@@ -513,12 +525,16 @@ export const JobDetailModal: React.FC<JobDetailModalProps> = ({
                         className="text-blue-700 hover:text-blue-900 font-bold underline flex items-center gap-1 cursor-pointer shrink-0"
                       >
                         <LogIn className="w-3 h-3" />
-                        <span>Hesaba Daxil Ol</span>
+                        <span>{language === 'en' ? 'Sign In' : language === 'ru' ? 'Войти в аккаунт' : 'Hesaba Daxil Ol'}</span>
                       </button>
                     )}
                   </div>
                   <p className="text-amber-800 text-[11px] leading-relaxed">
-                    Aşağıdakı əlaqə məlumatlarınızı doldurun və CV faylınızı (PDF/DOCX) əlavə edin. Müraciətiniz birbaşa işəgötürənə çatdırılacaq.
+                    {language === 'en'
+                      ? 'Fill in your contact details below and attach your CV (PDF/DOCX). Your application will be sent directly to the employer.'
+                      : language === 'ru'
+                      ? 'Заполните ваши контактные данные ниже и прикрепите резюме (PDF/DOCX). Ваш отклик будет отправлен напрямую работодателю.'
+                      : 'Aşağıdakı əlaqə məlumatlarınızı doldurun və CV faylınızı (PDF/DOCX) əlavə edin. Müraciətiniz birbaşa işəgötürənə çatdırılacaq.'}
                   </p>
                 </div>
               )}
@@ -527,27 +543,29 @@ export const JobDetailModal: React.FC<JobDetailModalProps> = ({
               <div className="bg-white p-4 rounded-xl border border-slate-200 space-y-3 shadow-2xs">
                 <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
                   <FileText className="w-3.5 h-3.5 text-blue-600" />
-                  <span>Əlaqə və Namizəd Məlumatları</span>
+                  <span>
+                    {language === 'en' ? 'Contact & Candidate Information' : language === 'ru' ? 'Контакты и информация кандидата' : 'Əlaqə və Namizəd Məlumatları'}
+                  </span>
                 </h3>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="block text-[11px] font-bold text-slate-700 mb-1">
-                      Ad və Soyad <span className="text-red-500">*</span>
+                      {language === 'en' ? 'Full Name' : language === 'ru' ? 'Имя и Фамилия' : 'Ad və Soyad'} <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="text"
                       required
                       value={applicantName}
                       onChange={(e) => setApplicantName(e.target.value)}
-                      placeholder="Məsələn: Əli Məmmədov"
+                      placeholder={language === 'en' ? 'e.g. John Doe' : language === 'ru' ? 'напр. Иван Иванов' : 'Məsələn: Əli Məmmədov'}
                       className="w-full text-xs p-2.5 rounded-lg border border-slate-300 focus:border-blue-600 focus:ring-1 focus:ring-blue-600 outline-none bg-white font-medium text-slate-900"
                     />
                   </div>
 
                   <div>
                     <label className="block text-[11px] font-bold text-slate-700 mb-1">
-                      Əlaqə Telefonu (WhatsApp) <span className="text-red-500">*</span>
+                      {language === 'en' ? 'Phone Number (WhatsApp)' : language === 'ru' ? 'Номер телефона (WhatsApp)' : 'Əlaqə Telefonu (WhatsApp)'} <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="tel"
@@ -561,27 +579,27 @@ export const JobDetailModal: React.FC<JobDetailModalProps> = ({
 
                   <div>
                     <label className="block text-[11px] font-bold text-slate-700 mb-1">
-                      E-poçt Ünvanı <span className="text-red-500">*</span>
+                      {language === 'en' ? 'Email Address' : language === 'ru' ? 'Электронная почта' : 'E-poçt Ünvanı'} <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="email"
                       required
                       value={applicantEmail}
                       onChange={(e) => setApplicantEmail(e.target.value)}
-                      placeholder="adiniz@example.com"
+                      placeholder="name@example.com"
                       className="w-full text-xs p-2.5 rounded-lg border border-slate-300 focus:border-blue-600 focus:ring-1 focus:ring-blue-600 outline-none bg-white font-medium text-slate-900"
                     />
                   </div>
 
                   <div>
                     <label className="block text-[11px] font-bold text-slate-700 mb-1">
-                      İxtisas / Mövcud Vəzifə
+                      {language === 'en' ? 'Specialization / Current Title' : language === 'ru' ? 'Специальность / Текущая должность' : 'İxtisas / Mövcud Vəzifə'}
                     </label>
                     <input
                       type="text"
                       value={applicantJobTitle}
                       onChange={(e) => setApplicantJobTitle(e.target.value)}
-                      placeholder={vacancy.title}
+                      placeholder={getLocalizedJobTitle(vacancy.title, language)}
                       className="w-full text-xs p-2.5 rounded-lg border border-slate-300 focus:border-blue-600 focus:ring-1 focus:ring-blue-600 outline-none bg-white font-medium text-slate-900"
                     />
                   </div>
@@ -592,9 +610,16 @@ export const JobDetailModal: React.FC<JobDetailModalProps> = ({
               <div className="bg-white p-4 rounded-xl border border-slate-200 space-y-2 shadow-2xs">
                 <div className="flex items-center justify-between">
                   <label className="block text-xs font-bold text-slate-800">
-                    CV Faylı (PDF, DOC, DOCX) {!isCandidateUser && <span className="text-blue-600 font-bold">(Tövsiyə olunur)</span>}
+                    {language === 'en' ? 'CV File (PDF, DOC, DOCX)' : language === 'ru' ? 'Файл резюме (PDF, DOC, DOCX)' : 'CV Faylı (PDF, DOC, DOCX)'}{' '}
+                    {!isCandidateUser && (
+                      <span className="text-blue-600 font-bold">
+                        ({language === 'en' ? 'Recommended' : language === 'ru' ? 'Рекомендуется' : 'Tövsiyə olunur'})
+                      </span>
+                    )}
                   </label>
-                  <span className="text-[10px] text-slate-400">Maksimum 10 MB</span>
+                  <span className="text-[10px] text-slate-400">
+                    {language === 'en' ? 'Max 10 MB' : language === 'ru' ? 'Максимум 10 МБ' : 'Maksimum 10 MB'}
+                  </span>
                 </div>
 
                 <input
@@ -616,7 +641,7 @@ export const JobDetailModal: React.FC<JobDetailModalProps> = ({
                           {cvFileAttachment.fileName}
                         </div>
                         <div className="text-[10px] text-emerald-700 font-medium">
-                          {cvFileAttachment.fileSize} • Fayl uğurla əlavə edildi
+                          {cvFileAttachment.fileSize} • {language === 'en' ? 'File successfully attached' : language === 'ru' ? 'Файл успешно прикреплен' : 'Fayl uğurla əlavə edildi'}
                         </div>
                       </div>
                     </div>
@@ -627,13 +652,13 @@ export const JobDetailModal: React.FC<JobDetailModalProps> = ({
                         onClick={() => fileInputRef.current?.click()}
                         className="text-xs text-emerald-700 hover:text-emerald-900 font-bold underline cursor-pointer"
                       >
-                        Dəyiş
+                        {language === 'en' ? 'Change' : language === 'ru' ? 'Изменить' : 'Dəyiş'}
                       </button>
                       <button
                         type="button"
                         onClick={() => setCvFileAttachment(null)}
                         className="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
-                        title="Faylı sil"
+                        title={language === 'en' ? 'Remove file' : language === 'ru' ? 'Удалить файл' : 'Faylı sil'}
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -656,10 +681,16 @@ export const JobDetailModal: React.FC<JobDetailModalProps> = ({
                   >
                     <UploadCloud className="w-7 h-7 text-blue-600 mx-auto mb-1" />
                     <p className="text-xs font-bold text-slate-800">
-                      CV sənədinizi buraya sürükləyin və ya <span className="text-blue-600 underline">kompüterdən seçin</span>
+                      {language === 'en' ? (
+                        <>Drag and drop your CV here or <span className="text-blue-600 underline">browse files</span></>
+                      ) : language === 'ru' ? (
+                        <>Перетащите резюме сюда или <span className="text-blue-600 underline">выберите файл</span></>
+                      ) : (
+                        <>CV sənədinizi buraya sürükləyin və ya <span className="text-blue-600 underline">kompüterdən seçin</span></>
+                      )}
                     </p>
                     <p className="text-[10px] text-slate-500 mt-0.5">
-                      Dəstəklənən formatlar: PDF, Word (DOC, DOCX)
+                      {language === 'en' ? 'Supported formats: PDF, Word (DOC, DOCX)' : language === 'ru' ? 'Поддерживаемые форматы: PDF, Word (DOC, DOCX)' : 'Dəstəklənən formatlar: PDF, Word (DOC, DOCX)'}
                     </p>
                   </div>
                 )}
@@ -669,25 +700,25 @@ export const JobDetailModal: React.FC<JobDetailModalProps> = ({
               <div className="bg-white p-4 rounded-xl border border-slate-200 space-y-3 shadow-2xs">
                 <div>
                   <label className="block text-[11px] font-bold text-slate-700 mb-1">
-                    Portfolio / LinkedIn / GitHub Linki (İxtiyari)
+                    {language === 'en' ? 'Portfolio / LinkedIn / GitHub Link (Optional)' : language === 'ru' ? 'Ссылка на портфолио / LinkedIn / GitHub (Необязательно)' : 'Portfolio / LinkedIn / GitHub Linki (İxtiyari)'}
                   </label>
                   <input
                     type="url"
                     value={applicantPortfolio}
                     onChange={(e) => setApplicantPortfolio(e.target.value)}
-                    placeholder="https://linkedin.com/in/profiliniz və ya portfolio linki"
+                    placeholder={language === 'en' ? 'https://linkedin.com/in/your-profile or portfolio URL' : language === 'ru' ? 'https://linkedin.com/in/ваш-профиль или ссылка' : 'https://linkedin.com/in/profiliniz və ya portfolio linki'}
                     className="w-full text-xs p-2.5 rounded-lg border border-slate-300 focus:border-blue-600 focus:ring-1 focus:ring-blue-600 outline-none bg-white font-medium text-slate-900"
                   />
                 </div>
 
                 <div>
                   <label className="block text-[11px] font-bold text-slate-700 mb-1">
-                    İşəgötürənə Qeyd / Müşayiət Məktubu (İxtiyari)
+                    {language === 'en' ? 'Note to Employer / Cover Letter (Optional)' : language === 'ru' ? 'Сопроводительное письмо работодателю (Необязательно)' : 'İşəgötürənə Qeyd / Müşayiət Məktubu (İxtiyari)'}
                   </label>
                   <textarea
                     value={coverNote}
                     onChange={(e) => setCoverNote(e.target.value)}
-                    placeholder="Salam, bu vakansiya üzrə təcrübəmin şirkətiniz üçün faydalı olacağına inanıram..."
+                    placeholder={language === 'en' ? 'Hello, I believe my experience and skills make me a great fit for this position...' : language === 'ru' ? 'Здравствуйте, мой опыт работы и навыки соответствуют требованиям этой вакансии...' : 'Salam, bu vakansiya üzrə təcrübəmin şirkətiniz üçün faydalı olacağına inanıram...'}
                     rows={2}
                     className="w-full text-xs p-2.5 rounded-lg border border-slate-300 focus:border-blue-600 focus:ring-1 focus:ring-blue-600 outline-none resize-none bg-white font-medium text-slate-900"
                   />
@@ -701,7 +732,9 @@ export const JobDetailModal: React.FC<JobDetailModalProps> = ({
                   className="w-full py-3.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition-all cursor-pointer"
                 >
                   <Send className="w-4 h-4" />
-                  <span>Müraciəti Tamamla və İşəgötürənə Göndər 🚀</span>
+                  <span>
+                    {language === 'en' ? 'Submit Application to Employer 🚀' : language === 'ru' ? 'Отправить отклик работодателю 🚀' : 'Müraciəti Tamamla və İşəgötürənə Göndər 🚀'}
+                  </span>
                 </button>
               </div>
             </form>
@@ -1025,7 +1058,13 @@ export const JobDetailModal: React.FC<JobDetailModalProps> = ({
 
         {/* Dynamic moving Jobia Logo at bottom of modal */}
         <ModalBottomLogo
-          tagline="Jobia.az Rəsmi Vakansiya Təfərrüatları"
+          tagline={
+            language === 'en'
+              ? 'Jobia.az Official Vacancy Details'
+              : language === 'ru'
+              ? 'Jobia.az Официальные детали вакансии'
+              : 'Jobia.az Rəsmi Vakansiya Təfərrüatları'
+          }
           variant="slate"
           size="xs"
         />
