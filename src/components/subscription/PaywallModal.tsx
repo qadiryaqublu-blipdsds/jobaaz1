@@ -96,11 +96,11 @@ export const PaywallModal: React.FC<PaywallModalProps> = ({
         </button>
 
         {/* Header with decorative badge */}
-        <div className="p-6 bg-gradient-to-br from-slate-900 via-slate-800 to-blue-950 text-white relative overflow-hidden">
-          <div className="absolute -right-8 -bottom-8 w-32 h-32 bg-blue-500/20 rounded-full blur-2xl"></div>
+        <div className="p-6 bg-gradient-to-br from-[#0b1b2b] via-[#0d2238] to-[#0b1b2b] text-white relative overflow-hidden">
+          <div className="absolute -right-8 -bottom-8 w-32 h-32 bg-[#00a859]/20 rounded-full blur-2xl"></div>
           
           <div className="flex items-center gap-2 mb-2">
-            <span className="bg-blue-500/30 text-blue-300 border border-blue-400/30 text-[10px] font-extrabold px-2.5 py-0.5 rounded-full uppercase tracking-wider flex items-center gap-1">
+            <span className="bg-[#00a859]/20 text-[#00a859] border border-[#00a859]/30 text-[10px] font-extrabold px-2.5 py-0.5 rounded-full uppercase tracking-wider flex items-center gap-1">
               <Lock className="w-3 h-3" />
               <span>{requiredTier} {isEn ? 'Plan Feature' : isRu ? 'Функция тарифа' : 'Plan İmkanı'}</span>
             </span>
@@ -123,7 +123,7 @@ export const PaywallModal: React.FC<PaywallModalProps> = ({
           <ul className="space-y-2.5">
             {proFeatures.map((f, idx) => (
               <li key={idx} className="flex items-start gap-2 text-xs text-slate-700">
-                <div className="w-4 h-4 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 mt-0.5">
+                <div className="w-4 h-4 rounded-full bg-[#00a859]/10 text-[#00a859] flex items-center justify-center shrink-0 mt-0.5">
                   <CheckCircle2 className="w-3.5 h-3.5" />
                 </div>
                 <span className="font-medium">{f}</span>
@@ -134,8 +134,8 @@ export const PaywallModal: React.FC<PaywallModalProps> = ({
           <div className="pt-2 border-t border-slate-100 flex items-center justify-between gap-3">
             <div>
               <span className="text-[11px] text-slate-400 block">{isEn ? 'Starts at:' : isRu ? 'Стоимость от:' : 'Aylıq cəmi:'}</span>
-              <span className="text-lg font-black text-slate-900">
-                {isEmployer ? '39 AZN' : '6.90 AZN'}{' '}
+              <span className="text-lg font-black text-[#0b1b2b]">
+                {isEmployer ? '39 AZN' : '7 AZN'}{' '}
                 <span className="text-xs font-normal text-slate-500">{isEn ? '/mo' : isRu ? '/мес' : '/aydan'}</span>
               </span>
             </div>
@@ -145,7 +145,7 @@ export const PaywallModal: React.FC<PaywallModalProps> = ({
                 onClose();
                 onUpgradeClick();
               }}
-              className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-sm transition-all flex items-center gap-1.5 cursor-pointer"
+              className="px-5 py-2.5 bg-[#00a859] hover:bg-[#00914c] text-white font-bold text-xs rounded-xl shadow-sm transition-all flex items-center gap-1.5 cursor-pointer"
             >
               <span>{isEn ? `Upgrade to ${requiredTier}` : isRu ? `Перейти на ${requiredTier}` : `${requiredTier}-a Keç`}</span>
               <ArrowRight className="w-3.5 h-3.5" />

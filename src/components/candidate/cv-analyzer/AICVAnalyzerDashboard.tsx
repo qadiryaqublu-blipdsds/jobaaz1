@@ -31,7 +31,8 @@ import {
   Code,
   Clock,
   Quote,
-  Lightbulb
+  Lightbulb,
+  ArrowRight
 } from 'lucide-react';
 import {
   CVAnalyzerResult,
@@ -45,6 +46,7 @@ import {
   EvidenceReferenceItem
 } from '../../../types/cvAnalyzer';
 import { useLanguage } from '../../../context/LanguageContext';
+import { AnalysisReportModal } from './AnalysisReportModal';
 
 interface AICVAnalyzerDashboardProps {
   data: CVAnalyzerResult;
@@ -61,6 +63,7 @@ export const AICVAnalyzerDashboard: React.FC<AICVAnalyzerDashboardProps> = ({
   >('ats');
   const [copiedSummary, setCopiedSummary] = useState(false);
   const [expandedCriteria, setExpandedCriteria] = useState<Record<string, boolean>>({});
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
 
   const toggleCriteria = (key: string) => {
     setExpandedCriteria(prev => ({ ...prev, [key]: !prev[key] }));
@@ -143,7 +146,17 @@ export const AICVAnalyzerDashboard: React.FC<AICVAnalyzerDashboardProps> = ({
             </div>
           </div>
 
-          <div className="flex items-center gap-2 self-start md:self-center">
+          <div className="flex items-center gap-2 self-start md:self-center flex-wrap">
+            <button
+              id="open-analysis-report-header-btn"
+              type="button"
+              onClick={() => setIsReportModalOpen(true)}
+              className="px-3.5 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold bg-gradient-to-r from-indigo-600 via-indigo-700 to-blue-600 hover:from-indigo-500 hover:to-blue-500 text-white shadow-sm flex items-center gap-1.5 transition-all"
+            >
+              <Sparkles className="w-4 h-4 text-indigo-200" />
+              <span>Analiz Hesabatı (Qrafik və Məsləhətlər)</span>
+            </button>
+
             <button
               type="button"
               onClick={onReset}
@@ -277,6 +290,35 @@ export const AICVAnalyzerDashboard: React.FC<AICVAnalyzerDashboardProps> = ({
       {/* TAB 1: ATS 100-POINT DETERMINISTIC SCORING */}
       {activeTab === 'ats' && (
         <div className="space-y-6">
+          {/* Interactive Report Banner */}
+          <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white p-4 sm:p-5 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border border-indigo-800/40 shadow-sm">
+            <div className="flex items-start gap-3.5">
+              <div className="w-10 h-10 rounded-xl bg-indigo-500/20 border border-indigo-400/30 flex items-center justify-center shrink-0 text-indigo-300">
+                <TrendingUp className="w-5 h-5" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h4 className="font-bold text-sm sm:text-base text-white">Çatışmayan Açar Sözlər Qrafiki və Analiz Hesabatı</h4>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-indigo-500/30 text-indigo-200 border border-indigo-400/30">
+                    İnteraktiv Hesabat
+                  </span>
+                </div>
+                <p className="text-xs text-slate-300 mt-1 max-w-xl leading-relaxed">
+                  Namizədə hansı açar sözlərin çatışmadığını kateqoriyalar üzrə qrafikdə görün, nümunə cümlələri kopyalayın və Google XYZ qaydası ilə dəqiq düzəlişlər əldə edin.
+                </p>
+              </div>
+            </div>
+            <button
+              id="open-analysis-report-banner-btn"
+              type="button"
+              onClick={() => setIsReportModalOpen(true)}
+              className="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs sm:text-sm shrink-0 flex items-center gap-2 transition-colors shadow-sm self-stretch sm:self-auto justify-center"
+            >
+              <span>Hesabatı Aç</span>
+              <ArrowRight className="w-4 h-4" />
+            </button>
+          </div>
+
           {/* Main Score Hero Card */}
           <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-6">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-center">
@@ -1027,6 +1069,13 @@ export const AICVAnalyzerDashboard: React.FC<AICVAnalyzerDashboardProps> = ({
           )}
         </div>
       )}
+
+      {/* Full Graphical Analysis Report Modal */}
+      <AnalysisReportModal
+        isOpen={isReportModalOpen}
+        onClose={() => setIsReportModalOpen(false)}
+        data={data}
+      />
     </div>
   );
 };

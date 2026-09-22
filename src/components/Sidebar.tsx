@@ -28,15 +28,23 @@ import {
   PanelLeftOpen,
   Settings,
   BellRing,
-  GripVertical
+  GripVertical,
+  Palmtree,
+  UserCheck,
+  Award,
+  BarChart3,
+  Users
 } from 'lucide-react';
 
 interface SidebarProps {
   currentRole: UserRole;
   onRoleChange: (role: UserRole) => void;
-  candidateTab: 'jobs' | 'nearby-map' | 'my-applications' | 'salary-trends' | 'calculia' | 'google-chat' | 'cv-analyzer' | 'cv-creator';
-  onCandidateTabChange: (tab: 'jobs' | 'nearby-map' | 'my-applications' | 'salary-trends' | 'calculia' | 'google-chat' | 'cv-analyzer' | 'cv-creator') => void;
+  candidateTab: 'jobs' | 'nearby-map' | 'my-applications' | 'salary-trends' | 'salary-calculator' | 'vacation-calculator' | 'calculia' | 'google-chat' | 'cv-analyzer' | 'cv-creator' | 'network';
+  onCandidateTabChange: (tab: 'jobs' | 'nearby-map' | 'my-applications' | 'salary-trends' | 'salary-calculator' | 'vacation-calculator' | 'calculia' | 'google-chat' | 'cv-analyzer' | 'cv-creator' | 'network') => void;
+  businessTab?: 'vacancies' | 'applicants' | 'offers' | 'analytics' | 'templates' | 'company-profile' | 'talent-pool' | 'vacation-calculator';
+  onBusinessTabChange?: (tab: 'vacancies' | 'applicants' | 'offers' | 'analytics' | 'templates' | 'company-profile' | 'talent-pool' | 'vacation-calculator') => void;
   applicationsCount?: number;
+  offersCount?: number;
   activeVacanciesCount?: number;
   pendingApprovalsCount?: number;
   savedJobsCount?: number;
@@ -65,7 +73,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onRoleChange,
   candidateTab,
   onCandidateTabChange,
+  businessTab = 'vacancies',
+  onBusinessTabChange,
   applicationsCount = 0,
+  offersCount = 0,
   activeVacanciesCount = 0,
   pendingApprovalsCount = 0,
   savedJobsCount = 0,
@@ -181,7 +192,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     window.addEventListener('touchend', handleTouchEnd);
   };
 
-  const handleTabClick = (tab: 'jobs' | 'nearby-map' | 'my-applications' | 'salary-trends' | 'calculia' | 'google-chat' | 'cv-analyzer' | 'cv-creator') => {
+  const handleTabClick = (tab: 'jobs' | 'nearby-map' | 'my-applications' | 'salary-trends' | 'salary-calculator' | 'vacation-calculator' | 'calculia' | 'google-chat' | 'cv-analyzer' | 'cv-creator' | 'network') => {
     onCandidateTabChange(tab);
     onCloseMobile();
   };
@@ -191,7 +202,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
     onCloseMobile();
   };
 
-  const navItems = [
+  // Primary Core Navigation for Candidates
+  const primaryNavItems = [
     {
       id: 'jobs' as const,
       label: dict.nav.jobs,
@@ -200,69 +212,72 @@ export const Sidebar: React.FC<SidebarProps> = ({
       color: 'blue',
     },
     {
-      id: 'cv-creator' as const,
-      label: language === 'en' ? 'CV Creator' : language === 'ru' ? 'Конструктор резюме' : 'CV yaradıcı',
-      icon: FileText,
-      badge: null,
-      color: 'emerald',
-    },
-    {
-      id: 'cv-analyzer' as const,
-      label: 'AI CV Analizator & ATS',
-      icon: Sparkles,
-      badge: 'JOBIA AI',
-      badgeClass: 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-black text-[9px] shadow-2xs',
+      id: 'network' as const,
+      label: language === 'en' ? 'Network' : language === 'ru' ? 'Сеть' : 'Peşəkar Şəbəkə',
+      icon: Users,
+      badge: 'YENİ',
+      badgeClass: 'bg-blue-100 text-blue-800 font-bold border border-blue-200/80',
       color: 'blue',
     },
     {
-      id: 'nearby-map' as const,
-      label: dict.nav.nearbyJobs || (language === 'en' ? 'Jobs on Map' : language === 'ru' ? 'Вакансии на карте' : 'Xəritədə Vakansiyalar'),
-      icon: Compass,
-      badge: language === 'en' ? 'NEW' : language === 'ru' ? 'НОВОЕ' : 'YENİ',
-      badgeClass: 'bg-emerald-500 text-white font-bold',
-      color: 'emerald',
+      id: 'cv-creator' as const,
+      label: language === 'en' ? 'CV Creator' : language === 'ru' ? 'Конструктор резюме' : 'CV Yaradıcı',
+      icon: FileText,
+      badge: null,
+      color: 'blue',
     },
     {
-      id: 'salary-trends' as const,
-      label: dict.nav.salaryTrends,
-      icon: TrendingUp,
-      badge: '2026',
-      color: 'indigo',
+      id: 'cv-analyzer' as const,
+      label: 'AI CV Analizator',
+      icon: Sparkles,
+      badge: null,
+      color: 'blue',
     },
     {
       id: 'my-applications' as const,
       label: dict.nav.myApplications,
       icon: CheckCircle2,
       badge: applicationsCount > 0 ? applicationsCount : null,
-      badgeClass: 'bg-blue-100 text-blue-700',
+      badgeClass: 'bg-blue-600 text-white font-bold',
+      color: 'blue',
+    },
+  ];
+
+  // Secondary Tools Navigation for Candidates (Ayrı-ayrı Maaşını hesabla və Məzuniyyətini hesabla)
+  const toolsNavItems = [
+    {
+      id: 'salary-calculator' as const,
+      label: language === 'en' ? 'Calculate Salary' : language === 'ru' ? 'Рассчитать зарплату' : 'Maaşını hesabla',
+      icon: Calculator,
+      badge: null,
       color: 'blue',
     },
     {
-      id: 'calculia' as const,
-      label: 'Salaria & Vacatia',
-      icon: Calculator,
-      badge: language === 'en' ? 'Salary' : language === 'ru' ? 'Зарплата' : 'Maaş',
-      badgeClass: 'bg-indigo-100 text-indigo-700 text-[9px]',
-      color: 'indigo',
+      id: 'vacation-calculator' as const,
+      label: language === 'en' ? 'Calculate Vacation' : language === 'ru' ? 'Рассчитать отпуск' : 'Məzuniyyətini hesabla',
+      icon: Palmtree,
+      badge: null,
+      color: 'blue',
     },
     {
-      id: 'google-chat' as const,
-      label: dict.nav.googleChat,
-      icon: MessageSquare,
-      badge: language === 'en' ? 'Live' : language === 'ru' ? 'Онлайн' : 'Canlı',
-      badgeClass: 'bg-emerald-100 text-emerald-700 animate-pulse',
-      color: 'emerald',
-      onClick: () => {
-        if (onOpenGoogleChat) onOpenGoogleChat();
-        else handleTabClick('google-chat');
-      }
+      id: 'nearby-map' as const,
+      label: dict.nav.nearbyJobs || (language === 'en' ? 'Jobs on Map' : language === 'ru' ? 'Вакансии на карте' : 'Xəritədə Vakansiyalar'),
+      icon: Compass,
+      badge: null,
+      color: 'blue',
+    },
+    {
+      id: 'salary-trends' as const,
+      label: dict.nav.salaryTrends,
+      icon: TrendingUp,
+      badge: null,
+      color: 'blue',
     },
     {
       id: 'job-alerts' as any,
-      label: language === 'en' ? 'Job Alerts' : language === 'ru' ? 'Уведомления и подписки' : 'İzləmə & Bildirişlər',
+      label: language === 'en' ? 'Job Alerts' : language === 'ru' ? 'Уведомления' : 'İzləmə & Bildirişlər',
       icon: BellRing,
-      badge: 'Alerts',
-      badgeClass: 'bg-blue-100 text-blue-700 font-bold text-[9px]',
+      badge: null,
       color: 'blue',
       onClick: () => {
         if (onOpenJobAlerts) {
@@ -272,11 +287,38 @@ export const Sidebar: React.FC<SidebarProps> = ({
       }
     },
     {
+      id: 'talent-pool' as any,
+      label: language === 'en' ? 'Candidate Pool' : language === 'ru' ? 'База кадров' : 'Kadr Bankı',
+      icon: UserCheck,
+      badge: 'TOP',
+      color: 'blue',
+      onClick: () => {
+        onRoleChange('business');
+        if (onBusinessTabChange) onBusinessTabChange('talent-pool');
+        onCloseMobile();
+      }
+    },
+    {
+      id: 'google-chat' as const,
+      label: dict.nav.googleChat,
+      icon: MessageSquare,
+      badge: null,
+      color: 'blue',
+      onClick: () => {
+        if (onOpenGoogleChat) onOpenGoogleChat();
+        else handleTabClick('google-chat');
+      }
+    },
+  ];
+
+  const navItems = [
+    ...primaryNavItems,
+    ...toolsNavItems,
+    {
       id: 'settings' as any,
       label: dict.nav.settings || (language === 'en' ? 'Settings' : language === 'ru' ? 'Настройки' : 'Tənzimləmələr'),
       icon: Settings,
-      badge: language === 'en' ? 'NEW' : language === 'ru' ? 'НОВОЕ' : 'YENİ',
-      badgeClass: 'bg-blue-100 text-blue-700 font-bold text-[9px]',
+      badge: null,
       color: 'blue',
       onClick: () => {
         if (onOpenProfileModal) {
@@ -669,32 +711,28 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     onOpenPricing();
                     onCloseMobile();
                   }}
-                  className="relative overflow-hidden p-3 rounded-2xl bg-amber-50/80 hover:bg-amber-50 border border-amber-200/90 shadow-2xs hover:shadow-xs transition-all cursor-pointer group"
+                  className="p-2.5 rounded-xl bg-amber-50/90 hover:bg-amber-100/90 border border-amber-200/90 shadow-2xs hover:shadow-xs transition-all cursor-pointer group flex items-center justify-between"
+                  title="VIP & PRO Planlar"
                 >
-                  <div className="flex items-center justify-between gap-2 mb-1.5">
-                    <div className="flex items-center gap-1.5">
-                      <div className="w-6 h-6 rounded-lg bg-amber-500 text-white flex items-center justify-center shadow-2xs">
-                        <Crown className="w-3.5 h-3.5" />
-                      </div>
-                      <span className="text-xs font-bold text-amber-950 tracking-tight">
-                        {language === 'en' ? 'VIP & PRO Plans' : language === 'ru' ? 'VIP & PRO Тарифы' : 'VIP & PRO Planlar'}
-                      </span>
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div className="w-7 h-7 rounded-lg bg-amber-500 text-white flex items-center justify-center shadow-2xs shrink-0">
+                      <Crown className="w-3.5 h-3.5" />
                     </div>
-                    <span className="text-[9px] font-bold uppercase px-2 py-0.5 rounded-md bg-amber-200/80 text-amber-900 shadow-2xs">
-                      {isPaidPlan ? planTier : (language === 'en' ? 'All Plans' : language === 'ru' ? 'Все тарифы' : 'Hamıya Açıq')}
-                    </span>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xs font-bold text-amber-950 truncate">
+                          {language === 'en' ? 'VIP & PRO Plans' : language === 'ru' ? 'VIP & PRO Тарифы' : 'VIP & PRO Planlar'}
+                        </span>
+                        <span className="text-[8px] font-black uppercase px-1.5 py-0.2 rounded-md bg-amber-200/80 text-amber-900 shrink-0">
+                          {isPaidPlan ? planTier : 'PRO'}
+                        </span>
+                      </div>
+                      <p className="text-[10px] text-amber-800/80 truncate">
+                        {language === 'en' ? 'Top ranking & AI tools' : language === 'ru' ? 'Приоритет и AI' : 'Ön sıralar və AI üstünlüklər'}
+                      </p>
+                    </div>
                   </div>
-                  <p className="text-[11px] text-amber-900/80 leading-snug font-medium mb-2">
-                    {language === 'en'
-                      ? 'Unlimited AI CV analysis, top rankings and direct HR contact.'
-                      : language === 'ru'
-                      ? 'Безлимитный AI-анализ резюме, приоритет в выдаче и прямая связь с HR.'
-                      : 'Limitsiz AI CV analizi, ön sıralar və birbaşa HR əlaqəsi.'}
-                  </p>
-                  <div className="flex items-center justify-between text-[11px] font-bold text-amber-900 group-hover:text-amber-950">
-                    <span>{language === 'en' ? 'View Pricing' : language === 'ru' ? 'Смотреть тарифы' : `${dict.nav.pricing} bax`}</span>
-                    <ChevronRight className="w-3.5 h-3.5 text-amber-700 group-hover:translate-x-1 transition-transform" />
-                  </div>
+                  <ChevronRight className="w-3.5 h-3.5 text-amber-700 group-hover:translate-x-0.5 transition-transform shrink-0" />
                 </div>
               )}
             </div>
@@ -702,81 +740,137 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
           {/* 4. VERTICAL NAVIGATION BUTTONS */}
           {currentRole === 'candidate' && (
-            <div className="space-y-1">
-              {!isCollapsed && (
-                <label className="text-[10px] font-black uppercase tracking-wider text-slate-400 px-2 mb-1 block">
-                  {language === 'en' ? 'Navigation' : language === 'ru' ? 'Навигация' : 'Əsas Bölmələr'}
-                </label>
-              )}
+            <div className="space-y-3">
+              {/* Core / Main Navigation */}
+              <div className="space-y-1">
+                {!isCollapsed && (
+                  <label className="text-[10px] font-black uppercase tracking-wider text-slate-400 px-2 mb-1 block">
+                    {language === 'en' ? 'Main' : language === 'ru' ? 'Основное' : 'Əsas Bölmələr'}
+                  </label>
+                )}
 
-              {navItems.map((item) => {
-                const Icon = item.icon;
-                const isActive = candidateTab === item.id;
+                {primaryNavItems.map((item) => {
+                  const Icon = item.icon;
+                  const isActive = candidateTab === item.id;
 
-                if (isCollapsed) {
+                  if (isCollapsed) {
+                    return (
+                      <button
+                        key={item.id}
+                        id={`sidebar-tab-collapsed-${item.id}`}
+                        onClick={() => handleTabClick(item.id)}
+                        className={`w-10 h-10 mx-auto flex items-center justify-center rounded-xl transition-all cursor-pointer relative ${
+                          isActive
+                            ? 'bg-blue-600 text-white shadow-xs'
+                            : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                        }`}
+                        title={`${item.label} ${item.badge ? `(${item.badge})` : ''}`}
+                      >
+                        <Icon className="w-5 h-5" />
+                        {item.badge && (
+                          <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-blue-500 ring-2 ring-white" />
+                        )}
+                      </button>
+                    );
+                  }
+
                   return (
                     <button
                       key={item.id}
-                      id={`sidebar-tab-collapsed-${item.id}`}
+                      id={`sidebar-tab-${item.id}`}
+                      onClick={() => handleTabClick(item.id)}
+                      className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+                        isActive
+                          ? 'bg-blue-600 text-white shadow-xs font-black'
+                          : 'text-slate-700 hover:text-slate-900 hover:bg-slate-100/80'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className={`p-1.5 rounded-lg shrink-0 ${
+                          isActive 
+                            ? 'bg-white/20 text-white' 
+                            : 'bg-slate-100 text-slate-600 group-hover:text-slate-900'
+                        }`}>
+                          <Icon className="w-4 h-4" />
+                        </div>
+                        <span className="truncate">{item.label}</span>
+                      </div>
+
+                      {item.badge && (
+                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold shrink-0 ml-2 ${
+                          isActive
+                            ? 'bg-white/20 text-white'
+                            : item.badgeClass || 'bg-slate-200 text-slate-700'
+                        }`}>
+                          {item.badge}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Tools & Tracking Section */}
+              <div className="space-y-1 pt-1 border-t border-slate-100">
+                {!isCollapsed && (
+                  <label className="text-[10px] font-black uppercase tracking-wider text-slate-400 px-2 mb-1 block">
+                    {language === 'en' ? 'Tools' : language === 'ru' ? 'Инструменты' : 'Faydalı Alətlər'}
+                  </label>
+                )}
+
+                {toolsNavItems.map((item) => {
+                  const Icon = item.icon;
+                  const isActive = candidateTab === item.id;
+
+                  if (isCollapsed) {
+                    return (
+                      <button
+                        key={item.id}
+                        id={`sidebar-tab-collapsed-${item.id}`}
+                        onClick={() => {
+                          if (item.onClick) item.onClick();
+                          else handleTabClick(item.id);
+                        }}
+                        className={`w-10 h-10 mx-auto flex items-center justify-center rounded-xl transition-all cursor-pointer relative ${
+                          isActive
+                            ? 'bg-blue-600 text-white shadow-xs'
+                            : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                        }`}
+                        title={item.label}
+                      >
+                        <Icon className="w-5 h-5" />
+                      </button>
+                    );
+                  }
+
+                  return (
+                    <button
+                      key={item.id}
+                      id={`sidebar-tab-${item.id}`}
                       onClick={() => {
                         if (item.onClick) item.onClick();
                         else handleTabClick(item.id);
                       }}
-                      className={`w-10 h-10 mx-auto flex items-center justify-center rounded-xl transition-all cursor-pointer relative ${
+                      className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs sm:text-[13px] font-semibold transition-all cursor-pointer ${
                         isActive
-                          ? 'bg-blue-600 text-white shadow-xs'
-                          : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                          ? 'bg-blue-600 text-white shadow-xs font-black'
+                          : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80'
                       }`}
-                      title={`${item.label} ${item.badge ? `(${item.badge})` : ''}`}
                     >
-                      <Icon className="w-5 h-5" />
-                      {item.badge && (
-                        <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-blue-500 ring-2 ring-white" />
-                      )}
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className={`p-1.5 rounded-lg shrink-0 ${
+                          isActive 
+                            ? 'bg-white/20 text-white' 
+                            : 'bg-slate-100/80 text-slate-500 group-hover:text-slate-800'
+                        }`}>
+                          <Icon className="w-3.5 h-3.5" />
+                        </div>
+                        <span className="truncate">{item.label}</span>
+                      </div>
                     </button>
                   );
-                }
-
-                return (
-                  <button
-                    key={item.id}
-                    id={`sidebar-tab-${item.id}`}
-                    onClick={() => {
-                      if (item.onClick) {
-                        item.onClick();
-                      } else {
-                        handleTabClick(item.id);
-                      }
-                    }}
-                    className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
-                      isActive
-                        ? 'bg-blue-600 text-white shadow-xs font-black'
-                        : 'text-slate-700 hover:text-slate-900 hover:bg-slate-100/80'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <div className={`p-1.5 rounded-lg shrink-0 ${
-                        isActive 
-                          ? 'bg-white/20 text-white' 
-                          : 'bg-slate-100 text-slate-600 group-hover:text-slate-900'
-                      }`}>
-                        <Icon className="w-4 h-4" />
-                      </div>
-                      <span className="truncate">{item.label}</span>
-                    </div>
-
-                    {item.badge && (
-                      <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold shrink-0 ml-2 ${
-                        isActive
-                          ? 'bg-white/20 text-white'
-                          : item.badgeClass || 'bg-slate-200 text-slate-700'
-                      }`}>
-                        {item.badge}
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
+                })}
+              </div>
             </div>
           )}
 
@@ -792,39 +886,64 @@ export const Sidebar: React.FC<SidebarProps> = ({
               {isCollapsed ? (
                 <div className="flex flex-col gap-1.5 items-center">
                   <button
+                    id="sidebar-collapsed-business-talent-pool"
                     onClick={() => {
-                      onRoleChange('business');
+                      if (onBusinessTabChange) onBusinessTabChange('talent-pool');
                       onCloseMobile();
                     }}
-                    className="w-10 h-10 flex items-center justify-center rounded-xl bg-slate-900 text-white shadow-xs cursor-pointer"
+                    className={`w-10 h-10 flex items-center justify-center rounded-xl transition-all cursor-pointer ${
+                      businessTab === 'talent-pool'
+                        ? 'bg-emerald-600 text-white shadow-xs'
+                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                    }`}
+                    title={language === 'en' ? 'Candidate Pool' : language === 'ru' ? 'База кадров' : 'Kadr Bankı'}
+                  >
+                    <UserCheck className="w-5 h-5" />
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      if (onBusinessTabChange) onBusinessTabChange('vacancies');
+                      onCloseMobile();
+                    }}
+                    className={`w-10 h-10 flex items-center justify-center rounded-xl transition-all cursor-pointer ${
+                      businessTab === 'vacancies'
+                        ? 'bg-blue-600 text-white shadow-xs'
+                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                    }`}
                     title={language === 'en' ? 'Company Vacancies' : language === 'ru' ? 'Вакансии компании' : 'Şirkət Vakansiyaları'}
                   >
                     <Briefcase className="w-5 h-5" />
                   </button>
+
                   <button
                     onClick={() => {
-                      if (onPostJobClick) onPostJobClick();
+                      if (onBusinessTabChange) onBusinessTabChange('applicants');
                       onCloseMobile();
                     }}
-                    className="w-10 h-10 flex items-center justify-center rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200 cursor-pointer"
-                    title={language === 'en' ? 'Publish New Job' : language === 'ru' ? 'Опубликовать вакансию' : 'Yeni Elan Dərc Et'}
+                    className={`w-10 h-10 flex items-center justify-center rounded-xl transition-all cursor-pointer ${
+                      businessTab === 'applicants'
+                        ? 'bg-blue-600 text-white shadow-xs'
+                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                    }`}
+                    title={language === 'en' ? 'Job Applicants' : language === 'ru' ? 'Отклики' : 'Gələn Müraciətlər'}
                   >
-                    <Plus className="w-5 h-5" />
+                    <FileText className="w-5 h-5" />
                   </button>
-                </div>
-              ) : (
-                <>
+
                   <button
                     onClick={() => {
-                      onRoleChange('business');
+                      if (onBusinessTabChange) onBusinessTabChange('offers');
                       onCloseMobile();
                     }}
-                    className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs sm:text-sm font-black bg-slate-900 text-white shadow-xs cursor-pointer"
+                    className={`w-10 h-10 flex items-center justify-center rounded-xl transition-all cursor-pointer ${
+                      businessTab === 'offers'
+                        ? 'bg-blue-600 text-white shadow-xs'
+                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                    }`}
+                    title={language === 'en' ? 'Job Offers & Interviews' : language === 'ru' ? 'Офферы и интервью' : 'Müsahibə & Təkliflər'}
                   >
-                    <div className="p-1.5 rounded-lg bg-white/20 text-white">
-                      <Briefcase className="w-4 h-4" />
-                    </div>
-                    <span>{language === 'en' ? 'Company Vacancies' : language === 'ru' ? 'Вакансии компании' : 'Şirkət Vakansiyaları'}</span>
+                    <Award className="w-5 h-5" />
                   </button>
 
                   <button
@@ -832,14 +951,180 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       if (onPostJobClick) onPostJobClick();
                       onCloseMobile();
                     }}
-                    className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs sm:text-sm font-bold text-slate-700 hover:text-slate-900 hover:bg-slate-100 cursor-pointer"
+                    className="w-10 h-10 flex items-center justify-center rounded-xl bg-blue-600 text-white hover:bg-blue-700 shadow-xs cursor-pointer"
+                    title={language === 'en' ? 'Publish New Job' : language === 'ru' ? 'Опубликовать вакансию' : 'Yeni Elan Dərc Et'}
                   >
-                    <div className="p-1.5 rounded-lg bg-slate-100 text-slate-600">
-                      <Plus className="w-4 h-4" />
-                    </div>
-                    <span>{language === 'en' ? 'Publish New Job' : language === 'ru' ? 'Опубликовать вакансию' : 'Yeni Elan Dərc Et'}</span>
+                    <Plus className="w-5 h-5" />
                   </button>
-                </>
+                </div>
+              ) : (
+                <div className="space-y-1">
+                  <button
+                    id="sidebar-business-tab-talent-pool"
+                    onClick={() => {
+                      if (onBusinessTabChange) onBusinessTabChange('talent-pool');
+                      onCloseMobile();
+                    }}
+                    className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs sm:text-[13px] font-bold transition-all cursor-pointer ${
+                      businessTab === 'talent-pool'
+                        ? 'bg-emerald-600 text-white shadow-xs'
+                        : 'text-slate-700 hover:text-slate-900 hover:bg-slate-100'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className={`p-1.5 rounded-lg shrink-0 ${businessTab === 'talent-pool' ? 'bg-white/20 text-white' : 'bg-emerald-50 text-emerald-600'}`}>
+                        <UserCheck className="w-3.5 h-3.5" />
+                      </div>
+                      <span className="truncate">{language === 'en' ? 'Candidate Pool' : language === 'ru' ? 'База кадров' : 'Kadr Bankı'}</span>
+                    </div>
+                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md ${businessTab === 'talent-pool' ? 'bg-white/20 text-white' : 'bg-emerald-50 text-emerald-800 border border-emerald-200/80'}`}>
+                      TOP
+                    </span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      if (onBusinessTabChange) onBusinessTabChange('vacancies');
+                      onCloseMobile();
+                    }}
+                    className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs sm:text-[13px] font-bold transition-all cursor-pointer ${
+                      businessTab === 'vacancies'
+                        ? 'bg-blue-600 text-white shadow-xs'
+                        : 'text-slate-700 hover:text-slate-900 hover:bg-slate-100'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className={`p-1.5 rounded-lg shrink-0 ${businessTab === 'vacancies' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'}`}>
+                        <Briefcase className="w-3.5 h-3.5" />
+                      </div>
+                      <span className="truncate">{language === 'en' ? 'Company Vacancies' : language === 'ru' ? 'Вакансии компании' : 'Şirkət Vakansiyaları'}</span>
+                    </div>
+                    {activeVacanciesCount > 0 && (
+                      <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded-md ${businessTab === 'vacancies' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'}`}>
+                        {activeVacanciesCount}
+                      </span>
+                    )}
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      if (onBusinessTabChange) onBusinessTabChange('applicants');
+                      onCloseMobile();
+                    }}
+                    className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs sm:text-[13px] font-bold transition-all cursor-pointer ${
+                      businessTab === 'applicants'
+                        ? 'bg-blue-600 text-white shadow-xs'
+                        : 'text-slate-700 hover:text-slate-900 hover:bg-slate-100'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className={`p-1.5 rounded-lg shrink-0 ${businessTab === 'applicants' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'}`}>
+                        <FileText className="w-3.5 h-3.5" />
+                      </div>
+                      <span className="truncate">{language === 'en' ? 'Job Applicants' : language === 'ru' ? 'Отклики' : 'Gələn Müraciətlər'}</span>
+                    </div>
+                    {applicationsCount > 0 && (
+                      <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded-md ${businessTab === 'applicants' ? 'bg-white/20 text-white' : 'bg-blue-100 text-blue-800'}`}>
+                        {applicationsCount}
+                      </span>
+                    )}
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      if (onBusinessTabChange) onBusinessTabChange('offers');
+                      onCloseMobile();
+                    }}
+                    className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs sm:text-[13px] font-bold transition-all cursor-pointer ${
+                      businessTab === 'offers'
+                        ? 'bg-blue-600 text-white shadow-xs'
+                        : 'text-slate-700 hover:text-slate-900 hover:bg-slate-100'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className={`p-1.5 rounded-lg shrink-0 ${businessTab === 'offers' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'}`}>
+                        <Award className="w-3.5 h-3.5" />
+                      </div>
+                      <span className="truncate">{language === 'en' ? 'Offers & Interviews' : language === 'ru' ? 'Офферы и интервью' : 'Müsahibə & Təkliflər'}</span>
+                    </div>
+                    {offersCount > 0 && (
+                      <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded-md ${businessTab === 'offers' ? 'bg-white/20 text-white' : 'bg-amber-100 text-amber-800'}`}>
+                        {offersCount}
+                      </span>
+                    )}
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      if (onBusinessTabChange) onBusinessTabChange('analytics');
+                      onCloseMobile();
+                    }}
+                    className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs sm:text-[13px] font-bold transition-all cursor-pointer ${
+                      businessTab === 'analytics'
+                        ? 'bg-blue-600 text-white shadow-xs'
+                        : 'text-slate-700 hover:text-slate-900 hover:bg-slate-100'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className={`p-1.5 rounded-lg shrink-0 ${businessTab === 'analytics' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'}`}>
+                        <BarChart3 className="w-3.5 h-3.5" />
+                      </div>
+                      <span className="truncate">{language === 'en' ? 'Recruiting Analytics' : language === 'ru' ? 'Аналитика найма' : 'Analitika'}</span>
+                    </div>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      if (onBusinessTabChange) onBusinessTabChange('company-profile');
+                      onCloseMobile();
+                    }}
+                    className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs sm:text-[13px] font-bold transition-all cursor-pointer ${
+                      businessTab === 'company-profile'
+                        ? 'bg-blue-600 text-white shadow-xs'
+                        : 'text-slate-700 hover:text-slate-900 hover:bg-slate-100'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className={`p-1.5 rounded-lg shrink-0 ${businessTab === 'company-profile' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'}`}>
+                        <Building2 className="w-3.5 h-3.5" />
+                      </div>
+                      <span className="truncate">{language === 'en' ? 'Company Profile' : language === 'ru' ? 'Профиль компании' : 'Müəssisə Profili'}</span>
+                    </div>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      if (onBusinessTabChange) onBusinessTabChange('vacation-calculator');
+                      onCloseMobile();
+                    }}
+                    className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs sm:text-[13px] font-bold transition-all cursor-pointer ${
+                      businessTab === 'vacation-calculator'
+                        ? 'bg-blue-600 text-white shadow-xs'
+                        : 'text-slate-700 hover:text-slate-900 hover:bg-slate-100'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className={`p-1.5 rounded-lg shrink-0 ${businessTab === 'vacation-calculator' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'}`}>
+                        <Palmtree className="w-3.5 h-3.5" />
+                      </div>
+                      <span className="truncate">{language === 'en' ? 'Vacation Calculator' : language === 'ru' ? 'Калькулятор отпускных' : 'Məzuniyyət Hesabla'}</span>
+                    </div>
+                  </button>
+
+                  <div className="pt-2">
+                    <button
+                      id="sidebar-business-post-job-btn"
+                      onClick={() => {
+                        if (onPostJobClick) onPostJobClick();
+                        onCloseMobile();
+                      }}
+                      className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-xs sm:text-sm font-black bg-blue-600 hover:bg-blue-700 text-white shadow-xs transition-all cursor-pointer"
+                    >
+                      <Plus className="w-4 h-4" />
+                      <span>{language === 'en' ? 'Publish New Job' : language === 'ru' ? 'Опубликовать вакансию' : 'Yeni Elan Dərc Et'}</span>
+                    </button>
+                  </div>
+                </div>
               )}
             </div>
           )}
@@ -917,18 +1202,20 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
 
         {/* BOTTOM SECTION: USER PROFILE & COLLAPSE TRIGGER */}
-        <div className={`border-t border-slate-100 bg-slate-50/70 ${isCollapsed ? 'p-2 space-y-2' : 'p-3.5 space-y-2.5'}`}>
-          
-          {/* User Account Bar or Eye-Catching Sign-in (Request #7) */}
-          {currentUser ? (
+        {currentUser && (
+          <div className={`border-t border-slate-100 bg-slate-50/70 ${isCollapsed ? 'p-2 space-y-2' : 'p-3.5 space-y-2.5'}`}>
             <div className={`flex items-center bg-white rounded-xl border border-slate-200 shadow-2xs ${
               isCollapsed ? 'justify-center p-1.5' : 'justify-between gap-2 p-2'
             }`}>
               <button
                 type="button"
-                onClick={() => onOpenProfileModal?.('settings')}
+                onClick={() => onOpenProfileModal?.(currentUser?.role === 'candidate' ? 'profile' : 'settings')}
                 className="flex items-center gap-2 min-w-0 text-left cursor-pointer focus:outline-hidden group"
-                title={language === 'en' ? 'Profile & Notification Settings' : language === 'ru' ? 'Настройки профиля и уведомлений' : 'Profil və Bildiriş Tənzimləmələri'}
+                title={
+                  currentUser?.role === 'candidate'
+                    ? (language === 'en' ? 'My Profile & Ready CV' : language === 'ru' ? 'Мой профиль и резюме' : 'Profilim və Hazır CV-m')
+                    : (language === 'en' ? 'Profile & Notification Settings' : language === 'ru' ? 'Настройки профиля и уведомлений' : 'Profil və Bildiriş Tənzimləmələri')
+                }
               >
                 <img
                   src={currentUser.avatarUrl || `https://api.dicebear.com/7.x/initials/svg?seed=${currentUser.fullName}`}
@@ -974,35 +1261,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 </div>
               )}
             </div>
-          ) : (
-            onOpenAuthModal && (
-              isCollapsed ? (
-                <button
-                  onClick={() => {
-                    onOpenAuthModal('login', currentRole);
-                    onCloseMobile();
-                  }}
-                  className="w-10 h-10 mx-auto flex items-center justify-center rounded-xl bg-blue-600 text-white shadow-xs cursor-pointer hover:bg-blue-700 transition-colors"
-                  title={language === 'en' ? 'Sign In / Register' : language === 'ru' ? 'Вход / Регистрация' : 'Daxil ol / Qeydiyyat'}
-                >
-                  <LogIn className="w-5 h-5" />
-                </button>
-              ) : (
-                <button
-                  onClick={() => {
-                    onOpenAuthModal('login', currentRole);
-                    onCloseMobile();
-                  }}
-                  className="animate-auth-trigger w-full flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white transition-all cursor-pointer shadow-xs active:scale-98"
-                >
-                  <Sparkles className="w-4 h-4 text-blue-200" />
-                  <span>{dict.nav.login} / {language === 'en' ? 'Sign Up' : language === 'ru' ? 'Регистрация' : 'Qeydiyyat'}</span>
-                </button>
-              )
-            )
-          )}
+          </div>
+        )}
 
-        </div>
       </aside>
     </>
   );

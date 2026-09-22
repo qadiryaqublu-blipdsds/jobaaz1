@@ -163,7 +163,7 @@ export const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
     name: 'Candidate Premium AI',
     tagline: 'Müsahibələrdən 3 qat daha tez keçmək və arzuladığı işi tapmaq istəyənlər üçün.',
     priceMonthly: 9,
-    priceYearly: 6.9,
+    priceYearly: 7, // 7 AZN/ay (İllik ödənişdə 84 AZN, təmiz yuvarlaq rəqəmlər)
     badge: 'Karyera Sürətləndirici',
     isPopular: true,
     features: [
@@ -191,6 +191,11 @@ export const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
     },
   },
 ];
+
+export function formatPrice(amount: number): string {
+  const rounded = Math.round((Number(amount) || 0) * 100) / 100;
+  return Number.isInteger(rounded) ? rounded.toString() : rounded.toFixed(2);
+}
 
 export function getStoredSubscriptions(): UserSubscription[] {
   const raw = localStorage.getItem(SUBSCRIPTION_STORAGE_KEY);
@@ -360,7 +365,8 @@ export function applySubscriptionUpgrade(data: {
   const durationMonths = data.billingCycle === 'yearly' ? 12 : 1;
   const endDate = new Date(now.getTime() + durationMonths * 30 * 24 * 60 * 60 * 1000);
 
-  const amount = data.billingCycle === 'yearly' ? targetPlan.priceYearly * 12 : targetPlan.priceMonthly;
+  const rawAmount = data.billingCycle === 'yearly' ? targetPlan.priceYearly * 12 : targetPlan.priceMonthly;
+  const amount = Math.round(rawAmount * 100) / 100;
 
   const txId = `tx-${Date.now()}`;
   const subId = `sub-${Date.now()}`;

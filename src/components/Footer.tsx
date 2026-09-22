@@ -3,6 +3,7 @@ import { JobiaLogo } from './JobiaLogo';
 import { UserRole } from '../types';
 import { useLanguage } from '../context/LanguageContext';
 import { LanguageSwitcher } from './LanguageSwitcher';
+import { LegalInfoModal, LegalModalType } from './common/LegalInfoModal';
 import { 
   Briefcase, 
   Sparkles, 
@@ -15,28 +16,27 @@ import {
   Building2,
   Lock,
   Zap,
-  ArrowUpRight,
   Calculator,
   Palmtree,
-  Compass,
   FileCheck,
   Scale,
-  X,
   Phone,
   Mail,
   MapPin,
   Globe,
   Map as MapIcon,
   ShieldAlert,
-  UserCheck
+  UserCheck,
+  HelpCircle
 } from 'lucide-react';
 
 interface FooterProps {
   currentRole: UserRole;
-  onNavigateCandidateTab?: (tab: 'jobs' | 'nearby-map' | 'my-applications' | 'salary-trends' | 'calculia' | 'google-chat') => void;
+  onNavigateCandidateTab?: (tab: 'jobs' | 'nearby-map' | 'my-applications' | 'salary-trends' | 'salary-calculator' | 'vacation-calculator' | 'calculia' | 'google-chat') => void;
   onRoleChange?: (role: UserRole) => void;
   onOpenPricing?: () => void;
   onOpenIntroTour?: () => void;
+  onOpenHelpContact?: (initialTab?: 'faq' | 'contact') => void;
 }
 
 export const Footer: React.FC<FooterProps> = ({
@@ -45,65 +45,13 @@ export const Footer: React.FC<FooterProps> = ({
   onRoleChange,
   onOpenPricing,
   onOpenIntroTour,
+  onOpenHelpContact,
 }) => {
   const { dict, brandAcronym, brandAcronymFull, language } = useLanguage();
   const [activeLegalModal, setActiveLegalModal] = useState<'privacy' | 'terms' | 'cookies' | 'security' | 'compliance' | null>(null);
 
   return (
     <footer id="jobia-main-footer" className="w-full max-w-full overflow-hidden bg-white border-t border-slate-200 mt-12 text-slate-700">
-      {/* Slogan & Hero Banner in Footer */}
-      <div className="bg-gradient-to-b from-slate-50 via-blue-50/25 to-white border-b border-slate-100 py-10 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-4xl mx-auto text-center flex flex-col items-center">
-          
-          {/* Prominent Large Brand Logo */}
-          <div className="p-3.5 bg-white rounded-2xl shadow-sm border border-slate-200/90 inline-flex flex-col items-center justify-center mb-3 hover:shadow-md transition-all duration-300">
-            <JobiaLogo size="2xl" withSubtitle={true} subtitle="Job Intelligence & Automation" className="scale-95 sm:scale-105" />
-          </div>
-
-          {/* Acronym Brand Explanation Badge */}
-          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-blue-50 text-blue-800 border border-blue-200 text-xs font-black tracking-wide mb-2 shadow-2xs">
-            <Sparkles className="w-3.5 h-3.5 text-blue-600" />
-            <span>
-              {language === 'en'
-                ? "Azerbaijan's Smartest Job & Career Platform"
-                : language === 'ru'
-                ? 'Самая умная платформа вакансий и карьеры в Азербайджане'
-                : 'Azərbaycanın Ən Ağıllı Vakansiya və Karyera Platforması'}
-            </span>
-          </div>
-
-          {/* Primary Slogan */}
-          <h2 className="text-xl sm:text-2xl md:text-3xl font-black text-slate-900 tracking-tight leading-snug">
-            {dict.brand.heroHeadline || (language === 'en' ? 'Future Job Opportunities & AI-Powered Recruitment' : language === 'ru' ? 'Возможности будущего и подбор персонала на базе ИИ' : 'Gələcəyin İş İmkanları və Süni İntellekt Dəstəkli İşə Qəbul')}
-          </h2>
-
-          {/* Subtitle with localized explanation */}
-          <p className="mt-2 text-xs sm:text-sm text-slate-600 max-w-2xl mx-auto leading-relaxed">
-            {dict.brand.heroSubtitle || (language === 'en' ? 'Find thousands of official vacancies on map, analyze your CV with AI, and receive direct job offers with Jobia.az.' : language === 'ru' ? 'С Jobia.az находите тысячи официальных вакансий на карте, анализируйте резюме с помощью ИИ и получайте предложения работы.' : 'Jobia.az ilə minlərlə rəsmi vakansiyanı xəritədə tapın, AI ilə CV-nizi təhlil edin və iş təkliflərini birbaşa qəbul edin.')}
-          </p>
-
-          {/* Feature Trust Pills */}
-          <div className="mt-5 flex flex-wrap items-center justify-center gap-2 sm:gap-3 text-xs font-semibold text-slate-700">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-blue-50 text-blue-700 border border-blue-100 shadow-2xs">
-              <Zap className="w-3.5 h-3.5 text-blue-600" />
-              {language === 'en' ? '100% Free Application' : language === 'ru' ? '100% Бесплатный отклик' : '100% Pulsuz Müraciət'}
-            </span>
-            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100 shadow-2xs">
-              <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
-              {language === 'en' ? 'AI CV Generator & Analysis' : language === 'ru' ? 'Генератор и анализ резюме на ИИ' : 'AI CV Generator & Analiz'}
-            </span>
-            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-100 shadow-2xs">
-              <Building2 className="w-3.5 h-3.5 text-indigo-600" />
-              {language === 'en' ? 'Verified Job Offers Portal' : language === 'ru' ? 'Портал официальных вакансий' : 'Rəsmi İş Təklifləri Portalı'}
-            </span>
-            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-100 text-slate-800 border border-slate-200 shadow-2xs">
-              <Lock className="w-3.5 h-3.5 text-slate-600" />
-              {language === 'en' ? '256-Bit SSL Encryption' : language === 'ru' ? '256-битное шифрование SSL' : '256-Bit SSL Şifrələnmə'}
-            </span>
-          </div>
-        </div>
-      </div>
-
       {/* Main Footer Links & Structured Columns */}
       <div className="w-full max-w-full px-4 sm:px-6 lg:px-8 xl:px-10 2xl:px-12 py-10">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
@@ -186,15 +134,29 @@ export const Footer: React.FC<FooterProps> = ({
               <li>
                 <button
                   type="button"
-                  id="footer-nav-salaria"
+                  id="footer-nav-salary-calc"
                   onClick={() => {
                     if (onRoleChange) onRoleChange('candidate');
-                    if (onNavigateCandidateTab) onNavigateCandidateTab('calculia');
+                    if (onNavigateCandidateTab) onNavigateCandidateTab('salary-calculator');
                   }}
-                  className="hover:text-emerald-700 flex items-center gap-1.5 transition-colors cursor-pointer text-left font-bold text-emerald-600"
+                  className="hover:text-blue-700 flex items-center gap-1.5 transition-colors cursor-pointer text-left font-bold text-slate-700"
                 >
-                  <Calculator className="w-3.5 h-3.5 text-emerald-500" />
-                  <span>Calculia ({language === 'en' ? 'Net/Gross & Vacation' : language === 'ru' ? 'Зарплата и отпускные' : 'Net/Gross & Məzuniyyət'})</span>
+                  <Calculator className="w-3.5 h-3.5 text-blue-600" />
+                  <span>{language === 'en' ? 'Calculate Salary' : language === 'ru' ? 'Рассчитать зарплату' : 'Maaşını hesabla'}</span>
+                </button>
+              </li>
+              <li>
+                <button
+                  type="button"
+                  id="footer-nav-vacation-calc"
+                  onClick={() => {
+                    if (onRoleChange) onRoleChange('candidate');
+                    if (onNavigateCandidateTab) onNavigateCandidateTab('vacation-calculator');
+                  }}
+                  className="hover:text-emerald-700 flex items-center gap-1.5 transition-colors cursor-pointer text-left font-bold text-slate-700"
+                >
+                  <Palmtree className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>{language === 'en' ? 'Calculate Vacation' : language === 'ru' ? 'Рассчитать отпуск' : 'Məzuniyyətini hesabla'}</span>
                 </button>
               </li>
             </ul>
@@ -337,6 +299,30 @@ export const Footer: React.FC<FooterProps> = ({
                   <span>{language === 'en' ? 'Labor Code Compliance' : language === 'ru' ? 'Соответствие трудовому кодексу АР' : 'AR Əmək Məcəlləsi Uyğunluğu'}</span>
                 </button>
               </li>
+              {onOpenHelpContact && (
+                <>
+                  <li>
+                    <button
+                      type="button"
+                      onClick={() => onOpenHelpContact('faq')}
+                      className="hover:text-blue-600 flex items-center gap-1.5 transition-colors cursor-pointer text-left font-semibold text-blue-700"
+                    >
+                      <HelpCircle className="w-3.5 h-3.5 text-blue-600" />
+                      <span>{language === 'en' ? 'FAQ & Help Center' : language === 'ru' ? 'Частые вопросы (FAQ)' : 'Tez-tez Verilən Suallar (FAQ)'}</span>
+                    </button>
+                  </li>
+                  <li>
+                    <button
+                      type="button"
+                      onClick={() => onOpenHelpContact('contact')}
+                      className="hover:text-blue-600 flex items-center gap-1.5 transition-colors cursor-pointer text-left font-semibold text-indigo-700"
+                    >
+                      <MessageSquare className="w-3.5 h-3.5 text-indigo-600" />
+                      <span>{language === 'en' ? 'Contact & Feedback' : language === 'ru' ? 'Связаться с нами' : 'Bizimlə Əlaqə & Dəstək'}</span>
+                    </button>
+                  </li>
+                </>
+              )}
               <li className="pt-2 text-slate-500 text-[11px] space-y-1">
                 <div className="flex items-center gap-1.5">
                   <Mail className="w-3 h-3 text-slate-400" />
@@ -356,11 +342,11 @@ export const Footer: React.FC<FooterProps> = ({
 
         </div>
 
-        {/* Bottom Bar: Slogan & Copyright */}
-        <div className="mt-8 pt-6 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500">
-          <div className="flex items-center gap-2">
-            <span className="font-black text-slate-800">Jobia.az</span>
-            <span>—</span>
+        {/* Bottom Bar: Slogan, Jobia Logo & Copyright */}
+        <div className="mt-8 pt-6 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500">
+          <div className="flex items-center gap-3">
+            <JobiaLogo size="xs" withSubtitle={true} subtitle="Job Intelligence & Automation" showDotPing={true} />
+            <span className="text-slate-300 hidden sm:inline">|</span>
             <span>{language === 'en' ? '© 2026 All rights reserved.' : language === 'ru' ? '© 2026 Все права защищены.' : '© 2026 Bütün hüquqlar qorunur.'}</span>
           </div>
 
@@ -372,119 +358,10 @@ export const Footer: React.FC<FooterProps> = ({
       </div>
 
       {/* Legal Info Modals */}
-      {activeLegalModal && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-2xl w-full p-6 shadow-2xl border border-slate-200 max-h-[85vh] overflow-y-auto space-y-4 animate-scaleUp">
-            <div className="flex items-center justify-between border-b pb-3">
-              <div className="flex items-center gap-2">
-                <JobiaLogo size="sm" />
-                <h3 className="font-bold text-slate-900 text-base">
-                  {activeLegalModal === 'privacy' && (language === 'en' ? 'Privacy Policy' : language === 'ru' ? 'Политика конфиденциальности' : 'Məxfilik Siyasəti (Privacy Policy)')}
-                  {activeLegalModal === 'terms' && (language === 'en' ? 'Terms of Service' : language === 'ru' ? 'Пользовательское соглашение' : 'İstifadəçi Müqaviləsi və Şərtlər (Terms of Service)')}
-                  {activeLegalModal === 'cookies' && (language === 'en' ? 'Cookie Policy' : language === 'ru' ? 'Политика файлов cookie' : 'Kuki (Cookie) Siyasəti və Tənzimləmələri')}
-                  {activeLegalModal === 'security' && (language === 'en' ? 'Security & Data Protection' : language === 'ru' ? 'Безопасность и защита данных' : 'Təhlükəsizlik və Məlumatların Qorunması')}
-                  {activeLegalModal === 'compliance' && (language === 'en' ? 'Labor Law & Legal Compliance' : language === 'ru' ? 'Трудовое законодательство и соответствие' : 'AR Əmək Qanunvericiliyi və Hüquqi Uyğunluq')}
-                </h3>
-              </div>
-              <button
-                onClick={() => setActiveLegalModal(null)}
-                className="p-1 text-slate-400 hover:text-slate-600 rounded-lg cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="text-xs text-slate-600 space-y-3 leading-relaxed">
-              {activeLegalModal === 'privacy' && (
-                <>
-                  <p>
-                    <strong>Jobia.az</strong> {language === 'en' ? 'takes user data privacy and security with the utmost sensitivity. This Privacy Policy is prepared in full compliance with the Law on Personal Data and international standards.' : language === 'ru' ? 'уделяет первостепенное внимание конфиденциальности и безопасности персональных данных. Настоящая Политика конфиденциальности составлена в полном соответствии с Законом о персональных данных и международными стандартами.' : 'olaraq istifadəçilərimizin fərdi məlumatlarının məxfiliyinə və təhlükəsizliyinə xüsusi həssaslıqla yanaşırıq. Bu Məxfilik Siyasəti Azərbaycan Respublikasının "Fərdi məlumatlar haqqında" Qanununa və beynəlxalq standartlara tam uyğun hazırlanmışdır.'}
-                  </p>
-                  <h4 className="font-bold text-slate-800 text-xs">
-                    {language === 'en' ? '1. Collected Information' : language === 'ru' ? '1. Собираемая информация' : '1. Toplanan Məlumatlar'}
-                  </h4>
-                  <p>
-                    {language === 'en' ? 'Information provided during registration (full name, email, phone, CV details, and applications) is strictly used for platform purposes only.' : language === 'ru' ? 'Информация, предоставленная при регистрации (ФИО, email, телефон, данные резюме и отклики), используется исключительно в целях функционирования платформы.' : 'Qeydiyyat zamanı təqdim etdiyiniz ad, soyad, e-poçt, telefon nömrəsi, CV məlumatları və iş müraciətləri yalnız platformanın təyinatı üzrə istifadə olunur.'}
-                  </p>
-                  <h4 className="font-bold text-slate-800 text-xs">
-                    {language === 'en' ? '2. Data Protection' : language === 'ru' ? '2. Защита данных' : '2. Məlumatların Qorunması'}
-                  </h4>
-                  <p>
-                    {language === 'en' ? 'All data is secured with 256-Bit SSL encryption and is never sold to third parties for commercial gain.' : language === 'ru' ? 'Все данные защищены 256-битным SSL-шифрованием и ни при каких обстоятельствах не продаются третьим лицам в коммерческих целях.' : 'Bütün məlumatlar 256-Bit SSL şifrələnmə ilə qorunur və heç bir halda üçüncü şəxslərə kommersiya məqsədilə satılmır.'}
-                  </p>
-                </>
-              )}
-
-              {activeLegalModal === 'terms' && (
-                <>
-                  <p>
-                    {language === 'en' ? 'By using the Jobia.az platform, you agree to the following terms and conditions:' : language === 'ru' ? 'Используя платформу Jobia.az, вы принимаете следующие условия и правила:' : 'Jobia.az platformasından istifadə etməklə siz aşağıdakı qaydaları və şərtləri qəbul etmiş olursunuz:'}
-                  </p>
-                  <h4 className="font-bold text-slate-800 text-xs">
-                    {language === 'en' ? '1. Purpose of Service' : language === 'ru' ? '1. Назначение сервиса' : '1. Xidmətin Təyinatı'}
-                  </h4>
-                  <p>
-                    {language === 'en' ? 'Jobia.az is an AI-powered platform providing reliable, fast, and transparent connections between job seekers and employers.' : language === 'ru' ? 'Jobia.az — платформа на базе искусственного интеллекта, обеспечивающая надежную, быструю и прозрачную связь между соискателями и работодателями.' : 'Jobia.az iş axtaranlar (namizədlər) və işəgötürənlər arasında etibarlı, sürətli və şəffaf əlaqə yaradan süni intellekt dəstəkli platformadır.'}
-                  </p>
-                  <h4 className="font-bold text-slate-800 text-xs">
-                    {language === 'en' ? '2. Job Posting Standards' : language === 'ru' ? '2. Стандарты размещения вакансий' : '2. Elan Yerləşdirmə Standartları'}
-                  </h4>
-                  <p>
-                    {language === 'en' ? 'All published job openings must comply with anti-discrimination regulations in labor laws.' : language === 'ru' ? 'Все публикуемые вакансии должны соответствовать требованиям трудового законодательства о недопущении дискриминации.' : 'Dərc edilən bütün vakansiyalar AR Əmək Məcəlləsinin ayrı-seçkiliyə yol verilməməsi (yaş, cins və s. məhdudiyyətlərin qadağan olunması) tələblərinə cavab verməlidir.'}
-                  </p>
-                </>
-              )}
-
-              {activeLegalModal === 'cookies' && (
-                <>
-                  <p>
-                    {language === 'en' ? 'Our platform uses secure cookies to improve your browsing experience, maintain session state, and perform analytics.' : language === 'ru' ? 'Наша платформа использует безопасные файлы cookie для улучшения пользовательского опыта, сохранения сессий и проведения аналитики.' : 'Platformamız sayt təcrübənizi yaxşılaşdırmaq, sessiyanızı yadda saxlamaq və analitik ölçmələr aparmaq üçün təhlükəsiz kukilərdən (cookies) istifadə edir.'}
-                  </p>
-                  <p>
-                    {language === 'en' ? 'You can clear or restrict cookies at any time through your browser settings.' : language === 'ru' ? 'Вы можете в любой момент удалить или ограничить файлы cookie в настройках браузера.' : 'İstədiyiniz zaman brauzerinizin parametrlərindən kukiləri silə və ya məhdudlaşdıra bilərsiniz.'}
-                  </p>
-                </>
-              )}
-
-              {activeLegalModal === 'security' && (
-                <>
-                  <p>
-                    {language === 'en' ? 'User accounts and databases on Jobia.az are protected by the highest industry security protocols:' : language === 'ru' ? 'Учетные записи и базы данных на платформе Jobia.az защищены по высочайшим стандартам безопасности:' : 'Jobia.az platformasında istifadəçi hesabları və məlumat bazası ən yüksək təhlükəsizlik protokolları ilə qorunur:'}
-                  </p>
-                  <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 space-y-1.5">
-                    <div>• <strong>256-bit TLS/SSL:</strong> {language === 'en' ? 'All network requests are transmitted over encrypted tunnels.' : language === 'ru' ? 'Все сетевые запросы передаются по зашифрованному каналу.' : 'Bütün şəbəkə sorğuları təhlükəsiz kanal üzərindən ötürülür.'}</div>
-                    <div>• <strong>OTP & Verification:</strong> {language === 'en' ? '6-digit OTP codes and email validation prevent fake accounts.' : language === 'ru' ? '6-значные OTP-коды и верификация почты предотвращают фейковые профили.' : 'Saxta profillərin qarşısını almaq üçün 6-rəqəmli OTP və e-poçt təsdiqi tətbiq olunur.'}</div>
-                    <div>• <strong>RBAC Permissions:</strong> {language === 'en' ? 'Role-based access control guarantees users only access functions permitted to their account type.' : language === 'ru' ? 'Ролевая модель гарантирует доступ только к функциям конкретной учетной записи.' : 'Hər bir istifadəçi yalnız öz roluna aid funksiyalara daxil ola bilər.'}</div>
-                  </div>
-                </>
-              )}
-
-              {activeLegalModal === 'compliance' && (
-                <>
-                  <p>
-                    <strong>Jobia.az</strong> {language === 'en' ? 'operates strictly in line with Employment Law and Labor Code regulations.' : language === 'ru' ? 'осуществляет деятельность в полном соответствии с Законом о занятости и Трудовым кодексом.' : 'fəaliyyətini Azərbaycan Respublikasının Məşğulluq Haqqında Qanununa və AR Əmək Məcəlləsinə tam uyğun olaraq həyata keçirir.'}
-                  </p>
-                  <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 space-y-1.5">
-                    <div>• <strong>{language === 'en' ? 'Legal Entity:' : language === 'ru' ? 'Юридическое лицо:' : 'Hüquqi Şəxs:'}</strong> Jobia.az</div>
-                    <div>• <strong>{language === 'en' ? 'TIN:' : language === 'ru' ? 'ИНН:' : 'VÖEN:'}</strong> 1406283921</div>
-                    <div>• <strong>{language === 'en' ? 'Location:' : language === 'ru' ? 'Адрес:' : 'Məkan:'}</strong> {language === 'en' ? 'Baku, Azure Business Center' : language === 'ru' ? 'Баку, Azure Бизнес-центр' : 'Bakı şəhəri, Azure Biznes Mərkəzi'}</div>
-                    <div>• <strong>{language === 'en' ? 'Contact:' : language === 'ru' ? 'Контакты:' : 'Əlaqə:'}</strong> support@jobia.az</div>
-                  </div>
-                </>
-              )}
-            </div>
-
-            <div className="flex justify-end pt-3 border-t">
-              <button
-                onClick={() => setActiveLegalModal(null)}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl transition cursor-pointer"
-              >
-                {language === 'en' ? 'Understood & Close' : language === 'ru' ? 'Понятно, закрыть' : 'Anladım və Bağla'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <LegalInfoModal
+        type={activeLegalModal}
+        onClose={() => setActiveLegalModal(null)}
+      />
     </footer>
   );
 };

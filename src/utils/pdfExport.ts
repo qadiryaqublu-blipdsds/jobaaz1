@@ -4,7 +4,7 @@ import { CVData } from '../types';
 
 export interface PDFExportOptions {
   fileName?: string;
-  onProgress?: (status: string) => void;
+  onProgress?: (status: string, percentage: number) => void;
 }
 
 /**
@@ -18,7 +18,7 @@ export async function downloadCVAsPDF(
   const { onProgress, fileName } = options || {};
 
   try {
-    if (onProgress) onProgress('CV məlumatları oxunur...');
+    if (onProgress) onProgress('CV məlumatları oxunur...', 15);
 
     let targetElement: HTMLElement | null = null;
     if (typeof elementOrId === 'string') {
@@ -38,7 +38,7 @@ export async function downloadCVAsPDF(
       throw new Error('Çap ediləcək CV sənədi tapılmadı.');
     }
 
-    if (onProgress) onProgress('Səhifə qrafikası hazırlanır...');
+    if (onProgress) onProgress('Səhifə qrafikası və şriftlər hazırlanır...', 35);
 
     // Small delay to ensure all DOM elements and fonts settle
     await new Promise((resolve) => setTimeout(resolve, 150));
@@ -46,6 +46,7 @@ export async function downloadCVAsPDF(
     // Render using html-to-image toCanvas (natively supports oklch, lab, modern CSS)
     let canvas: HTMLCanvasElement;
     try {
+      if (onProgress) onProgress('Yüksək keyfiyyətli A4 rasterizasiyası aparılır...', 50);
       canvas = await htmlToImage.toCanvas(targetElement, {
         pixelRatio: 2, // 300 DPI equivalent for crisp text
         backgroundColor: '#ffffff',
@@ -60,6 +61,7 @@ export async function downloadCVAsPDF(
       });
     } catch (renderError) {
       console.warn('html-to-image toCanvas failed, attempting toPng fallback:', renderError);
+      if (onProgress) onProgress('Alternativ qrafik emal aparılır...', 55);
       const dataUrl = await htmlToImage.toPng(targetElement, {
         pixelRatio: 2,
         backgroundColor: '#ffffff',
@@ -86,7 +88,7 @@ export async function downloadCVAsPDF(
       }
     }
 
-    if (onProgress) onProgress('PDF sənədi tərtib edilir...');
+    if (onProgress) onProgress('PDF sənədi tərtib edilir...', 70);
 
     // A4 dimensions in mm
     const pdf = new jsPDF({
@@ -156,9 +158,12 @@ export async function downloadCVAsPDF(
 
       renderedHeight += currentSliceHeight;
       pageIndex++;
+
+      const sliceProgress = Math.min(92, Math.round(70 + (renderedHeight / canvasHeight) * 22));
+      if (onProgress) onProgress(`A4 səhifə ${pageIndex} hazırlanır...`, sliceProgress);
     }
 
-    if (onProgress) onProgress('PDF faylı kompüterə yüklənir...');
+    if (onProgress) onProgress('PDF faylı cihaza köçürülür...', 95);
 
     const rawFileName = fileName || 'CV_jobia_az.pdf';
     const safeFileName = rawFileName.endsWith('.pdf') ? rawFileName : `${rawFileName}.pdf`;
@@ -218,7 +223,7 @@ export async function downloadCVAsPDF(
       }
     }
 
-    if (onProgress) onProgress('Uğurla tamamlandı!');
+    if (onProgress) onProgress('Uğurla tamamlandı!', 100);
   } catch (error) {
     console.error('PDF generation error:', error);
     throw error;

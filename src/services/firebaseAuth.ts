@@ -6,7 +6,9 @@ import {
   sendPasswordResetEmail,
   onAuthStateChanged,
   User as FirebaseUser,
-  reload
+  reload,
+  GoogleAuthProvider,
+  signInWithPopup
 } from 'firebase/auth';
 import { 
   doc, 
@@ -19,6 +21,7 @@ import {
   getDocs
 } from 'firebase/firestore';
 import { auth, db } from './firebase';
+import { sanitizeForFirestore } from './firestoreService';
 import { User, AuthSession, UserRole } from '../types';
 import { 
   getStoredUsers, 
@@ -99,7 +102,7 @@ export async function fetchUserProfile(fbUser: FirebaseUser): Promise<User | nul
 
   // Sync to Firestore without clobbering existing fields
   try {
-    await setDoc(doc(db, 'users', fbUser.uid), finalUser, { merge: true }).catch(() => {});
+    await setDoc(doc(db, 'users', fbUser.uid), sanitizeForFirestore(finalUser), { merge: true }).catch(() => {});
   } catch {}
 
   // Sync to local vault
@@ -167,11 +170,11 @@ export async function registerCandidateWithFirebase(data: {
 
   // 2. Persist to Firestore with passwordHash
   try {
-    await setDoc(doc(db, 'users', fbUid), {
+    await setDoc(doc(db, 'users', fbUid), sanitizeForFirestore({
       ...newUser,
       passwordHash,
-    });
-    await setDoc(doc(db, 'candidateProfiles', fbUid), {
+    }));
+    await setDoc(doc(db, 'candidateProfiles', fbUid), sanitizeForFirestore({
       id: fbUid,
       userId: fbUid,
       fullName: fullName,
@@ -188,7 +191,7 @@ export async function registerCandidateWithFirebase(data: {
       profileVisibility: 'public',
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-    });
+    }));
   } catch (fsErr) {
     console.warn('Firestore write warning:', fsErr);
   }
@@ -298,11 +301,11 @@ export async function registerEmployerWithFirebase(data: {
 
   // Persist to Firestore with passwordHash
   try {
-    await setDoc(doc(db, 'companies', companyId), newCompany);
-    await setDoc(doc(db, 'users', fbUid), {
+    await setDoc(doc(db, 'companies', companyId), sanitizeForFirestore(newCompany));
+    await setDoc(doc(db, 'users', fbUid), sanitizeForFirestore({
       ...newUser,
       passwordHash,
-    });
+    }));
   } catch (fsErr) {
     console.warn('Firestore write warning:', fsErr);
   }
@@ -511,6 +514,81 @@ export async function checkEmailRegistered(email: string): Promise<boolean> {
     }
   } catch {}
   return false;
+}
+
+/**
+ * Sign In / Register seamlessly via Google Firebase Popup
+ */
+export async function loginWithGoogleFirebase(
+  targetRole: 'candidate' | 'business' = 'candidate'
+): Promise<{ user: User; session: AuthSession }> {
+  const provider = new GoogleAuthProvider();
+  provider.setCustomParameters({ prompt: 'select_account' });
+  
+  const userCredential = await signInWithPopup(auth, provider);
+  const fbUser = userCredential.user;
+  
+  // Look up existing profile
+  let existingUser = await fetchUserProfile(fbUser);
+  
+  const email = (fbUser.email || '').toLowerCase().trim();
+  const isAdm = ADMIN_EMAILS.includes(email);
+  const fullName = fbUser.displayName || (email ? email.split('@')[0] : 'İstifadəçi');
+  const avatarUrl = fbUser.photoURL || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(fullName)}`;
+
+  const finalUser: User = existingUser || {
+    id: fbUser.uid,
+    email,
+    role: isAdm ? 'admin' : targetRole,
+    fullName,
+    avatarUrl,
+    status: 'active',
+    emailVerified: true,
+    createdAt: new Date().toISOString(),
+    lastLoginAt: new Date().toISOString(),
+  };
+
+  // Persist / update profile in Firestore
+  try {
+    await setDoc(doc(db, 'users', fbUser.uid), sanitizeForFirestore({
+      ...finalUser,
+      emailVerified: true,
+      lastLoginAt: new Date().toISOString(),
+    }), { merge: true });
+
+    if (finalUser.role === 'candidate') {
+      await setDoc(doc(db, 'candidateProfiles', fbUser.uid), sanitizeForFirestore({
+        id: fbUser.uid,
+        userId: fbUser.uid,
+        fullName,
+        email,
+        profileVisibility: 'public',
+        updatedAt: new Date().toISOString(),
+      }), { merge: true });
+    }
+  } catch (fsErr) {
+    console.warn('Firestore Google auth sync notice:', fsErr);
+  }
+
+  // Update local vault
+  const users = getStoredUsers();
+  const existingIdx = users.findIndex(u => u.email.toLowerCase() === email || u.id === fbUser.uid);
+  if (existingIdx >= 0) {
+    users[existingIdx] = { ...users[existingIdx], ...finalUser };
+  } else {
+    users.push({ ...finalUser, passwordHash: '' });
+  }
+  saveStoredUsers(users);
+
+  const token = await fbUser.getIdToken().catch(() => `token-google-${Date.now()}`);
+  const session: AuthSession = {
+    token,
+    user: finalUser,
+    expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+  };
+  saveCurrentSession(session);
+
+  return { user: finalUser, session };
 }
 
 /**

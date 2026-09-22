@@ -16,12 +16,12 @@ export const TemplateZurichBanking: React.FC<TemplateProps> = ({ data, showPhoto
     <div id="cv-preview-zurich-banking" className="bg-white text-slate-900 p-8 sm:p-10 font-serif max-w-[800px] w-full mx-auto min-h-[1100px] text-left border border-slate-200">
       {/* Swiss Corporate Header */}
       <div className="border-b-2 border-slate-900 pb-5 mb-6">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5">
-          <div className="flex-1 space-y-1">
-            <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-[#0a192f] uppercase">
+        <div className="flex flex-row items-center justify-between gap-5">
+          <div className="flex-1 min-w-0 space-y-1">
+            <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-[#0a192f] uppercase break-words">
               {personalInfo.fullName || 'Ad Soyad'}
             </h1>
-            <p className="text-base sm:text-lg font-bold text-amber-800 tracking-wide font-sans">
+            <p className="text-base sm:text-lg font-bold text-amber-800 tracking-wide font-sans break-words">
               {personalInfo.jobTitle || 'Vəzifə'}
             </p>
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-600 pt-2 font-sans font-medium">
@@ -41,7 +41,7 @@ export const TemplateZurichBanking: React.FC<TemplateProps> = ({ data, showPhoto
             <img
               src={personalInfo.photoUrl}
               alt={personalInfo.fullName || 'Namizəd'}
-              className={`${getPhotoClasses(personalInfo.photoSize, personalInfo.photoShape)} border-2 border-slate-900 shadow-md`}
+              className={`${getPhotoClasses(personalInfo.photoSize, personalInfo.photoShape)} border-2 border-slate-900 shadow-md shrink-0`}
               referrerPolicy="no-referrer"
             />
           )}
@@ -54,7 +54,7 @@ export const TemplateZurichBanking: React.FC<TemplateProps> = ({ data, showPhoto
           <h2 className="text-xs font-black uppercase tracking-widest text-[#0a192f] border-b border-slate-300 pb-1 mb-2 font-serif">
             {terms.summary}
           </h2>
-          <p className="text-xs sm:text-sm text-slate-800 leading-relaxed text-justify">
+          <p className="text-xs sm:text-sm text-slate-800 leading-relaxed text-justify whitespace-pre-line break-words">
             {personalInfo.summary}
           </p>
         </div>
@@ -69,17 +69,17 @@ export const TemplateZurichBanking: React.FC<TemplateProps> = ({ data, showPhoto
           <div className="space-y-4">
             {experiences.map((exp) => (
               <div key={exp.id} className="font-sans">
-                <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-1">
-                  <div className="text-sm font-bold text-slate-950 font-serif">
+                <div className="flex flex-row items-baseline justify-between gap-2 min-w-0">
+                  <div className="text-sm font-bold text-slate-950 font-serif flex-1 min-w-0 break-words">
                     {exp.position} <span className="font-normal font-sans text-amber-900">— {exp.company}</span>
                   </div>
-                  <div className="text-xs text-slate-500 font-medium">
+                  <div className="text-xs text-slate-500 font-medium shrink-0 whitespace-nowrap">
                     {exp.startDate} – {exp.current ? terms.present : exp.endDate}
                   </div>
                 </div>
-                {exp.location && <div className="text-xs text-slate-400 font-sans italic">{exp.location}</div>}
+                {exp.location && <div className="text-xs text-slate-400 font-sans italic break-words">{exp.location}</div>}
                 {exp.description && (
-                  <p className="text-xs text-slate-700 leading-relaxed whitespace-pre-line mt-1.5 pl-3 border-l-2 border-amber-800/40 font-sans">
+                  <p className="text-xs text-slate-700 leading-relaxed whitespace-pre-line mt-1.5 pl-3 border-l-2 border-amber-800/40 font-sans break-words">
                     {exp.description}
                   </p>
                 )}
@@ -97,12 +97,12 @@ export const TemplateZurichBanking: React.FC<TemplateProps> = ({ data, showPhoto
           </h2>
           <div className="space-y-3 font-sans">
             {education.map((edu) => (
-              <div key={edu.id} className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-1">
-                <div>
-                  <div className="text-sm font-bold text-slate-900 font-serif">{edu.degree}</div>
-                  <div className="text-xs text-slate-600">{edu.institution} {edu.fieldOfStudy ? `• ${edu.fieldOfStudy}` : ''}</div>
+              <div key={edu.id} className="flex flex-row items-baseline justify-between gap-2 min-w-0">
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-bold text-slate-900 font-serif break-words">{edu.degree}</div>
+                  <div className="text-xs text-slate-600 break-words">{edu.institution} {edu.fieldOfStudy ? `• ${edu.fieldOfStudy}` : ''}</div>
                 </div>
-                <div className="text-xs text-slate-500">
+                <div className="text-xs text-slate-500 shrink-0 whitespace-nowrap">
                   {edu.startDate} – {edu.endDate} {edu.gpa ? `(GPA: ${edu.gpa})` : ''}
                 </div>
               </div>
@@ -112,7 +112,7 @@ export const TemplateZurichBanking: React.FC<TemplateProps> = ({ data, showPhoto
       )}
 
       {/* Skills & Languages 2-Column Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-6 font-sans">
+      <div className="grid grid-cols-2 gap-6 mb-6 font-sans">
         {/* Skills */}
         {skills && skills.length > 0 && (
           <div>

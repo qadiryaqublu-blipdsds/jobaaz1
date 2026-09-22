@@ -19,6 +19,46 @@
 *, *::before, *::after {
   box-sizing: border-box;
 }
+
+/* Universal Modal & Window Viewport Containment Safeguards */
+.modal-overlay-safe {
+  position: fixed !important;
+  inset: 0 !important;
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 0.5rem !important;
+  box-sizing: border-box !important;
+}
+@media (min-width: 640px) {
+  .modal-overlay-safe {
+    padding: 1rem !important;
+  }
+}
+@media (min-width: 1024px) {
+  .modal-overlay-safe {
+    padding: 1.5rem !important;
+  }
+}
+
+.modal-card-safe {
+  width: 100% !important;
+  max-width: 100% !important;
+  max-height: calc(100dvh - 1rem) !important;
+  margin-top: auto !important;
+  margin-bottom: auto !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+  box-sizing: border-box !important;
+}
+@media (min-width: 640px) {
+  .modal-card-safe {
+    max-height: calc(100dvh - 2.5rem) !important;
+  }
+}
  
 /* Global layout and responsive overflow constraints */
 html, body {
@@ -53,7 +93,6 @@ button, input, select, textarea, label {
 
 #main-content-scroll {
   -webkit-overflow-scrolling: touch;
-  contain: paint;
 }
 
 *, *::before, *::after {
@@ -61,12 +100,16 @@ button, input, select, textarea, label {
 }
 
 /* Custom subtle scrollbars for localized containers */
-.scrollbar-none::-webkit-scrollbar {
-  display: none;
+.scrollbar-none::-webkit-scrollbar,
+.no-scrollbar::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
 }
-.scrollbar-none {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
+.scrollbar-none,
+.no-scrollbar {
+  -ms-overflow-style: none !important;
+  scrollbar-width: none !important;
 }
 
 /* Continuous infinite scrolling marquee animation */
@@ -115,91 +158,53 @@ button, input, select, textarea, label {
   animation: auth-cta-pulse 5s ease-in-out infinite;
 }
 
-/* Jobia Animated Logo Keyframes */
-@keyframes logo-letter-fall-rise-1 {
-  0%, 100% {
-    transform: rotate(0deg) translateY(0) scale(1);
+/* Subtle Modal Slide-Up Entrance Animation */
+@keyframes modal-slide-up {
+  0% {
+    opacity: 0;
+    transform: translateY(18px) scale(0.985);
   }
-  15% {
-    transform: rotate(-38deg) translateY(24%) skewX(-8deg);
-  }
-  30% {
-    transform: rotate(-65deg) translateY(45%) skewX(-15deg);
-  }
-  48% {
-    transform: rotate(-45deg) translateY(30%);
-  }
-  65% {
-    transform: rotate(12deg) translateY(-8%) scale(1.05);
-  }
-  80% {
-    transform: rotate(-4deg) translateY(2%);
-  }
-  90% {
-    transform: rotate(0deg) translateY(0);
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
   }
 }
 
-@keyframes logo-letter-fall-rise-2 {
+.animate-modal-slide-up {
+  animation: modal-slide-up 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: transform, opacity;
+}
+
+#modal-submitted-cv-export {
+  animation: modal-slide-up 0.32s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: transform, opacity;
+}
+
+/* Jobia Premium Logo Keyframes (Subtle, smooth, professional) */
+@keyframes logo-letter-hover {
   0%, 100% {
-    transform: rotate(0deg) translateY(0) scale(1);
+    transform: translateY(0);
   }
-  15% {
-    transform: rotate(35deg) translateY(22%) skewX(8deg);
-  }
-  30% {
-    transform: rotate(62deg) translateY(42%) skewX(12deg);
-  }
-  48% {
-    transform: rotate(40deg) translateY(28%);
-  }
-  65% {
-    transform: rotate(-10deg) translateY(-8%) scale(1.05);
-  }
-  80% {
-    transform: rotate(3deg) translateY(2%);
-  }
-  90% {
-    transform: rotate(0deg) translateY(0);
+  50% {
+    transform: translateY(-2.5px);
   }
 }
 
-@keyframes logo-o-spin-bounce {
+@keyframes logo-o-hover {
   0%, 100% {
-    transform: rotate(0deg) scale(1);
+    transform: scale(1) rotate(0deg);
   }
-  20% {
-    transform: rotate(180deg) scale(1.15) translateY(-15%);
-  }
-  40% {
-    transform: rotate(360deg) scale(0.9) translateY(10%);
-  }
-  60% {
-    transform: rotate(540deg) scale(1.1) translateY(-8%);
-  }
-  80% {
-    transform: rotate(720deg) scale(1.02) translateY(0);
-  }
-  90% {
-    transform: rotate(720deg) scale(1);
+  50% {
+    transform: scale(1.08) rotate(45deg);
   }
 }
 
-@keyframes logo-dot-pop {
+@keyframes logo-dot-hover {
   0%, 100% {
-    transform: scale(1) translateY(0);
+    transform: scale(1);
   }
-  25% {
-    transform: scale(1.4) translateY(-40%);
-  }
-  45% {
-    transform: scale(0.7) translateY(30%);
-  }
-  65% {
-    transform: scale(1.2) translateY(-15%);
-  }
-  85% {
-    transform: scale(1) translateY(0);
+  50% {
+    transform: scale(1.25) translateY(-2px);
   }
 }
 
@@ -208,77 +213,114 @@ button, input, select, textarea, label {
     transform: translateY(0px);
   }
   50% {
-    transform: translateY(-4px);
+    transform: translateY(-1.5px);
   }
 }
 
 .logo-floating-badge {
-  animation: logo-floating-gentle 3.5s ease-in-out infinite;
+  animation: logo-floating-gentle 4s ease-in-out infinite;
   will-change: transform;
+}
+
+/* Continuous smooth moving company frames marquee */
+@keyframes header-marquee-scroll {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+  100% {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+.header-marquee-track {
+  display: flex;
+  align-items: center;
+  width: max-content;
+  will-change: transform;
+  animation: header-marquee-scroll 38s linear infinite;
+}
+
+.header-marquee-track:hover {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .header-marquee-track {
+    animation: none;
+    overflow-x: auto;
+  }
 }
 
 .logo-anim-j {
   display: inline-block;
-  transform-origin: bottom left;
-  animation: logo-letter-fall-rise-1 4s ease-in-out infinite;
-  animation-delay: 0.1s;
-  will-change: transform;
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .logo-anim-o {
   display: inline-block;
-  transform-origin: center center;
-  animation: logo-o-spin-bounce 4s cubic-bezier(0.34, 1.56, 0.64, 1) infinite;
-  animation-delay: 0.25s;
-  will-change: transform;
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .logo-anim-b {
   display: inline-block;
-  transform-origin: bottom right;
-  animation: logo-letter-fall-rise-2 4s ease-in-out infinite;
-  animation-delay: 0.4s;
-  will-change: transform;
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .logo-anim-i {
   display: inline-block;
-  transform-origin: bottom left;
-  animation: logo-letter-fall-rise-1 4s ease-in-out infinite;
-  animation-delay: 0.55s;
-  will-change: transform;
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .logo-anim-a1 {
   display: inline-block;
-  transform-origin: bottom right;
-  animation: logo-letter-fall-rise-2 4s ease-in-out infinite;
-  animation-delay: 0.7s;
-  will-change: transform;
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .logo-anim-dot {
   display: inline-block;
-  transform-origin: center center;
-  animation: logo-dot-pop 4s cubic-bezier(0.34, 1.56, 0.64, 1) infinite;
-  animation-delay: 0.85s;
-  will-change: transform;
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .logo-anim-a2 {
   display: inline-block;
-  transform-origin: bottom left;
-  animation: logo-letter-fall-rise-1 4s ease-in-out infinite;
-  animation-delay: 1.0s;
-  will-change: transform;
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .logo-anim-z {
   display: inline-block;
-  transform-origin: bottom right;
-  animation: logo-letter-fall-rise-2 4s ease-in-out infinite;
-  animation-delay: 1.15s;
-  will-change: transform;
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.group:hover .logo-anim-j {
+  animation: logo-letter-hover 0.5s ease-in-out;
+}
+
+.group:hover .logo-anim-o {
+  animation: logo-o-hover 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.group:hover .logo-anim-b {
+  animation: logo-letter-hover 0.5s ease-in-out 0.05s;
+}
+
+.group:hover .logo-anim-i {
+  animation: logo-letter-hover 0.5s ease-in-out 0.1s;
+}
+
+.group:hover .logo-anim-a1 {
+  animation: logo-letter-hover 0.5s ease-in-out 0.15s;
+}
+
+.group:hover .logo-anim-dot {
+  animation: logo-dot-hover 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.2s;
+}
+
+.group:hover .logo-anim-a2 {
+  animation: logo-letter-hover 0.5s ease-in-out 0.25s;
+}
+
+.group:hover .logo-anim-z {
+  animation: logo-letter-hover 0.5s ease-in-out 0.3s;
 }
 
 @media print {
@@ -314,5 +356,14 @@ button, input, select, textarea, label {
     size: A4 portrait;
     margin: 10mm;
   }
+}
+
+/* Hide scrollbar for clean horizontal moving frames */
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 

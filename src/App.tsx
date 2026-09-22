@@ -35,6 +35,7 @@ import {
   getCompanyApplications,
   saveVacancyToFirestore,
   updateVacancyStatus,
+  updateVacancyFeatured,
   deleteVacancyFromFirestore,
   createJobOfferInFirestore,
   respondToJobOffer,
@@ -54,9 +55,13 @@ import {
   subscribeToCandidateApplications,
   getVacancyByIdFromFirestore,
   recordAdminAuditLog,
-  notifySubscribersOfNewVacancy
+  notifySubscribersOfNewVacancy,
+  getLocalApplications,
+  mergeApplicationLists,
+  createCompanyInFirestore
 } from './services/firestoreService';
 import { calculateApplicationMatchScore } from './utils/applicationMatcher';
+import { isPlatformCreatedCV, buildActiveCandidateCV, ensureApplicationCV } from './utils/applicationCVHelper';
 import { Header } from './components/Header';
 import { LiveNotificationToast } from './components/notifications/LiveNotificationToast';
 import { JobiaLogo, HireMeLogo } from './components/JobiaLogo';
@@ -73,12 +78,16 @@ import { AdminDashboard } from './components/admin/AdminDashboard';
 import { GoogleChatHub } from './components/chat/GoogleChatHub';
 import { CVRenderer } from './components/cv-templates/CVRenderer';
 import { downloadCVAsPDF, generateCVFileName } from './utils/pdfExport';
+import { usePDFDownload } from './hooks/usePDFDownload';
+import { PDFDownloadProgressToast } from './components/common/PDFDownloadProgressToast';
 import { CandidateOfferPortal } from './components/interview-offer/CandidateOfferPortal';
 import { getOfferTemplates, saveOfferTemplates } from './services/offerTemplateService';
 import { calculateNetSalary } from './services/salaryCalculator';
-import { SalariaCalculator } from './components/candidate/SalariaCalculator';
+import { SalaryCalculatorView } from './components/candidate/SalaryCalculatorView';
+import { VacationCalculatorView } from './components/candidate/VacationCalculatorView';
 import { DeepCVAnalyzerView } from './components/candidate/cv-analyzer/DeepCVAnalyzerView';
 import { CVCreator } from './components/candidate/CVCreator';
+import { ProfessionalNetworkView } from './components/network/ProfessionalNetworkView';
 import { AuthModal } from './components/auth/AuthModal';
 import { VerifyAccountModal } from './components/auth/VerifyAccountModal';
 import { PricingPage } from './components/subscription/PricingPage';
@@ -88,6 +97,9 @@ import { IntroTourModal } from './components/IntroTourModal';
 import { UserProfileModal } from './components/profile/UserProfileModal';
 import { Sidebar } from './components/Sidebar';
 import { Footer } from './components/Footer';
+import { HelpContactModal } from './components/common/HelpContactModal';
+import { StatusErrorView } from './components/common/StatusErrorView';
+import { LegalInfoModal, LegalModalType } from './components/common/LegalInfoModal';
 import { MobileFrozenBottomBar } from './components/MobileFrozenBottomBar';
 import { ModalBottomLogo } from './components/ModalBottomLogo';
 import { 
@@ -109,70 +121,70 @@ import {
   CreditCard,
   Zap,
   Lock,
-  ArrowRight
+  ArrowRight,
+  FileText
 } from 'lucide-react';
 
-// Helper function to safely merge applications from Firestore and LocalStorage
-function mergeApplicationLists(firestoreApps: Application[], localApps: Application[]): Application[] {
-  const map = new Map<string, Application>();
 
-  // 1. First add local applications
-  (localApps || []).forEach((app) => {
-    if (app && app.id) {
-      map.set(app.id, app);
-    }
-  });
-
-  // 2. Merge Firestore applications (Firestore takes priority for status/notes, but keeps full local CV data if present)
-  (firestoreApps || []).forEach((fsApp) => {
-    if (fsApp && fsApp.id) {
-      const existing = map.get(fsApp.id);
-      map.set(fsApp.id, {
-        ...fsApp,
-        cvFileData: existing?.cvFileData || fsApp.cvFileData,
-        cvData: fsApp.cvData || existing?.cvData,
-      });
-    }
-  });
-
-  return Array.from(map.values()).sort((a, b) => {
-    const timeA = new Date(a.appliedDate || (a as any).createdAt || 0).getTime();
-    const timeB = new Date(b.appliedDate || (b as any).createdAt || 0).getTime();
-    return timeB - timeA;
-  });
-}
 
 /**
  * Merge Firestore vacancies with locally stored vacancies so that newly created
  * or edited vacancies are immediately preserved and synced across sessions.
  */
+const SEED_JOB_PREFIXES = ['vac-pasha-', 'vac-kapital-', 'vac-azercell-', 'vac-bravo-', 'vac-trendyol-', 'vac-abb-', 'vac-silkway-', 'vac-socar-'];
+const SEED_COMP_PREFIXES = ['comp-pasha-', 'comp-kapital-', 'comp-azercell-', 'comp-bravo-', 'comp-trendyol-', 'comp-abb-', 'comp-silkway-', 'comp-socar-'];
+
+function isSeedJob(id?: string): boolean {
+  if (!id) return false;
+  return SEED_JOB_PREFIXES.some((prefix) => id.startsWith(prefix));
+}
+
+function isSeedCompany(id?: string): boolean {
+  if (!id) return false;
+  return SEED_COMP_PREFIXES.some((prefix) => id.startsWith(prefix));
+}
+
+/**
+ * Intelligent vacancy merger:
+ * Strictly prioritizes real Firestore cloud database and eliminates any unapproved or fake items.
+ */
 function mergeVacancyLists(remoteVacancies: Vacancy[], localVacancies: Vacancy[]): Vacancy[] {
   const map = new Map<string, Vacancy>();
 
-  // 1. Seed with local vacancies
-  (localVacancies || []).forEach((vac) => {
-    if (vac && vac.id) {
-      map.set(vac.id, vac);
-    }
-  });
+  // Filter out any fake/seed vacancies from both sources
+  const cleanRemote = (remoteVacancies || []).filter((v) => v && v.id && !isSeedJob(v.id));
+  const cleanLocal = (localVacancies || []).filter((v) => v && v.id && !isSeedJob(v.id));
 
-  // 2. Merge remote Firestore vacancies
-  (remoteVacancies || []).forEach((rVac) => {
-    if (rVac && rVac.id) {
-      const existing = map.get(rVac.id);
+  if (cleanRemote.length > 0) {
+    // Authoritative real remote records from Firestore first
+    cleanRemote.forEach((rVac) => {
+      map.set(rVac.id, rVac);
+    });
+
+    // Only merge local jobs if they are genuinely user-created drafts/pending, or have a newer optimistic update
+    cleanLocal.forEach((lVac) => {
+      const existing = map.get(lVac.id);
       if (!existing) {
-        map.set(rVac.id, rVac);
+        if (lVac.status === 'draft' || lVac.status === 'pending_review') {
+          map.set(lVac.id, lVac);
+        }
       } else {
-        const remoteUpdated = new Date(rVac.updatedAt || rVac.createdAt || 0).getTime();
-        const localUpdated = new Date(existing.updatedAt || existing.createdAt || 0).getTime();
-        if (remoteUpdated >= localUpdated) {
-          map.set(rVac.id, { ...existing, ...rVac });
-        } else {
-          map.set(rVac.id, existing);
+        // If local has a newer timestamp (e.g. optimistic VIP Premium toggle)
+        if (lVac.updatedAt && existing.updatedAt) {
+          const localTime = new Date(lVac.updatedAt).getTime();
+          const remoteTime = new Date(existing.updatedAt).getTime();
+          if (localTime > remoteTime) {
+            map.set(lVac.id, { ...existing, ...lVac });
+          }
         }
       }
-    }
-  });
+    });
+  } else {
+    // If remote is empty, use clean local
+    cleanLocal.forEach((vac) => {
+      map.set(vac.id, vac);
+    });
+  }
 
   return Array.from(map.values()).sort((a, b) => {
     const timeA = new Date(a.createdAt || a.postedDate || 0).getTime();
@@ -184,7 +196,8 @@ function mergeVacancyLists(remoteVacancies: Vacancy[], localVacancies: Vacancy[]
 export default function App() {
   // Navigation & Role State
   const [currentRole, setCurrentRole] = useState<UserRole>('candidate');
-  const [candidateTab, setCandidateTab] = useState<'jobs' | 'nearby-map' | 'my-applications' | 'salary-trends' | 'calculia' | 'google-chat' | 'cv-analyzer' | 'cv-creator'>('jobs');
+  const [candidateTab, setCandidateTab] = useState<'jobs' | 'nearby-map' | 'my-applications' | 'salary-trends' | 'salary-calculator' | 'vacation-calculator' | 'calculia' | 'google-chat' | 'cv-analyzer' | 'cv-creator' | 'network'>('jobs');
+  const [businessTab, setBusinessTab] = useState<'vacancies' | 'applicants' | 'offers' | 'analytics' | 'templates' | 'company-profile' | 'talent-pool' | 'vacation-calculator'>('vacancies');
   const [calculiaSubTab, setCalculiaSubTab] = useState<'calculia' | 'vacatia'>('calculia');
   const [analyzerPrefillText, setAnalyzerPrefillText] = useState<string>('');
   const [selectedCompanyFilter, setSelectedCompanyFilter] = useState<string>('Hamısı');
@@ -267,7 +280,10 @@ export default function App() {
       const saved = localStorage.getItem('jobia_vacancies');
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) return parsed;
+        if (Array.isArray(parsed)) {
+          const clean = parsed.filter((v) => v && v.id && !isSeedJob(v.id));
+          return clean;
+        }
       }
     } catch (e) {}
     return [];
@@ -278,7 +294,10 @@ export default function App() {
       const saved = localStorage.getItem('jobia_companies');
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) return parsed;
+        if (Array.isArray(parsed)) {
+          const clean = parsed.filter((c) => c && c.id && !isSeedCompany(c.id));
+          return clean;
+        }
       }
     } catch (e) {}
     return [];
@@ -351,14 +370,32 @@ export default function App() {
   });
 
   const [candidateCV, setCandidateCV] = useState<CVData>(() => {
+    const user = getCurrentUser();
+    let storedCV: CVData | null = null;
     try {
-      const saved = localStorage.getItem('jobia_candidate_cv');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (parsed && parsed.personalInfo) return parsed;
+      if (user?.id) {
+        const userSaved = localStorage.getItem(`jobia_candidate_cv_${user.id}`);
+        if (userSaved) {
+          const parsed = JSON.parse(userSaved);
+          if (parsed && parsed.personalInfo) storedCV = parsed;
+        }
+      }
+      if (!storedCV) {
+        const creatorSaved = localStorage.getItem('jobia_cv_creator_data');
+        if (creatorSaved) {
+          const parsed = JSON.parse(creatorSaved);
+          if (parsed && parsed.personalInfo) storedCV = parsed;
+        }
+      }
+      if (!storedCV) {
+        const saved = localStorage.getItem('jobia_candidate_cv');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (parsed && parsed.personalInfo) storedCV = parsed;
+        }
       }
     } catch (e) {}
-    return INITIAL_EMPTY_CV;
+    return buildActiveCandidateCV(user, storedCV);
   });
 
   const [savedJobIds, setSavedJobIds] = useState<string[]>(() => {
@@ -447,11 +484,64 @@ export default function App() {
           const localJobs: Vacancy[] = localSavedJobs ? JSON.parse(localSavedJobs) : [];
           const mergedJobs = mergeVacancyLists(allJobs || [], localJobs);
           setVacancies(mergedJobs);
+          localStorage.setItem('jobia_vacancies', JSON.stringify(mergedJobs));
+
+          // Multi-Device Cloud Sync: If this device has local vacancies not yet in Firestore, upload them (excluding any seed jobs)
+          if (localJobs.length > 0 && Array.isArray(allJobs)) {
+            const remoteIds = new Set(allJobs.map((j) => j.id));
+            const unsyncedJobs = localJobs.filter((lj) => !remoteIds.has(lj.id) && lj.id && !isSeedJob(lj.id));
+            if (unsyncedJobs.length > 0) {
+              console.log(`[Cloud Sync] Syncing ${unsyncedJobs.length} local vacancy(ies) to Firestore...`);
+              unsyncedJobs.forEach((job) => {
+                saveVacancyToFirestore(job, job.createdBy).catch(() => {});
+              });
+            }
+          }
         } catch {
-          if (Array.isArray(allJobs) && allJobs.length > 0) setVacancies(allJobs);
+          if (Array.isArray(allJobs) && allJobs.length > 0) {
+            const clean = allJobs.filter((j) => !isSeedJob(j.id));
+            setVacancies(clean);
+          }
         }
 
-        if (Array.isArray(allComps)) setCompanies(allComps);
+        if (Array.isArray(allComps)) {
+          const cleanComps = allComps.filter((c) => !isSeedCompany(c.id));
+          const existingNames = new Set(cleanComps.map((c) => (c.name || '').trim().toLowerCase()));
+          const extraFromJobs: Company[] = [];
+
+          if (Array.isArray(allJobs)) {
+            for (const job of allJobs) {
+              if (job.isApproved === true && job.status === 'published' && job.companyName && job.companyName.trim()) {
+                const norm = job.companyName.trim().toLowerCase();
+                if (!existingNames.has(norm)) {
+                  existingNames.add(norm);
+                  extraFromJobs.push({
+                    id: job.companyId || `comp-${norm.replace(/[^a-z0-9]/g, '-')}`,
+                    name: job.companyName.trim(),
+                    logo: (job as any).companyLogo || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(job.companyName.trim())}&backgroundColor=0284c7,16a34a,d97706,4f46e5`,
+                    verified: true,
+                    verificationStatus: 'verified',
+                    industry: (job as any).industry || job.category || 'Biznes və Xidmət',
+                    location: job.city || 'Bakı',
+                    city: job.city || 'Bakı',
+                    website: '',
+                    description: `${job.companyName.trim()} şirkəti platformada təsdiqlənmiş işəgötürəndir.`,
+                    employeeCount: '10-50',
+                    activeJobsCount: 1,
+                    phone: '',
+                    email: '',
+                  });
+                }
+              }
+            }
+          }
+
+          const finalComps = [...cleanComps, ...extraFromJobs];
+          setCompanies(finalComps);
+          try {
+            localStorage.setItem('jobia_companies', JSON.stringify(finalComps));
+          } catch {}
+        }
 
         // Strict Role-Isolated Application Fetching:
         // Regular candidates only get their own applications; employers only get their company's applications; guests get none from Firestore.
@@ -507,19 +597,18 @@ export default function App() {
             getCandidateOffers(currentUser.id, currentUser.email),
             getCandidateProfile(currentUser.id),
           ]);
-          if (Array.isArray(candOffers)) setJobOffers(candOffers);
+          if (candOffers && Array.isArray(candOffers)) setJobOffers(candOffers);
           if (candProf) {
-            setCandidateCV((prev) => ({
-              ...prev,
-              personalInfo: {
-                ...prev.personalInfo,
-                fullName: currentUser.fullName,
-                email: currentUser.email,
-                phone: currentUser.phone || prev.personalInfo.phone,
-                jobTitle: candProf.professionalTitle || prev.personalInfo.jobTitle,
-                summary: candProf.about || prev.personalInfo.summary,
-              },
-            }));
+            setCandidateCV((prev) => {
+              const fullCV = buildActiveCandidateCV(currentUser, candProf.cvData || prev, candProf);
+              try {
+                localStorage.setItem(`jobia_candidate_cv_${currentUser.id}`, JSON.stringify(fullCV));
+                localStorage.setItem('jobia_candidate_cv', JSON.stringify(fullCV));
+              } catch {}
+              return fullCV;
+            });
+          } else if (currentUser) {
+            setCandidateCV((prev) => buildActiveCandidateCV(currentUser, prev));
           }
         } else if (currentUser?.role === 'business' && currentUser.companyId) {
           const compOffers = await getCompanyOffers(currentUser.companyId);
@@ -540,9 +629,13 @@ export default function App() {
         const localJobs: Vacancy[] = localSaved ? JSON.parse(localSaved) : [];
         const merged = mergeVacancyLists(remoteJobs || [], localJobs);
         setVacancies(merged);
+        localStorage.setItem('jobia_vacancies', JSON.stringify(merged));
       } catch {
         if (Array.isArray(remoteJobs) && remoteJobs.length > 0) {
           setVacancies(remoteJobs);
+          try {
+            localStorage.setItem('jobia_vacancies', JSON.stringify(remoteJobs));
+          } catch {}
         }
       }
     });
@@ -553,11 +646,16 @@ export default function App() {
   useEffect(() => {
     const unsubscribe = subscribeToAllCompanies((remoteComps) => {
       if (Array.isArray(remoteComps) && remoteComps.length > 0) {
+        const cleanRemote = remoteComps.filter((c) => !isSeedCompany(c.id));
         setCompanies((prev) => {
           const compMap = new Map<string, Company>();
-          prev.forEach((c) => compMap.set(c.id, c));
-          remoteComps.forEach((c) => compMap.set(c.id, c));
-          return Array.from(compMap.values());
+          prev.filter((c) => !isSeedCompany(c.id)).forEach((c) => compMap.set(c.id, c));
+          cleanRemote.forEach((c) => compMap.set(c.id, c));
+          const updated = Array.from(compMap.values());
+          try {
+            localStorage.setItem('jobia_companies', JSON.stringify(updated));
+          } catch {}
+          return updated;
         });
       }
     });
@@ -594,27 +692,120 @@ export default function App() {
     }
   }, [currentUser, vacancies]);
 
-  // Cross-Network Direct Shared Vacancy Linking (?job=... or ?vacancy=...)
+  // Deep Linking, Status Error and Support Modal States
+  const [isHelpContactModalOpen, setIsHelpContactModalOpen] = useState(false);
+  const [helpContactInitialTab, setHelpContactInitialTab] = useState<'faq' | 'contact'>('faq');
+  const [activeLegalPageModal, setActiveLegalPageModal] = useState<LegalModalType | null>(null);
+  const [urlStatusError, setUrlStatusError] = useState<{ statusCode: 403 | 404 | 500; message?: string } | null>(null);
+
+  // Cross-Network Deep Linking & URL Parameter Routing
   useEffect(() => {
-    try {
-      const searchParams = new URLSearchParams(window.location.search);
-      const sharedJobId = searchParams.get('job') || searchParams.get('vacancy');
-      if (sharedJobId) {
-        const found = vacancies.find((v) => v.id === sharedJobId);
-        if (found) {
-          setSelectedJobForDetail(found);
-          setCandidateTab('jobs');
-        } else {
-          getVacancyByIdFromFirestore(sharedJobId).then((remoteJob) => {
-            if (remoteJob) {
-              setSelectedJobForDetail(remoteJob);
-              setCandidateTab('jobs');
-            }
-          });
+    const handleUrlRouting = () => {
+      try {
+        const searchParams = new URLSearchParams(window.location.search);
+
+        // 1. Shared Job Link (?job=... or ?vacancy=...)
+        const sharedJobId = searchParams.get('job') || searchParams.get('vacancy');
+        if (sharedJobId) {
+          const found = vacancies.find((v) => v.id === sharedJobId);
+          if (found) {
+            setSelectedJobForDetail(found);
+            setCandidateTab('jobs');
+            setCurrentRole('candidate');
+          } else {
+            getVacancyByIdFromFirestore(sharedJobId).then((remoteJob) => {
+              if (remoteJob) {
+                setSelectedJobForDetail(remoteJob);
+                setCandidateTab('jobs');
+                setCurrentRole('candidate');
+              }
+            });
+          }
         }
+
+        // 2. Direct Legal or Help / FAQ pages (?page=...)
+        const pageParam = searchParams.get('page');
+        if (pageParam) {
+          const legalPages: LegalModalType[] = ['privacy', 'terms', 'cookies', 'security', 'compliance'];
+          if (legalPages.includes(pageParam as LegalModalType)) {
+            setActiveLegalPageModal(pageParam as LegalModalType);
+          } else if (pageParam === 'faq') {
+            setHelpContactInitialTab('faq');
+            setIsHelpContactModalOpen(true);
+          } else if (pageParam === 'contact' || pageParam === 'help') {
+            setHelpContactInitialTab('contact');
+            setIsHelpContactModalOpen(true);
+          } else {
+            setUrlStatusError({
+              statusCode: 404,
+              message: `Axtarılan "?page=${pageParam}" səhifəsi tapılmadı.`
+            });
+            return;
+          }
+        }
+
+        // 3. Direct Pricing View (?pricing=true)
+        if (searchParams.get('pricing') === 'true') {
+          setIsPricingViewOpen(true);
+        }
+
+        // 4. Role and Tab (?role=... and ?tab=...)
+        const roleParam = searchParams.get('role');
+        const tabParam = searchParams.get('tab');
+
+        if (roleParam) {
+          if (roleParam === 'admin') {
+            if (currentUser && currentUser.role !== 'admin') {
+              setUrlStatusError({
+                statusCode: 403,
+                message: 'Admin idarəetmə panelinə daxil olmaq üçün sistem admini səlahiyyəti tələb olunur.'
+              });
+              return;
+            } else {
+              setCurrentRole('admin');
+            }
+          } else if (roleParam === 'business') {
+            setCurrentRole('business');
+          } else if (roleParam === 'candidate') {
+            setCurrentRole('candidate');
+          } else {
+            setUrlStatusError({
+              statusCode: 404,
+              message: `"${roleParam}" adlı istifadəçi rolu mövcud deyil.`
+            });
+            return;
+          }
+        }
+
+        if (tabParam) {
+          const candidateTabs = ['jobs', 'nearby-map', 'my-applications', 'salary-trends', 'salary-calculator', 'vacation-calculator', 'calculia', 'google-chat', 'cv-analyzer', 'cv-creator', 'network'];
+          const businessTabs = ['vacancies', 'applicants', 'offers', 'analytics', 'templates', 'company-profile', 'talent-pool', 'vacation-calculator'];
+
+          if (candidateTabs.includes(tabParam)) {
+            setCandidateTab(tabParam as any);
+            if (!roleParam) setCurrentRole('candidate');
+          } else if (businessTabs.includes(tabParam)) {
+            setBusinessTab(tabParam as any);
+            if (!roleParam) setCurrentRole('business');
+          } else {
+            setUrlStatusError({
+              statusCode: 404,
+              message: `"${tabParam}" adlı bölmə və ya alt-səhifə tapılmadı.`
+            });
+            return;
+          }
+        }
+
+        setUrlStatusError(null);
+      } catch (err) {
+        console.warn('URL routing parse error:', err);
       }
-    } catch {}
-  }, [vacancies]);
+    };
+
+    handleUrlRouting();
+    window.addEventListener('popstate', handleUrlRouting);
+    return () => window.removeEventListener('popstate', handleUrlRouting);
+  }, [vacancies, currentUser]);
 
   const [offerTemplates, setOfferTemplates] = useState<JobOfferTemplate[]>(() => {
     try {
@@ -635,7 +826,15 @@ export default function App() {
   const [isGoogleChatModalOpen, setIsGoogleChatModalOpen] = useState(false);
   const [viewingSubmittedCVApp, setViewingSubmittedCVApp] = useState<Application | null>(null);
   const [selectedSubmittedTemplate, setSelectedSubmittedTemplate] = useState<CVTemplateType>('modern-emerald');
-  const [isDownloadingSubmittedCV, setIsDownloadingSubmittedCV] = useState(false);
+  const {
+    isDownloading: isDownloadingSubmittedCV,
+    progressPercent: submittedCvProgressPercent,
+    progressStatus: submittedCvProgressStatus,
+    showToast: showSubmittedCvToast,
+    fileName: submittedCvFileName,
+    downloadPDF: triggerSubmittedCvDownload,
+    dismissToast: dismissSubmittedCvToast,
+  } = usePDFDownload();
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [isResendingVerif, setIsResendingVerif] = useState(false);
   const [isCheckingVerifStatus, setIsCheckingVerifStatus] = useState(false);
@@ -757,6 +956,17 @@ export default function App() {
 
   // Safe role change with strict RBAC enforcement
   const handleRoleChangeWithRBAC = (newRole: UserRole) => {
+    setIsPricingViewOpen(false);
+    setUrlStatusError(null);
+
+    if (newRole === 'admin') {
+      if (!currentUser || currentUser.role !== 'admin') {
+        showToast('⚠️ Admin idarəetmə panelinə daxil olmaq üçün sistem admini hesabı ilə daxil olmalısınız.');
+        handleOpenAuth('login', 'admin');
+        return;
+      }
+    }
+
     if (currentUser) {
       if (currentUser.role === 'candidate' && newRole !== 'candidate') {
         showToast('⚠️ Namizəd hesabı ilə yalnız Namizəd bölməsini istifadə edə bilərsiniz.');
@@ -884,25 +1094,8 @@ export default function App() {
     setCurrentUser(null);
     setAuthSession(null);
     setJobOffers([]);
-    try {
-      const guestIdsRaw = localStorage.getItem('jobia_guest_application_ids');
-      const guestIds: string[] = guestIdsRaw ? JSON.parse(guestIdsRaw) : [];
-      if (guestIds.length > 0) {
-        const localSaved = localStorage.getItem('jobia_applications');
-        const localApps: Application[] = localSaved ? JSON.parse(localSaved) : [];
-        const guestOnly = localApps.filter(
-          (a) => guestIds.includes(a.id) && (a.isGuestApplication || !a.candidateId)
-        );
-        localStorage.setItem('jobia_applications', JSON.stringify(guestOnly));
-        setApplications(guestOnly);
-      } else {
-        localStorage.removeItem('jobia_applications');
-        setApplications([]);
-      }
-    } catch {
-      setApplications([]);
-    }
-    setCurrentSubscription(getUserSubscription(undefined, currentRole));
+    setApplications([]);
+    setCurrentSubscription(getUserSubscription(undefined, 'candidate'));
     showToast('Sistemdən uğurla çıxış edildi.');
   };
 
@@ -947,31 +1140,44 @@ export default function App() {
     });
   };
 
-  // Strictly isolated applications visible to Candidate or Guest
+  // Strictly isolated applications visible to Candidate - strictly only when authenticated!
   const candidateVisibleApplications = useMemo(() => {
-    if (currentUser?.role === 'candidate') {
+    if (currentUser && currentUser.role === 'candidate') {
       const userEmail = currentUser.email?.toLowerCase().trim();
-      return applications.filter(
-        (a) =>
-          a.candidateId === currentUser.id ||
-          (userEmail && a.candidateEmail && a.candidateEmail.toLowerCase().trim() === userEmail)
-      );
-    }
+      const userId = currentUser.id;
 
-    // If unauthenticated guest: ONLY show applications submitted by this specific browser
-    if (!currentUser) {
-      try {
-        const guestIdsRaw = localStorage.getItem('jobia_guest_application_ids');
-        const guestIds: string[] = guestIdsRaw ? JSON.parse(guestIdsRaw) : [];
-        if (guestIds.length > 0) {
-          return applications.filter(
-            (a) => guestIds.includes(a.id) && (a.isGuestApplication || !a.candidateId)
-          );
+      const map = new Map<string, Application>();
+
+      // 1. Check in-memory applications
+      applications.forEach((a) => {
+        if (!a || !a.id) return;
+        const matchId = userId && a.candidateId === userId;
+        const matchEmail = userEmail && a.candidateEmail && a.candidateEmail.toLowerCase().trim() === userEmail;
+        if (matchId || matchEmail) {
+          map.set(a.id, a);
         }
-      } catch (e) {}
-      return [];
-    }
+      });
 
+      // 2. Check local applications (including user-scoped storage)
+      const localApps = getLocalApplications(userId);
+      localApps.forEach((a) => {
+        if (!a || !a.id) return;
+        const matchId = userId && a.candidateId === userId;
+        const matchEmail = userEmail && a.candidateEmail && a.candidateEmail.toLowerCase().trim() === userEmail;
+        if (matchId || matchEmail) {
+          if (!map.has(a.id)) {
+            map.set(a.id, a);
+          }
+        }
+      });
+
+      return Array.from(map.values()).sort((a, b) => {
+        const timeA = new Date(a.appliedDate || (a as any).createdAt || 0).getTime();
+        const timeB = new Date(b.appliedDate || (b as any).createdAt || 0).getTime();
+        return timeB - timeA;
+      });
+    }
+    // If not logged in or not candidate, strictly empty
     return [];
   }, [applications, currentUser]);
 
@@ -996,25 +1202,61 @@ export default function App() {
   }, [currentRole, candidateVisibleApplications.length, businessVisibleApplications.length, applications.length, currentUser]);
 
   // STRICT ADMIN APPROVAL MANDATE:
-  // 1. Verified Companies: Only companies approved by admin (verified === true || verificationStatus === 'verified')
+  // 1. Verified Companies: Only companies approved by admin or possessing active published vacancies
   const verifiedCompanies = useMemo(() => {
-    return companies.filter(
-      (c) => c.verified === true || c.verificationStatus === 'verified'
-    );
-  }, [companies]);
+    const map = new Map<string, Company>();
 
-  // 2. Published Vacancies: Only vacancies strictly approved by admin (isApproved === true && status === 'published')
-  // and whose company is verified by admin (if companyId is present).
+    // Add registered verified companies
+    for (const c of companies) {
+      if (c && c.name && c.name.trim() && (c.verified === true || c.verificationStatus === 'verified')) {
+        const norm = c.name.trim().toLowerCase();
+        map.set(norm, {
+          ...c,
+          name: c.name.trim(),
+          verified: true,
+          verificationStatus: 'verified',
+        });
+      }
+    }
+
+    // Always include any company with approved & published vacancies
+    for (const v of vacancies) {
+      if (v.isApproved === true && v.status === 'published' && v.companyName && v.companyName.trim()) {
+        const norm = v.companyName.trim().toLowerCase();
+        if (!map.has(norm)) {
+          const existing = companies.find(
+            (c) => (c.name && c.name.trim().toLowerCase() === norm) || (v.companyId && c.id === v.companyId)
+          );
+          map.set(norm, {
+            id: (existing && existing.id) ? existing.id : (v.companyId || `comp-${norm.replace(/[^a-z0-9]/g, '-')}`),
+            name: v.companyName.trim(),
+            logo: (v as any).companyLogo || (existing && existing.logo) || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(v.companyName.trim())}&backgroundColor=0284c7,16a34a,d97706,4f46e5`,
+            verified: true,
+            verificationStatus: 'verified',
+            industry: (v as any).industry || (existing && existing.industry) || v.category || 'Biznes və Xidmət',
+            location: v.city || (existing && existing.location) || 'Bakı',
+            city: v.city || (existing && existing.city) || 'Bakı',
+            website: (existing && existing.website) || '',
+            description: (existing && existing.description) || `${v.companyName.trim()} platformada təsdiqlənmiş işəgötürəndir.`,
+            employeeCount: (existing && existing.employeeCount) || '10-50',
+            activeJobsCount: 1,
+            phone: (existing && existing.phone) || '',
+            email: (existing && existing.email) || '',
+          });
+        }
+      }
+    }
+
+    return Array.from(map.values());
+  }, [companies, vacancies]);
+
+  // 2. Published Vacancies: Vacancies approved by admin (isApproved === true && status === 'published')
   const publishedVacancies = useMemo(() => {
-    const verifiedIds = new Set(verifiedCompanies.map((c) => c.id));
     return vacancies.filter((v) => {
-      // Must be strictly approved by admin with published status
-      if (v.isApproved !== true || v.status !== 'published') return false;
-      // If linked to a company, that company must be verified by admin
-      if (v.companyId && !verifiedIds.has(v.companyId)) return false;
-      return true;
+      // Must be approved by admin with published status
+      return v.isApproved === true && v.status === 'published';
     });
-  }, [vacancies, verifiedCompanies]);
+  }, [vacancies]);
 
   // Submit Job Application (Supports both registered candidates with active CV & guest applicants with file attachments)
   const handleApplyToJob = async (
@@ -1023,7 +1265,8 @@ export default function App() {
     cv: CVData,
     attachment?: { fileName: string; fileType: string; fileData: string }
   ) => {
-    const applicantEmail = (cv?.personalInfo?.email || currentUser?.email || '').trim();
+    const isGuest = !currentUser || currentUser.role !== 'candidate';
+    const applicantEmail = (cv?.personalInfo?.email || currentUser?.email || '').toLowerCase().trim();
     const applicantName = (cv?.personalInfo?.fullName || currentUser?.fullName || '').trim() || (currentUser ? 'Namizəd' : 'Qonaq Namizəd');
     const applicantPhone = (cv?.personalInfo?.phone || currentUser?.phone || '').trim();
 
@@ -1034,7 +1277,8 @@ export default function App() {
 
     const alreadyApplied = applications.some(
       (a) => (a.vacancyId === vacancy.id || a.jobId === vacancy.id) && 
-             a.candidateEmail && a.candidateEmail.toLowerCase().trim() === applicantEmail.toLowerCase()
+             ((currentUser && a.candidateId === currentUser.id) ||
+              (a.candidateEmail && a.candidateEmail.toLowerCase().trim() === applicantEmail))
     );
 
     if (alreadyApplied) {
@@ -1043,15 +1287,22 @@ export default function App() {
     }
 
     const today = new Date().toISOString().split('T')[0];
-    const isGuest = !currentUser || currentUser.role !== 'candidate';
+
+    // Build rich, complete active candidate CV
+    const activeCV = isGuest ? cv : buildActiveCandidateCV(currentUser, cv);
+    const hasPlatformCV = !isGuest;
 
     // Calculate real multi-dimensional ATS match score (prevents artificial 84% score on empty CVs)
     const matchEval = calculateApplicationMatchScore(
       vacancy,
-      cv,
+      activeCV,
       attachment,
       coverNote
     );
+
+    // Retrieve exact chosen CV template and photo options from candidate CV or storage
+    const chosenTemplate = activeCV?.template || (localStorage.getItem('jobia_cv_creator_template') as any) || 'modern-emerald';
+    const chosenShowPhoto = activeCV?.showPhoto !== undefined ? activeCV.showPhoto : localStorage.getItem('jobia_cv_show_photo') !== 'false';
 
     const newApp: Application = {
       id: `app-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
@@ -1065,15 +1316,20 @@ export default function App() {
       candidateName: applicantName,
       candidateEmail: applicantEmail,
       candidatePhone: applicantPhone,
+      candidatePhoto: currentUser?.avatarUrl || activeCV.personalInfo?.photoUrl,
       appliedDate: today,
       status: 'Müraciət edildi',
       matchScore: matchEval.score, // Real ATS evaluation (e.g. 12% for empty CV, up to 97% for qualified match)
       matchHighlights: matchEval.highlights,
       coverNote: coverNote?.trim() || undefined,
+      cvTemplate: chosenTemplate,
+      showPhoto: chosenShowPhoto,
       cvData: {
-        ...cv,
+        ...activeCV,
+        template: chosenTemplate,
+        showPhoto: chosenShowPhoto,
         personalInfo: {
-          ...cv.personalInfo,
+          ...activeCV.personalInfo,
           fullName: applicantName,
           email: applicantEmail,
           phone: applicantPhone,
@@ -1083,6 +1339,8 @@ export default function App() {
       cvFileType: attachment?.fileType,
       cvFileData: attachment?.fileData,
       isGuestApplication: isGuest,
+      hasPlatformCV: isGuest ? false : true,
+      cvSource: isGuest ? 'file_upload' : 'platform',
     };
 
     // 1. Immediately update in-memory state
@@ -1100,8 +1358,13 @@ export default function App() {
       } catch (e) {}
     }
 
-    // 3. Immediately persist to localStorage
+    // 3. Immediately persist to localStorage (both user-scoped and global)
     try {
+      if (currentUser?.id) {
+        const userApps = getLocalApplications(currentUser.id);
+        const updatedUserApps = [newApp, ...userApps.filter(a => a.id !== newApp.id)];
+        localStorage.setItem(`jobia_candidate_applications_${currentUser.id}`, JSON.stringify(updatedUserApps));
+      }
       const existingSaved = localStorage.getItem('jobia_applications');
       const parsedApps: Application[] = existingSaved ? JSON.parse(existingSaved) : [];
       const updatedApps = [newApp, ...parsedApps.filter(a => a.id !== newApp.id)];
@@ -1147,7 +1410,16 @@ export default function App() {
 
   // Handle Business posting new job (Direct & frictionless with verification guard)
   const handleAttemptPostJob = () => {
-    if (currentUser && !currentUser.emailVerified) {
+    if (!currentUser) {
+      showToast('⚠️ Vakansiya yerləşdirmək üçün zəhmət olmasa işəgötürən hesabınızla daxil olun.');
+      handleOpenAuth('login', 'business');
+      return;
+    }
+    if (currentUser.role !== 'business' && currentUser.role !== 'admin') {
+      showToast('⚠️ Vakansiya yerləşdirmək hüququ yalnız işəgötürən (şirkət) hesablarına aiddir.');
+      return;
+    }
+    if (!currentUser.emailVerified) {
       showToast('⚠️ Elan yerləşdirmək üçün zəhmət olmasa e-poçt ünvanınızı təsdiqləyin.');
       setUserToVerify(currentUser);
       setIsVerifyModalOpen(true);
@@ -1167,6 +1439,36 @@ export default function App() {
     setIsPostJobModalOpen(true);
   };
 
+  // Admin / Business company creation handler
+  const handleCreateCompany = async (compData: Omit<Company, 'id'>): Promise<Company> => {
+    try {
+      const created = await createCompanyInFirestore({
+        ...compData,
+        verified: true,
+        verificationStatus: 'verified',
+      });
+      setCompanies((prev) => {
+        const filtered = prev.filter((c) => c.id !== created.id);
+        return [created, ...filtered];
+      });
+      showToast(`✅ "${created.name}" şirkəti uğurla yaradıldı.`);
+      return created;
+    } catch (err) {
+      console.error('Create company error:', err);
+      const fallbackId = `comp-${Date.now()}`;
+      const fallbackComp: Company = {
+        ...compData,
+        id: fallbackId,
+        verified: true,
+        verificationStatus: 'verified',
+        createdAt: new Date().toISOString(),
+      };
+      setCompanies((prev) => [fallbackComp, ...prev]);
+      showToast(`✅ "${fallbackComp.name}" şirkəti qeydə alındı.`);
+      return fallbackComp;
+    }
+  };
+
   const handleSaveNewJob = async (newJob: Partial<Vacancy>) => {
     const today = new Date().toISOString().split('T')[0];
     const deadlineDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
@@ -1174,13 +1476,17 @@ export default function App() {
     const isEdit = !!newJob.id && vacancies.some((v) => v.id === newJob.id);
     const existingJob = isEdit ? vacancies.find((v) => v.id === newJob.id) : null;
 
+    // Resolve target company: either specified by admin or fallback to activeCompany
+    const targetCompanyId = newJob.companyId || activeCompany.id;
+    const targetComp = companies.find((c) => c.id === targetCompanyId) || activeCompany;
+
     const fullJob: Vacancy = {
       id: newJob.id || `vac-${Date.now()}`,
       title: newJob.title || 'Vakansiya',
-      companyId: activeCompany.id,
-      companyName: activeCompany.name,
-      companyLogo: activeCompany.logo,
-      companyVerified: activeCompany.verified ?? false,
+      companyId: targetComp.id,
+      companyName: newJob.companyName || targetComp.name,
+      companyLogo: newJob.companyLogo || targetComp.logo,
+      companyVerified: newJob.companyVerified !== undefined ? newJob.companyVerified : (targetComp.verified ?? false),
       category: newJob.category || 'İT və Proqramlaşdırma',
       employmentType: newJob.employmentType || 'Tam ştat',
       experienceLevel: newJob.experienceLevel || 'Orta (Mid-level, 1-3 il)',
@@ -1201,7 +1507,7 @@ export default function App() {
       skills: newJob.skills || [],
       postedDate: newJob.postedDate || today,
       deadline: newJob.deadline || deadlineDate,
-      isFeatured: newJob.isFeatured ?? false,
+      isFeatured: newJob.isFeatured !== undefined ? Boolean(newJob.isFeatured) : (existingJob?.isFeatured ?? false),
       isApproved: currentUser?.role === 'admin' ? true : false,
       status: currentUser?.role === 'admin' ? 'published' : 'pending_review',
       editCount: isEdit ? ((existingJob?.editCount || 0) + 1) : 0,
@@ -1209,8 +1515,8 @@ export default function App() {
       lastEditedAt: isEdit ? new Date().toISOString() : undefined,
       viewsCount: existingJob?.viewsCount || 1,
       applicantsCount: existingJob?.applicantsCount || 0,
-      contactPhone: newJob.contactPhone || activeCompany.phone,
-      contactWhatsapp: newJob.contactWhatsapp || activeCompany.phone,
+      contactPhone: newJob.contactPhone || targetComp.phone || '',
+      contactWhatsapp: newJob.contactWhatsapp || targetComp.phone || '',
       isBlueCollarFriendly: newJob.isBlueCollarFriendly ?? false,
       createdBy: currentUser?.id || currentUser?.email,
       createdAt: existingJob?.createdAt || new Date().toISOString(),
@@ -1402,9 +1708,38 @@ export default function App() {
     const adminEmail = currentUser?.email || 'admin@jobia.az';
     const adminName = currentUser?.fullName || 'Sistem Administratoru';
 
-    setVacancies((prev) => prev.map((v) => (v.id === jobId ? { ...v, isApproved: true, status: 'published' } : v)));
+    setVacancies((prev) => {
+      const updated = prev.map((v) => (v.id === jobId ? { ...v, isApproved: true, status: 'published' as const, companyVerified: true } : v));
+      try {
+        localStorage.setItem('jobia_vacancies', JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
+
+    if (targetJob?.companyId) {
+      setCompanies((prev) => {
+        const updated = prev.map((c) => c.id === targetJob.companyId ? { ...c, verified: true, verificationStatus: 'verified' as const } : c);
+        try {
+          localStorage.setItem('jobia_companies', JSON.stringify(updated));
+        } catch {}
+        return updated;
+      });
+      setCompanyVerificationStatus(targetJob.companyId, 'verified').catch(() => {});
+    }
+
     try {
-      await updateVacancyStatus(jobId, 'published', true);
+      if (targetJob) {
+        await saveVacancyToFirestore({
+          ...targetJob,
+          isApproved: true,
+          status: 'published',
+          companyVerified: true,
+          isFeatured: targetJob.isFeatured ?? false,
+          updatedAt: new Date().toISOString()
+        });
+      } else {
+        await updateVacancyStatus(jobId, 'published', true);
+      }
     } catch (e) {
       console.warn('Firestore approve notice:', e);
     }
@@ -1451,7 +1786,13 @@ export default function App() {
     const adminEmail = currentUser?.email || 'admin@jobia.az';
     const adminName = currentUser?.fullName || 'Sistem Administratoru';
 
-    setVacancies((prev) => prev.map((v) => (v.id === jobId ? { ...v, isApproved: false, status: 'rejected' } : v)));
+    setVacancies((prev) => {
+      const updated = prev.map((v) => (v.id === jobId ? { ...v, isApproved: false, status: 'rejected' as const } : v));
+      try {
+        localStorage.setItem('jobia_vacancies', JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
     try {
       await updateVacancyStatus(jobId, 'rejected', false);
     } catch (e) {
@@ -1482,10 +1823,22 @@ export default function App() {
     const adminId = currentUser?.id || 'user-admin-root';
     const adminEmail = currentUser?.email || 'admin@jobia.az';
     const adminName = currentUser?.fullName || 'Sistem Administratoru';
+    const nowIso = new Date().toISOString();
 
-    setVacancies((prev) =>
-      prev.map((v) => (v.id === jobId ? { ...v, isFeatured: !v.isFeatured } : v))
-    );
+    setVacancies((prev) => {
+      const updated = prev.map((v) => (v.id === jobId ? { ...v, isFeatured: willBeFeatured, updatedAt: nowIso } : v));
+      try {
+        localStorage.setItem('jobia_vacancies', JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
+
+    // Directly persist to Firestore database in the backend
+    try {
+      await updateVacancyFeatured(jobId, willBeFeatured);
+    } catch (e) {
+      console.warn('Firestore toggle featured notice:', e);
+    }
 
     await recordAdminAuditLog({
       action: 'toggle_featured_vacancy',
@@ -1496,12 +1849,12 @@ export default function App() {
       targetType: 'vacancy',
       targetId: jobId,
       targetName: targetJob?.title || 'Vakansiya',
-      previousStatus: targetJob?.isFeatured ? 'Önə Çıxarılıb' : 'Standart',
-      newStatus: willBeFeatured ? 'Önə Çıxarılıb' : 'Standart',
-      details: `Admin ${adminName} (${adminEmail}) vakansiyanın Premium statusunu dəyişdirdi (${willBeFeatured ? 'Önə Çıxarıldı' : 'Standart'}).`,
+      previousStatus: targetJob?.isFeatured ? 'VIP Premium' : 'Standart',
+      newStatus: willBeFeatured ? 'VIP Premium' : 'Standart',
+      details: `Admin ${adminName} (${adminEmail}) "${targetJob?.title || 'Vakansiya'}" vakansiyasının statusunu ${willBeFeatured ? 'VIP Premium etdi (önə çıxardı)' : 'Standart etdi'}.`,
     }).catch(() => {});
 
-    showToast('Vakansiyanın Premium statusu dəyişdirildi.');
+    showToast(willBeFeatured ? '⭐ Vakansiya VIP Premium edildi və Firestore-da yadda saxlanıldı!' : 'Vakansiya standart statusa qaytarıldı.');
   };
 
   const handleDeleteVacancy = async (jobId: string) => {
@@ -1593,6 +1946,12 @@ export default function App() {
     showToast(newVerified ? 'Şirkət təsdiqləndi və platformada dərc edildi!' : 'Şirkətin təsdiqi ləğv edildi və dərcdən çıxarıldı.');
   };
 
+  // Computed fully populated submitted CV with fallback to active candidate profile
+  const effectiveSubmittedCV = useMemo(() => {
+    if (!viewingSubmittedCVApp) return null;
+    return ensureApplicationCV(viewingSubmittedCVApp, currentUser);
+  }, [viewingSubmittedCVApp, currentUser]);
+
   // If candidate is viewing their secure offer link portal
   if (activePortalOffer) {
     return (
@@ -1625,6 +1984,7 @@ export default function App() {
           activeVacanciesCount={publishedVacancies.length}
           pendingApprovalsCount={vacancies.filter((v) => v.isApproved !== true || v.status !== 'published').length}
           companies={verifiedCompanies}
+          vacancies={publishedVacancies}
           currentUser={currentUser}
           currentSubscription={currentSubscription}
           onOpenAuthModal={handleOpenAuth}
@@ -1635,6 +1995,8 @@ export default function App() {
           onOpenProfileModal={handleOpenProfileModal}
           onOpenPricing={() => setIsPricingViewOpen(true)}
           onLogout={handleLogout}
+          notifications={notifications}
+          onNavigateNotification={handleNavigateNotification}
         />
         <main className="flex-1 w-full max-w-full">
           <PricingPage
@@ -1685,10 +2047,17 @@ export default function App() {
             isOpen={isProfileModalOpen}
             onClose={() => setIsProfileModalOpen(false)}
             currentUser={currentUser}
+            candidateCV={candidateCV}
+            onUpdateCandidateCV={setCandidateCV}
             initialTab={profileModalTab}
+            onNavigateToTab={(tab) => {
+              setIsPricingViewOpen(false);
+              setCandidateTab(tab);
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
             onUpdateUser={(updatedUser) => {
               setCurrentUser(updatedUser);
-              showToast('Tənzimləmələr və bildiriş parametrləri uğurla yadda saxlanıldı!');
+              showToast('Profil məlumatları və tənzimləmələr uğurla yadda saxlanıldı!');
             }}
             onOpenVerifyModal={(u) => {
               setIsProfileModalOpen(false);
@@ -1713,7 +2082,10 @@ export default function App() {
         onRoleChange={handleRoleChangeWithRBAC}
         candidateTab={candidateTab}
         onCandidateTabChange={(tab) => setCandidateTab(tab)}
+        businessTab={businessTab}
+        onBusinessTabChange={(tab) => setBusinessTab(tab)}
         applicationsCount={roleApplicationsCount}
+        offersCount={jobOffers.length}
         savedJobsCount={savedJobIds.length}
         activeVacanciesCount={publishedVacancies.length}
         pendingApprovalsCount={vacancies.filter((v) => v.isApproved !== true || v.status !== 'published').length}
@@ -1748,6 +2120,7 @@ export default function App() {
           candidateTab={candidateTab}
           onCandidateTabChange={(tab) => setCandidateTab(tab)}
           companies={verifiedCompanies}
+          vacancies={publishedVacancies}
           selectedCompany={selectedCompanyFilter}
           onSelectCompany={(comp) => {
             setSelectedCompanyFilter(comp);
@@ -1787,7 +2160,7 @@ export default function App() {
         {/* Scrollable Main Area (Body + Footer scroll smoothly under frozen header & sidebar) */}
         <div id="main-content-scroll" className="flex-1 overflow-y-auto min-h-0 w-full flex flex-col scroll-smooth">
           {/* Main App Container */}
-          <main className="flex-1 w-full max-w-full px-3 sm:px-4 md:px-5 lg:px-6 xl:px-8 py-3.5 sm:py-5 lg:py-6 pb-20 md:pb-8">
+          <main className="flex-1 w-full max-w-full px-3 sm:px-4 md:px-5 lg:px-6 xl:px-8 py-3.5 sm:py-5 lg:py-6 pb-28 md:pb-8">
             {/* Unverified Account Security Alert Banner */}
             {currentUser && !currentUser.emailVerified && (
               <div className="mb-5 p-4 rounded-2xl bg-gradient-to-r from-amber-500/15 via-orange-500/10 to-amber-500/15 border border-amber-300/80 shadow-xs animate-fadeIn">
@@ -1846,8 +2219,25 @@ export default function App() {
                 </div>
               </div>
             )}
-        {/* VIP Pricing / Veb-Planlar View OR Role Views */}
-        {isPricingViewOpen ? (
+        {/* Status Error View (403, 404, 500) OR VIP Pricing View OR Role Views */}
+        {urlStatusError ? (
+          <StatusErrorView
+            statusCode={urlStatusError.statusCode}
+            message={urlStatusError.message}
+            onGoHome={() => {
+              setUrlStatusError(null);
+              setCurrentRole('candidate');
+              setCandidateTab('jobs');
+              const url = new URL(window.location.href);
+              url.search = '';
+              window.history.pushState({}, '', url.toString());
+            }}
+            onOpenLogin={() => {
+              setUrlStatusError(null);
+              handleOpenAuth('login', 'admin');
+            }}
+          />
+        ) : isPricingViewOpen ? (
           <PricingPage
             currentUser={currentUser}
             currentRole={currentRole}
@@ -1868,6 +2258,7 @@ export default function App() {
                 {candidateTab === 'jobs' && (
                   <JobExplorer
                     vacancies={publishedVacancies}
+                    companies={verifiedCompanies}
                     onSelectVacancy={(job) => setSelectedJobForDetail(job)}
                     savedJobIds={savedJobIds}
                     onToggleBookmark={handleToggleBookmark}
@@ -1907,10 +2298,19 @@ export default function App() {
                   />
                 )}
 
-                {candidateTab === 'calculia' && (
-                  <SalariaCalculator
-                    defaultSubTab={calculiaSubTab}
+                {(candidateTab === 'salary-calculator' || (candidateTab === 'calculia' && calculiaSubTab === 'calculia')) && (
+                  <SalaryCalculatorView
                     onExploreJobs={() => setCandidateTab('jobs')}
+                  />
+                )}
+
+                {(candidateTab === 'vacation-calculator' || (candidateTab === 'calculia' && calculiaSubTab === 'vacatia')) && (
+                  <VacationCalculatorView
+                    onExploreJobs={() => setCandidateTab('jobs')}
+                    currentUser={currentUser}
+                    companies={companies}
+                    activeCompany={activeCompany}
+                    onOpenAuthModal={() => setIsAuthModalOpen(true)}
                   />
                 )}
 
@@ -1920,13 +2320,31 @@ export default function App() {
 
                 {candidateTab === 'cv-creator' && (
                   <CVCreator
-                    onApplyWithCV={() => {
+                    currentUser={currentUser}
+                    initialData={candidateCV}
+                    onSaveCandidateCV={handleSaveCV}
+                    onApplyWithCV={(cv) => {
+                      handleSaveCV(cv);
                       setCandidateTab('jobs');
                     }}
                     onOpenATSAnalyzer={(cvText) => {
                       setAnalyzerPrefillText(cvText);
                       setCandidateTab('cv-analyzer');
                     }}
+                  />
+                )}
+
+                {candidateTab === 'network' && (
+                  <ProfessionalNetworkView
+                    currentUser={currentUser}
+                    onOpenAuthModal={(mode, role) => handleOpenAuth(mode || 'login', role || 'candidate')}
+                    onOpenChatWithUser={(_target) => {
+                      setCandidateTab('google-chat');
+                    }}
+                    onUpdateCurrentUser={(updatedUser) => {
+                      setCurrentUser(updatedUser);
+                    }}
+                    onShowToast={showToast}
                   />
                 )}
 
@@ -1977,6 +2395,8 @@ export default function App() {
                 offers={jobOffers}
                 auditLogs={offerAuditLogs}
                 templates={offerTemplates}
+                businessTab={businessTab}
+                onBusinessTabChange={(tab) => setBusinessTab(tab)}
                 onOpenPostJobModal={handleAttemptPostJob}
                 onOpenEditJobModal={handleOpenEditJob}
                 onUpdateApplicationStatus={handleUpdateApplicationStatus}
@@ -1990,6 +2410,7 @@ export default function App() {
                   setIsGoogleChatModalOpen(true);
                 }}
                 onOpenAuthModal={handleOpenAuth}
+                onOpenPricingModal={() => setIsPricingViewOpen(true)}
               />
             )}
 
@@ -2007,6 +2428,13 @@ export default function App() {
                   onDeleteVacancy={handleDeleteVacancy}
                   onToggleCompanyVerified={handleToggleCompanyVerified}
                   onRefresh={handleRefreshAdminData}
+                  onCreateCompany={handleCreateCompany}
+                  onOpenPostJobModal={(targetComp) => {
+                    if (targetComp) {
+                      setActiveCompany(targetComp);
+                    }
+                    setIsPostJobModalOpen(true);
+                  }}
                 />
               ) : (
                 <div className="max-w-md mx-auto py-16 px-4 text-center space-y-4">
@@ -2107,12 +2535,13 @@ export default function App() {
           currentUser={currentUser}
           onOpenAuthModal={(mode, role) => handleOpenAuth(mode || 'login', role || 'candidate')}
           onApply={handleApplyToJob}
-          hasApplied={applications.some(
-            (a) => a.vacancyId === selectedJobForDetail.id && (
-              (currentUser && a.candidateId === currentUser.id) ||
-              (a.candidateEmail && candidateCV.personalInfo.email && a.candidateEmail.toLowerCase() === candidateCV.personalInfo.email.toLowerCase())
-            )
+          hasApplied={candidateVisibleApplications.some(
+            (a) => a.vacancyId === selectedJobForDetail.id || a.jobId === selectedJobForDetail.id
           )}
+          onViewApplications={() => {
+            setSelectedJobForDetail(null);
+            setCandidateTab('my-applications');
+          }}
           jobNote={jobNotes[selectedJobForDetail.id] || ''}
           onSaveJobNote={(note) => handleSaveJobNote(selectedJobForDetail.id, note)}
           isSaved={savedJobIds.includes(selectedJobForDetail.id)}
@@ -2132,23 +2561,29 @@ export default function App() {
         />
       )}
 
-      {/* 6. Post Job Modal (Business) */}
+      {/* 6. Post Job Modal (Business & Admin) */}
       {isPostJobModalOpen && (
         <PostJobModal
           company={activeCompany}
+          allCompanies={companies}
+          isAdmin={currentUser?.role === 'admin'}
           editingJob={editingVacancy}
           onClose={() => {
             setIsPostJobModalOpen(false);
             setEditingVacancy(null);
           }}
           onSaveJob={handleSaveNewJob}
+          onCreateCompany={handleCreateCompany}
         />
       )}
 
       {/* 7. Viewing Submitted Application CV Modal */}
       {viewingSubmittedCVApp && (
         <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4 sm:p-6 animate-fade-in">
-          <div className="bg-white w-full max-w-4xl rounded-xl shadow-xl border border-slate-200 overflow-hidden flex flex-col max-h-[90vh]">
+          <div
+            id="modal-submitted-cv-container"
+            className="bg-white w-full max-w-4xl rounded-xl shadow-xl border border-slate-200 overflow-hidden flex flex-col max-h-[90vh] animate-modal-slide-up"
+          >
             <div className="p-4 border-b border-slate-200 bg-slate-50 flex flex-wrap items-center justify-between gap-3">
               <div>
                 <h3 className="text-sm font-bold text-slate-900">
@@ -2159,75 +2594,98 @@ export default function App() {
                 </p>
               </div>
 
-              {/* Template Picker in Modal */}
-              <div className="flex items-center gap-1 bg-white border border-slate-200 p-1 rounded-lg text-xs font-medium shadow-2xs">
-                <span className="text-[10px] text-slate-400 font-bold px-1.5 uppercase">Şablon:</span>
-                <button
-                  type="button"
-                  onClick={() => setSelectedSubmittedTemplate('modern-emerald')}
-                  className={`px-2 py-1 rounded-md transition-all text-xs cursor-pointer ${
-                    selectedSubmittedTemplate === 'modern-emerald' ? 'bg-blue-600 text-white font-bold' : 'text-slate-600 hover:bg-slate-100'
-                  }`}
-                >
-                  Zümrüd
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setSelectedSubmittedTemplate('classic-corporate')}
-                  className={`px-2 py-1 rounded-md transition-all text-xs cursor-pointer ${
-                    selectedSubmittedTemplate === 'classic-corporate' ? 'bg-slate-800 text-white font-bold' : 'text-slate-600 hover:bg-slate-100'
-                  }`}
-                >
-                  Klassik
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setSelectedSubmittedTemplate('minimal-indigo')}
-                  className={`px-2 py-1 rounded-md transition-all text-xs cursor-pointer ${
-                    selectedSubmittedTemplate === 'minimal-indigo' ? 'bg-indigo-600 text-white font-bold' : 'text-slate-600 hover:bg-slate-100'
-                  }`}
-                >
-                  Minimal
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setSelectedSubmittedTemplate('slate-tech')}
-                  className={`px-2 py-1 rounded-md transition-all text-xs cursor-pointer ${
-                    selectedSubmittedTemplate === 'slate-tech' ? 'bg-slate-900 text-white font-bold' : 'text-slate-600 hover:bg-slate-100'
-                  }`}
-                >
-                  Tech
-                </button>
-              </div>
+              {/* Template Picker in Modal (Only if Platform CV) */}
+              {isPlatformCreatedCV(viewingSubmittedCVApp) && (
+                <div className="flex items-center gap-1 bg-white border border-slate-200 p-1 rounded-lg text-xs font-medium shadow-2xs">
+                  <span className="text-[10px] text-slate-400 font-bold px-1.5 uppercase">Şablon:</span>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedSubmittedTemplate('modern-emerald')}
+                    className={`px-2 py-1 rounded-md transition-all text-xs cursor-pointer ${
+                      selectedSubmittedTemplate === 'modern-emerald' ? 'bg-blue-600 text-white font-bold' : 'text-slate-600 hover:bg-slate-100'
+                    }`}
+                  >
+                    Zümrüd
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedSubmittedTemplate('classic-corporate')}
+                    className={`px-2 py-1 rounded-md transition-all text-xs cursor-pointer ${
+                      selectedSubmittedTemplate === 'classic-corporate' ? 'bg-slate-800 text-white font-bold' : 'text-slate-600 hover:bg-slate-100'
+                    }`}
+                  >
+                    Klassik
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedSubmittedTemplate('minimal-indigo')}
+                    className={`px-2 py-1 rounded-md transition-all text-xs cursor-pointer ${
+                      selectedSubmittedTemplate === 'minimal-indigo' ? 'bg-indigo-600 text-white font-bold' : 'text-slate-600 hover:bg-slate-100'
+                    }`}
+                  >
+                    Minimal
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedSubmittedTemplate('slate-tech')}
+                    className={`px-2 py-1 rounded-md transition-all text-xs cursor-pointer ${
+                      selectedSubmittedTemplate === 'slate-tech' ? 'bg-slate-900 text-white font-bold' : 'text-slate-600 hover:bg-slate-100'
+                    }`}
+                  >
+                    Tech
+                  </button>
+                </div>
+              )}
 
               <div className="flex items-center gap-2">
-                <button
-                  id="btn-modal-download-cv-pdf"
-                  onClick={async () => {
-                    if (isDownloadingSubmittedCV) return;
-                    setIsDownloadingSubmittedCV(true);
-                    try {
-                      const fileName = generateCVFileName(viewingSubmittedCVApp.cvData);
-                      await downloadCVAsPDF('modal-submitted-cv-export', { fileName });
-                      showToast('CV uğurla PDF kimi birbaşa yükləndi!');
-                    } catch (err) {
-                      console.error('PDF export error:', err);
-                      window.print();
-                    } finally {
-                      setIsDownloadingSubmittedCV(false);
-                    }
-                  }}
-                  disabled={isDownloadingSubmittedCV}
-                  className="px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer disabled:opacity-60"
-                  title="CV-ni dərhal PDF formatında yüklə"
-                >
-                  {isDownloadingSubmittedCV ? (
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  ) : (
+                {isPlatformCreatedCV(viewingSubmittedCVApp) ? (
+                  <button
+                    id="btn-modal-download-cv-pdf"
+                    onClick={async () => {
+                      if (isDownloadingSubmittedCV) return;
+                      try {
+                        const fileName = generateCVFileName(effectiveSubmittedCV || viewingSubmittedCVApp.cvData);
+                        await triggerSubmittedCvDownload('modal-submitted-cv-export', { fileName });
+                      } catch (err) {
+                        console.error('PDF export error:', err);
+                        window.print();
+                      }
+                    }}
+                    disabled={isDownloadingSubmittedCV}
+                    className="relative overflow-hidden px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer disabled:opacity-95"
+                    title="CV-ni dərhal PDF formatında yüklə"
+                  >
+                    {isDownloadingSubmittedCV && (
+                      <div
+                        className="absolute inset-y-0 left-0 bg-emerald-800/80 transition-all duration-300"
+                        style={{ width: `${Math.max(6, Math.min(100, submittedCvProgressPercent))}%` }}
+                      />
+                    )}
+                    <span className="relative z-10 flex items-center gap-1.5">
+                      {isDownloadingSubmittedCV ? (
+                        <>
+                          <Loader2 className="w-3.5 h-3.5 animate-spin text-emerald-200" />
+                          <span className="font-extrabold text-emerald-200">{submittedCvProgressPercent}%</span>
+                          <span>{submittedCvProgressStatus || 'Hazırlanır...'}</span>
+                        </>
+                      ) : (
+                        <>
+                          <Download className="w-3.5 h-3.5" />
+                          <span>CV-ni PDF kimi yüklə</span>
+                        </>
+                      )}
+                    </span>
+                  </button>
+                ) : viewingSubmittedCVApp.cvFileData ? (
+                  <a
+                    href={viewingSubmittedCVApp.cvFileData}
+                    download={viewingSubmittedCVApp.cvFileName || `${viewingSubmittedCVApp.candidateName}_CV.pdf`}
+                    className="px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer"
+                  >
                     <Download className="w-3.5 h-3.5" />
-                  )}
-                  <span>{isDownloadingSubmittedCV ? 'PDF Hazırlanır...' : 'CV-ni PDF kimi yüklə'}</span>
-                </button>
+                    <span>Faylı Yüklə / Aç</span>
+                  </a>
+                ) : null}
                 <button
                   onClick={() => setViewingSubmittedCVApp(null)}
                   className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200/50 transition-colors cursor-pointer"
@@ -2237,7 +2695,52 @@ export default function App() {
               </div>
             </div>
             <div className="p-6 overflow-y-auto bg-slate-100 flex-1">
-              <CVRenderer id="modal-submitted-cv-export" data={viewingSubmittedCVApp.cvData} template={selectedSubmittedTemplate} />
+              {isPlatformCreatedCV(viewingSubmittedCVApp) ? (
+                <CVRenderer id="modal-submitted-cv-export" data={effectiveSubmittedCV || viewingSubmittedCVApp.cvData} template={selectedSubmittedTemplate} />
+              ) : viewingSubmittedCVApp.cvFileData ? (
+                <div className="max-w-2xl mx-auto space-y-4">
+                  <div className="bg-white border border-emerald-200 rounded-2xl p-6 shadow-sm">
+                    <div className="flex items-center gap-4">
+                      <div className="p-3 bg-emerald-600 text-white rounded-xl shadow-xs">
+                        <FileText className="w-8 h-8" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded border border-emerald-200">
+                          {viewingSubmittedCVApp.isGuestApplication ? 'Qeydiyyatsız Namizədin Yüklədiyi CV Sənədi' : 'Qoşulmuş CV Sənədi'}
+                        </span>
+                        <h4 className="font-bold text-slate-900 text-base mt-1 truncate">
+                          {viewingSubmittedCVApp.cvFileName || 'Namizəd_CV.pdf'}
+                        </h4>
+                        <p className="text-xs text-slate-500 mt-0.5">
+                          Təqdim edən: {viewingSubmittedCVApp.candidateName} ({viewingSubmittedCVApp.candidateEmail})
+                        </p>
+                      </div>
+                      <a
+                        href={viewingSubmittedCVApp.cvFileData}
+                        download={viewingSubmittedCVApp.cvFileName || `${viewingSubmittedCVApp.candidateName}_CV.pdf`}
+                        className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-sm transition-colors cursor-pointer shrink-0"
+                      >
+                        <Download className="w-4 h-4" />
+                        <span>Yüklə / Aç</span>
+                      </a>
+                    </div>
+                  </div>
+
+                  {viewingSubmittedCVApp.cvFileData.startsWith('data:application/pdf') && (
+                    <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm h-[600px]">
+                      <iframe
+                        src={viewingSubmittedCVApp.cvFileData}
+                        className="w-full h-full border-none"
+                        title="CV Sənəd Önizləməsi"
+                      />
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="border border-slate-200 rounded-xl overflow-hidden bg-slate-50 p-4">
+                  <CVRenderer id="modal-submitted-cv-export" data={viewingSubmittedCVApp.cvData} template={selectedSubmittedTemplate} />
+                </div>
+              )}
             </div>
 
             {/* Dynamic moving Jobia Logo at bottom of CV modal */}
@@ -2331,10 +2834,16 @@ export default function App() {
           isOpen={isProfileModalOpen}
           onClose={() => setIsProfileModalOpen(false)}
           currentUser={currentUser}
+          candidateCV={candidateCV}
+          onUpdateCandidateCV={setCandidateCV}
           initialTab={profileModalTab}
+          onNavigateToTab={(tab) => {
+            setCandidateTab(tab);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
           onUpdateUser={(updatedUser) => {
             setCurrentUser(updatedUser);
-            showToast('Tənzimləmələr və bildiriş parametrləri uğurla yadda saxlanıldı!');
+            showToast('Profil məlumatları və tənzimləmələr uğurla yadda saxlanıldı!');
           }}
           onOpenVerifyModal={(u) => {
             setIsProfileModalOpen(false);
@@ -2345,6 +2854,7 @@ export default function App() {
             setIsProfileModalOpen(false);
             setIsPricingViewOpen(true);
           }}
+          onLogout={handleLogout}
         />
       )}
 
@@ -2361,7 +2871,7 @@ export default function App() {
           currentRole={currentRole}
           onRoleChange={(role) => {
             setIsPricingViewOpen(false);
-            setCurrentRole(role);
+            handleRoleChangeWithRBAC(role);
           }}
           onNavigateCandidateTab={(tab) => {
             setIsPricingViewOpen(false);
@@ -2370,9 +2880,31 @@ export default function App() {
           }}
           onOpenPricing={() => setIsPricingViewOpen(true)}
           onOpenIntroTour={() => setIsIntroTourOpen(true)}
+          onOpenHelpContact={(tab) => {
+            setHelpContactInitialTab(tab || 'faq');
+            setIsHelpContactModalOpen(true);
+          }}
         />
         </div>
       </div>
+
+      {/* Help & Support / FAQ Modal */}
+      <HelpContactModal
+        isOpen={isHelpContactModalOpen}
+        onClose={() => setIsHelpContactModalOpen(false)}
+        initialTab={helpContactInitialTab}
+      />
+
+      {/* Direct Legal Information Modal */}
+      <LegalInfoModal
+        type={activeLegalPageModal}
+        onClose={() => {
+          setActiveLegalPageModal(null);
+          const url = new URL(window.location.href);
+          url.searchParams.delete('page');
+          window.history.replaceState({}, '', url.pathname + (url.search ? url.search : ''));
+        }}
+      />
 
       {/* Mobile Frozen Bottom Bar (VIP Planlar / PRO & Daxil ol / Qeydiyyat) */}
       <MobileFrozenBottomBar
@@ -2383,6 +2915,16 @@ export default function App() {
         onOpenAuthModal={handleOpenAuth}
         onOpenProfileModal={handleOpenProfileModal}
         onLogout={handleLogout}
+      />
+
+      {/* Global PDF Download Progress Bar & Toast */}
+      <PDFDownloadProgressToast
+        isDownloading={isDownloadingSubmittedCV}
+        progressPercent={submittedCvProgressPercent}
+        progressStatus={submittedCvProgressStatus}
+        showToast={showSubmittedCvToast}
+        fileName={submittedCvFileName}
+        onDismissToast={dismissSubmittedCvToast}
       />
     </div>
   );

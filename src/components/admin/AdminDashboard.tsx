@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
   Vacancy, 
   Application, 
@@ -65,10 +65,21 @@ import {
   ArrowRight,
   CheckSquare,
   Square,
-  Layers
+  Layers,
+  Plus
 } from 'lucide-react';
+import { CreateCompanyModal } from './CreateCompanyModal';
 import { JobiaAIComplianceInspectorModal } from './JobiaAIComplianceInspectorModal';
 import { JobiaSectionFooter } from '../JobiaSectionFooter';
+import { useLanguage } from '../../context/LanguageContext';
+import {
+  getLocalizedCategory,
+  getLocalizedCity,
+  getLocalizedEmploymentType,
+  getLocalizedExperienceLevel,
+  getLocalizedApplicationStatus,
+  getLocalizedIndustry,
+} from '../../i18n/localizeData';
 
 interface AdminDashboardProps {
   vacancies: Vacancy[];
@@ -81,6 +92,8 @@ interface AdminDashboardProps {
   onDeleteVacancy: (id: string) => void;
   onToggleCompanyVerified: (id: string) => void;
   onRefresh?: () => void;
+  onCreateCompany?: (companyData: Omit<Company, 'id'>) => Promise<Company>;
+  onOpenPostJobModal?: (preselectedCompany?: Company) => void;
 }
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({
@@ -94,11 +107,28 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   onDeleteVacancy,
   onToggleCompanyVerified,
   onRefresh,
+  onCreateCompany,
+  onOpenPostJobModal,
 }) => {
+  const { language, t } = useLanguage();
   const [activeTab, setActiveTab] = useState<'vacancies' | 'subscriptions' | 'users' | 'companies' | 'applications' | 'approval_history'>('vacancies');
   const [searchQuery, setSearchQuery] = useState('');
   const [vacancyModerationFilter, setVacancyModerationFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
   const [selectedVacancyForDetail, setSelectedVacancyForDetail] = useState<Vacancy | null>(null);
+  const [isCreateCompanyModalOpen, setIsCreateCompanyModalOpen] = useState(false);
+  const [companySearchText, setCompanySearchText] = useState('');
+
+  const filteredAdminCompanies = useMemo(() => {
+    if (!companySearchText.trim()) return companies;
+    const q = companySearchText.toLowerCase().trim();
+    return companies.filter(
+      (c) =>
+        c.name?.toLowerCase().includes(q) ||
+        c.email?.toLowerCase().includes(q) ||
+        c.industry?.toLowerCase().includes(q) ||
+        c.location?.toLowerCase().includes(q)
+    );
+  }, [companies, companySearchText]);
   
   // Audit Logs State
   const [auditLogs, setAuditLogs] = useState<AdminAuditLog[]>(() => getStoredAdminAuditLogs());
@@ -344,7 +374,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
   const handleBulkApprove = () => {
     if (selectedVacancyIds.length === 0) return;
-    if (window.confirm(`Seçilmiş ${selectedVacancyIds.length} vakansiyanı dərhal təsdiqləyib dərc etmək istəyirsiniz?`)) {
+    const confirmMsg = language === 'en'
+      ? `Are you sure you want to approve and publish ${selectedVacancyIds.length} selected vacancies?`
+      : language === 'ru'
+      ? `Вы уверены, что хотите одобрить и опубликовать ${selectedVacancyIds.length} выбранных вакансий?`
+      : `Seçilmiş ${selectedVacancyIds.length} vakansiyanı dərhal təsdiqləyib dərc etmək istəyirsiniz?`;
+    if (window.confirm(confirmMsg)) {
       selectedVacancyIds.forEach((id) => onApproveVacancy(id));
       setSelectedVacancyIds([]);
     }
@@ -352,16 +387,24 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
   const handleBulkReject = () => {
     if (selectedVacancyIds.length === 0) return;
-    if (window.confirm(`Seçilmiş ${selectedVacancyIds.length} vakansiyanı dərcdən çıxarmaq / imtina etmək istəyirsiniz?`)) {
+    const confirmMsg = language === 'en'
+      ? `Are you sure you want to reject/unpublish ${selectedVacancyIds.length} selected vacancies?`
+      : language === 'ru'
+      ? `Вы уверены, что хотите снять с публикации/отклонить ${selectedVacancyIds.length} выбранных вакансий?`
+      : `Seçilmiş ${selectedVacancyIds.length} vakansiyanı dərcdən çıxarmaq / imtina etmək istəyirsiniz?`;
+    if (window.confirm(confirmMsg)) {
       selectedVacancyIds.forEach((id) => onRejectVacancy(id));
       setSelectedVacancyIds([]);
     }
   };
 
-  const handleBulkFeature = () => {
+  const handleBulkFeature = async () => {
     if (selectedVacancyIds.length === 0) return;
-    selectedVacancyIds.forEach((id) => onToggleFeatureVacancy(id));
+    const idsToProcess = [...selectedVacancyIds];
     setSelectedVacancyIds([]);
+    for (const id of idsToProcess) {
+      await onToggleFeatureVacancy(id);
+    }
   };
 
   return (
@@ -371,11 +414,27 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         <div>
           <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-400/30 text-xs font-semibold mb-2">
             <ShieldCheck className="w-4 h-4 text-blue-400" />
-            <span>jobia.az Baş İnzibatçı və Monetizasiya Paneli</span>
+            <span>
+              {language === 'en'
+                ? 'jobia.az Master Administrator & Monetization Panel'
+                : language === 'ru'
+                ? 'Главная панель администратора и монетизации jobia.az'
+                : 'jobia.az Baş İnzibatçı və Monetizasiya Paneli'}
+            </span>
           </div>
-          <h1 className="text-xl sm:text-2xl font-black tracking-tight">Platforma İdarəetmə Mərkəzi</h1>
+          <h1 className="text-xl sm:text-2xl font-black tracking-tight">
+            {language === 'en'
+              ? 'Platform Management Center'
+              : language === 'ru'
+              ? 'Центр управления платформой'
+              : 'Platforma İdarəetmə Mərkəzi'}
+          </h1>
           <p className="text-xs text-slate-400 mt-1">
-            Abunəliklər, maliyyə axınları, istifadəçilərin moderasiyası və vakansiya nəzarəti.
+            {language === 'en'
+              ? 'Subscriptions, financial flows, user moderation and vacancy control.'
+              : language === 'ru'
+              ? 'Подписки, финансовые потоки, модерация пользователей и контроль вакансий.'
+              : 'Abunəliklər, maliyyə axınları, istifadəçilərin moderasiyası və vakansiya nəzarəti.'}
           </p>
         </div>
 
@@ -385,11 +444,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             className="text-xs px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 font-medium text-slate-200 flex items-center gap-1.5 transition-colors cursor-pointer"
           >
             <RefreshCw className="w-3.5 h-3.5" />
-            <span>Yenilə</span>
+            <span>{language === 'en' ? 'Refresh' : language === 'ru' ? 'Обновить' : 'Yenilə'}</span>
           </button>
           <span className="text-xs px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 font-medium text-emerald-400 flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-            Sistem Aktivdir
+            {language === 'en' ? 'System Active' : language === 'ru' ? 'Система активна' : 'Sistem Aktivdir'}
           </span>
         </div>
       </div>
@@ -403,13 +462,23 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             </div>
             <div>
               <div className="text-sm font-black text-amber-950 flex items-center gap-2">
-                <span>{pendingVacanciesCount} yeni vakansiya admin təsdiqi gözləyir</span>
+                <span>
+                  {language === 'en'
+                    ? `${pendingVacanciesCount} new vacancies awaiting admin approval`
+                    : language === 'ru'
+                    ? `${pendingVacanciesCount} новых вакансий ожидают одобрения администратора`
+                    : `${pendingVacanciesCount} yeni vakansiya admin təsdiqi gözləyir`}
+                </span>
                 <span className="px-2 py-0.5 rounded-full bg-amber-200 text-amber-900 text-[10px] font-black uppercase tracking-wider">
-                  Nəzərdən Keçirin
+                  {language === 'en' ? 'Review' : language === 'ru' ? 'Рассмотрите' : 'Nəzərdən Keçirin'}
                 </span>
               </div>
               <p className="text-xs text-amber-800/90 mt-0.5">
-                İşəgötürənlər tərəfindən göndərilən elanları yoxlayın, təsdiqləyərək saytda dərc edin və ya imtina edin.
+                {language === 'en'
+                  ? 'Review job postings submitted by employers, approve to publish or reject.'
+                  : language === 'ru'
+                  ? 'Проверьте объявления работодателей, подтвердите для публикации или отклоните.'
+                  : 'İşəgötürənlər tərəfindən göndərilən elanları yoxlayın, təsdiqləyərək saytda dərc edin və ya imtina edin.'}
               </p>
             </div>
           </div>
@@ -420,7 +489,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               className="px-3.5 py-2 rounded-xl bg-white hover:bg-amber-100 text-amber-900 border border-amber-300 text-xs font-bold shrink-0 transition-colors shadow-2xs cursor-pointer flex items-center justify-center gap-1.5"
             >
               <History className="w-4 h-4 text-blue-600" />
-              <span>Təsdiq Tarixçəsi ({auditLogs.length})</span>
+              <span>
+                {language === 'en'
+                  ? `Approval History (${auditLogs.length})`
+                  : language === 'ru'
+                  ? `История согласований (${auditLogs.length})`
+                  : `Təsdiq Tarixçəsi (${auditLogs.length})`}
+              </span>
             </button>
 
             <button
@@ -431,7 +506,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               className="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold shrink-0 transition-colors shadow-xs cursor-pointer flex items-center justify-center gap-1.5"
             >
               <Clock className="w-4 h-4" />
-              <span>Təsdiq Gözləyənlərə Bax ({pendingVacanciesCount})</span>
+              <span>
+                {language === 'en'
+                  ? `View Pending (${pendingVacanciesCount})`
+                  : language === 'ru'
+                  ? `Ожидающие (${pendingVacanciesCount})`
+                  : `Təsdiq Gözləyənlərə Bax (${pendingVacanciesCount})`}
+              </span>
             </button>
           </div>
         </div>
@@ -441,18 +522,23 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Aylıq Gəlir (MRR)</span>
+            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+              {language === 'en' ? 'Monthly Revenue (MRR)' : language === 'ru' ? 'Ежемесячный доход (MRR)' : 'Aylıq Gəlir (MRR)'}
+            </span>
             <DollarSign className="w-4 h-4 text-emerald-600" />
           </div>
           <div className="text-2xl font-black text-slate-900 mt-1">{Math.round(totalMRR)} AZN</div>
           <span className="text-[11px] text-emerald-600 font-bold flex items-center gap-1 mt-0.5">
-            <TrendingUp className="w-3 h-3" /> Real abunəliklər üzrə
+            <TrendingUp className="w-3 h-3" />
+            {language === 'en' ? 'From active subscriptions' : language === 'ru' ? 'По активным подпискам' : 'Real abunəliklər üzrə'}
           </span>
         </div>
 
         <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Ödənişli Abunəçilər</span>
+            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+              {language === 'en' ? 'Paid Subscribers' : language === 'ru' ? 'Платные подписчики' : 'Ödənişli Abunəçilər'}
+            </span>
             <CreditCard className="w-4 h-4 text-blue-600" />
           </div>
           <div className="text-2xl font-black text-slate-900 mt-1">
@@ -463,22 +549,28 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
         <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Qeydiyyatlı İstifadəçilər</span>
+            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+              {language === 'en' ? 'Registered Users' : language === 'ru' ? 'Зарегистрированные пользователи' : 'Qeydiyyatlı İstifadəçilər'}
+            </span>
             <Users className="w-4 h-4 text-purple-600" />
           </div>
           <div className="text-2xl font-black text-slate-900 mt-1">{users.length}</div>
           <span className="text-[11px] text-purple-600 font-medium">
-            {users.filter((u) => u.role === 'business').length} Şirkət • {users.filter((u) => u.role === 'candidate').length} Namizəd
+            {users.filter((u) => u.role === 'business').length} {language === 'en' ? 'Companies' : language === 'ru' ? 'Компаний' : 'Şirkət'} • {users.filter((u) => u.role === 'candidate').length} {language === 'en' ? 'Candidates' : language === 'ru' ? 'Кандидатов' : 'Namizəd'}
           </span>
         </div>
 
         <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Vakansiyalar</span>
+            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+              {language === 'en' ? 'Vacancies' : language === 'ru' ? 'Вакансии' : 'Vakansiyalar'}
+            </span>
             <FileText className="w-4 h-4 text-amber-600" />
           </div>
           <div className="text-2xl font-black text-slate-900 mt-1">{vacancies.length}</div>
-          <span className="text-[11px] text-emerald-600 font-medium">{approvedVacanciesCount} aktiv təsdiqli</span>
+          <span className="text-[11px] text-emerald-600 font-medium">
+            {approvedVacanciesCount} {language === 'en' ? 'active approved' : language === 'ru' ? 'активно опубликовано' : 'aktiv təsdiqli'}
+          </span>
         </div>
       </div>
 
@@ -493,7 +585,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           }`}
         >
           <History className="w-3.5 h-3.5 text-inherit" />
-          <span>Təsdiq Tarixçəsi (Approval History)</span>
+          <span>
+            {language === 'en'
+              ? 'Approval History'
+              : language === 'ru'
+              ? 'История согласований'
+              : 'Təsdiq Tarixçəsi (Approval History)'}
+          </span>
           <span className={`text-[10px] font-black px-1.5 py-0.5 rounded-full ${activeTab === 'approval_history' ? 'bg-white/25 text-white' : 'bg-blue-100 text-blue-700'}`}>
             {auditLogs.length}
           </span>
@@ -508,7 +606,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           }`}
         >
           <CreditCard className="w-3.5 h-3.5" />
-          <span>Abunəliklər və Ödənişlər ({subscriptions.length})</span>
+          <span>
+            {language === 'en'
+              ? `Subscriptions & Payments (${subscriptions.length})`
+              : language === 'ru'
+              ? `Подписки и платежи (${subscriptions.length})`
+              : `Abunəliklər və Ödənişlər (${subscriptions.length})`}
+          </span>
         </button>
 
         <button
@@ -520,7 +624,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           }`}
         >
           <Users className="w-3.5 h-3.5" />
-          <span>İstifadəçilər ({users.length})</span>
+          <span>
+            {language === 'en'
+              ? `Users (${users.length})`
+              : language === 'ru'
+              ? `Пользователи (${users.length})`
+              : `İstifadəçilər (${users.length})`}
+          </span>
         </button>
 
         <button
@@ -532,7 +642,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           }`}
         >
           <FileText className="w-3.5 h-3.5" />
-          <span>Vakansiya Moderasiyası ({vacancies.length})</span>
+          <span>
+            {language === 'en'
+              ? `Vacancy Moderation (${vacancies.length})`
+              : language === 'ru'
+              ? `Модерация вакансий (${vacancies.length})`
+              : `Vakansiya Moderasiyası (${vacancies.length})`}
+          </span>
         </button>
 
         <button
@@ -544,7 +660,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           }`}
         >
           <Building2 className="w-3.5 h-3.5" />
-          <span>Şirkətlər ({companies.length})</span>
+          <span>
+            {language === 'en'
+              ? `Companies (${companies.length})`
+              : language === 'ru'
+              ? `Компании (${companies.length})`
+              : `Şirkətlər (${companies.length})`}
+          </span>
         </button>
 
         <button
@@ -556,7 +678,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           }`}
         >
           <UserCheck className="w-3.5 h-3.5" />
-          <span>Müraciətlər ({applications.length})</span>
+          <span>
+            {language === 'en'
+              ? `Applications (${applications.length})`
+              : language === 'ru'
+              ? `Отклики (${applications.length})`
+              : `Müraciətlər (${applications.length})`}
+          </span>
         </button>
       </div>
 
@@ -568,8 +696,20 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
             <div className="p-4 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
               <div>
-                <h3 className="font-black text-slate-900 text-sm">Bütün Aktiv və Tarixi Abunəliklər</h3>
-                <p className="text-slate-500 text-[11px]">İşəgötürən və namizədlərin monetizasiya statusu</p>
+                <h3 className="font-black text-slate-900 text-sm">
+                  {language === 'en'
+                    ? 'All Active and Historical Subscriptions'
+                    : language === 'ru'
+                    ? 'Все активные и архивные подписки'
+                    : 'Bütün Aktiv və Tarixi Abunəliklər'}
+                </h3>
+                <p className="text-slate-500 text-[11px]">
+                  {language === 'en'
+                    ? 'Monetization status of employers and candidates'
+                    : language === 'ru'
+                    ? 'Статус монетизации работодателей и соискателей'
+                    : 'İşəgötürən və namizədlərin monetizasiya statusu'}
+                </p>
               </div>
               <div className="relative max-w-xs w-full">
                 <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
@@ -577,7 +717,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="İstifadəçi və ya plan axtar..."
+                  placeholder={
+                    language === 'en'
+                      ? 'Search user or plan...'
+                      : language === 'ru'
+                      ? 'Поиск пользователя или тарифа...'
+                      : 'İstifadəçi və ya plan axtar...'
+                  }
                   className="w-full pl-9 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-hidden focus:bg-white focus:border-blue-600 text-xs"
                 />
               </div>
@@ -587,17 +733,42 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               <table className="w-full text-left text-xs text-slate-700">
                 <thead className="bg-slate-50 border-b border-slate-200 font-bold text-slate-800">
                   <tr>
-                    <th className="p-3.5">İstifadəçi / Şirkət</th>
-                    <th className="p-3.5">Rol</th>
-                    <th className="p-3.5">Plan & Dərəcə</th>
-                    <th className="p-3.5">Dövriyyə / Məbləğ</th>
-                    <th className="p-3.5">Müddət</th>
-                    <th className="p-3.5">Status</th>
-                    <th className="p-3.5 text-right">Əməliyyat</th>
+                    <th className="p-3.5">
+                      {language === 'en' ? 'User / Company' : language === 'ru' ? 'Пользователь / Компания' : 'İstifadəçi / Şirkət'}
+                    </th>
+                    <th className="p-3.5">
+                      {language === 'en' ? 'Role' : language === 'ru' ? 'Роль' : 'Rol'}
+                    </th>
+                    <th className="p-3.5">
+                      {language === 'en' ? 'Plan & Tier' : language === 'ru' ? 'Тариф и уровень' : 'Plan & Dərəcə'}
+                    </th>
+                    <th className="p-3.5">
+                      {language === 'en' ? 'Amount' : language === 'ru' ? 'Сумма' : 'Dövriyyə / Məbləğ'}
+                    </th>
+                    <th className="p-3.5">
+                      {language === 'en' ? 'Period' : language === 'ru' ? 'Срок' : 'Müddət'}
+                    </th>
+                    <th className="p-3.5">
+                      {language === 'en' ? 'Status' : language === 'ru' ? 'Статус' : 'Status'}
+                    </th>
+                    <th className="p-3.5 text-right">
+                      {language === 'en' ? 'Action' : language === 'ru' ? 'Действие' : 'Əməliyyat'}
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {filteredSubs.map((sub) => {
+                  {filteredSubs.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="p-8 text-center text-slate-400 font-medium">
+                        {language === 'en'
+                          ? 'No active subscriptions found.'
+                          : language === 'ru'
+                          ? 'Пока нет активных подписок.'
+                          : 'Hələ ki heç bir aktiv abunəlik mövcud deyil.'}
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredSubs.map((sub) => {
                     const isExp = new Date(sub.endDate) < new Date();
                     return (
                       <tr key={sub.id} className="hover:bg-slate-50/70 transition-colors">
@@ -614,7 +785,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 : 'bg-blue-50 text-blue-700'
                             }`}
                           >
-                            {sub.role === 'business' ? 'İşəgötürən' : 'Namizəd'}
+                            {sub.role === 'business'
+                              ? (language === 'en' ? 'Employer' : language === 'ru' ? 'Работодатель' : 'İşəgötürən')
+                              : (language === 'en' ? 'Candidate' : language === 'ru' ? 'Соискатель' : 'Namizəd')}
                           </span>
                         </td>
 
@@ -637,17 +810,21 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         <td className="p-3.5">
                           <div className="font-bold text-slate-900">{sub.amount} AZN</div>
                           <div className="text-[10px] text-slate-500 uppercase font-semibold">
-                            {sub.billingCycle === 'yearly' ? 'İllik' : 'Aylıq'}
+                            {sub.billingCycle === 'yearly'
+                              ? (language === 'en' ? 'Yearly' : language === 'ru' ? 'Годовой' : 'İllik')
+                              : (language === 'en' ? 'Monthly' : language === 'ru' ? 'Месячный' : 'Aylıq')}
                           </div>
                         </td>
 
                         <td className="p-3.5">
                           <div className="text-slate-800 font-medium">
-                            {new Date(sub.startDate).toLocaleDateString('az-AZ')} -{' '}
-                            {new Date(sub.endDate).toLocaleDateString('az-AZ')}
+                            {new Date(sub.startDate).toLocaleDateString(language === 'en' ? 'en-US' : language === 'ru' ? 'ru-RU' : 'az-AZ')} -{' '}
+                            {new Date(sub.endDate).toLocaleDateString(language === 'en' ? 'en-US' : language === 'ru' ? 'ru-RU' : 'az-AZ')}
                           </div>
                           <div className="text-[10px] text-slate-400">
-                            {isExp ? 'Müddəti bitib' : 'Davam edir'}
+                            {isExp
+                              ? (language === 'en' ? 'Expired' : language === 'ru' ? 'Истек' : 'Müddəti bitib')
+                              : (language === 'en' ? 'Active' : language === 'ru' ? 'Действует' : 'Davam edir')}
                           </div>
                         </td>
 
@@ -659,7 +836,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 : 'bg-red-100 text-red-800'
                             }`}
                           >
-                            {sub.status === 'ACTIVE' ? 'Aktiv' : 'Dayandırılıb'}
+                            {sub.status === 'ACTIVE'
+                              ? (language === 'en' ? 'Active' : language === 'ru' ? 'Активен' : 'Aktiv')
+                              : (language === 'en' ? 'Suspended' : language === 'ru' ? 'Приостановлен' : 'Dayandırılıb')}
                           </span>
                         </td>
 
@@ -672,12 +851,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 : 'border-emerald-200 text-emerald-700 hover:bg-emerald-50'
                             }`}
                           >
-                            {sub.status === 'ACTIVE' ? 'Dayandır' : 'Aktivləşdir'}
+                            {sub.status === 'ACTIVE'
+                              ? (language === 'en' ? 'Suspend' : language === 'ru' ? 'Приостановить' : 'Dayandır')
+                              : (language === 'en' ? 'Activate' : language === 'ru' ? 'Активировать' : 'Aktivləşdir')}
                           </button>
                         </td>
                       </tr>
                     );
-                  })}
+                  }))}
                 </tbody>
               </table>
             </div>
@@ -686,23 +867,39 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           {/* Payment Transactions Log */}
           <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
             <div className="p-4 border-b border-slate-100 font-black text-xs text-slate-900">
-              Son Ödəniş Tranzaksiyaları Jurnalı ({transactions.length})
+              {language === 'en'
+                ? `Recent Payment Transactions (${transactions.length})`
+                : language === 'ru'
+                ? `Журнал недавних транзакций оплаты (${transactions.length})`
+                : `Son Ödəniş Tranzaksiyaları Jurnalı (${transactions.length})`}
             </div>
             <div className="divide-y divide-slate-100 text-xs">
-              {transactions.map((tx) => (
-                <div key={tx.id} className="p-4 flex items-center justify-between gap-3">
-                  <div>
-                    <div className="font-bold text-slate-900">{tx.planName}</div>
-                    <div className="text-slate-500 text-[11px]">
-                      {tx.userName} ({tx.userEmail}) • {tx.paymentMethod}
+              {transactions.length === 0 ? (
+                <div className="p-8 text-center text-slate-400 font-medium">
+                  {language === 'en'
+                    ? 'No payment transactions recorded yet.'
+                    : language === 'ru'
+                    ? 'Транзакции оплаты пока не зарегистрированы.'
+                    : 'Hələ ki heç bir ödəniş tranzaksiyası qeydə alınmayıb.'}
+                </div>
+              ) : (
+                transactions.map((tx) => (
+                  <div key={tx.id} className="p-4 flex items-center justify-between gap-3">
+                    <div>
+                      <div className="font-bold text-slate-900">{tx.planName}</div>
+                      <div className="text-slate-500 text-[11px]">
+                        {tx.userName} ({tx.userEmail}) • {tx.paymentMethod}
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="font-black text-slate-900 text-sm">{tx.amount} {tx.currency}</div>
+                      <div className="text-[10px] text-emerald-600 font-bold">
+                        ✓ {language === 'en' ? 'Paid' : language === 'ru' ? 'Оплачено' : 'Ödənilib'} ({new Date(tx.transactionDate).toLocaleDateString(language === 'en' ? 'en-US' : language === 'ru' ? 'ru-RU' : 'az-AZ')})
+                      </div>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <div className="font-black text-slate-900 text-sm">{tx.amount} {tx.currency}</div>
-                    <div className="text-[10px] text-emerald-600 font-bold">✓ Ödənilib ({new Date(tx.transactionDate).toLocaleDateString('az-AZ')})</div>
-                  </div>
-                </div>
-              ))}
+                ))
+              )}
             </div>
           </div>
         </div>
@@ -715,7 +912,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
           <div className="p-4 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
             <div className="font-black text-slate-900 text-sm">
-              Qeydiyyatdan Keçmiş Bütün İstifadəçilər ({users.length})
+              {language === 'en'
+                ? `All Registered Users (${users.length})`
+                : language === 'ru'
+                ? `Все зарегистрированные пользователи (${users.length})`
+                : `Qeydiyyatdan Keçmiş Bütün İstifadəçilər (${users.length})`}
             </div>
             <div className="relative max-w-xs w-full">
               <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
@@ -723,7 +924,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Ad, e-poçt və ya şirkət axtar..."
+                placeholder={
+                  language === 'en'
+                    ? 'Search name, email or company...'
+                    : language === 'ru'
+                    ? 'Поиск по имени, email или компании...'
+                    : 'Ad, e-poçt və ya şirkət axtar...'
+                }
                 className="w-full pl-9 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-hidden focus:bg-white focus:border-blue-600 text-xs"
               />
             </div>
@@ -733,16 +940,39 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             <table className="w-full text-left text-xs text-slate-700">
               <thead className="bg-slate-50 border-b border-slate-200 font-bold text-slate-800">
                 <tr>
-                  <th className="p-3.5">İstifadəçi</th>
-                  <th className="p-3.5">Rol</th>
-                  <th className="p-3.5">Telefon / Şirkət</th>
-                  <th className="p-3.5">Qeydiyyat Tarixi</th>
-                  <th className="p-3.5">Hesab Statusu</th>
-                  <th className="p-3.5 text-right">Əməliyyatlar</th>
+                  <th className="p-3.5">
+                    {language === 'en' ? 'User' : language === 'ru' ? 'Пользователь' : 'İstifadəçi'}
+                  </th>
+                  <th className="p-3.5">
+                    {language === 'en' ? 'Role' : language === 'ru' ? 'Роль' : 'Rol'}
+                  </th>
+                  <th className="p-3.5">
+                    {language === 'en' ? 'Phone / Company' : language === 'ru' ? 'Телефон / Компания' : 'Telefon / Şirkət'}
+                  </th>
+                  <th className="p-3.5">
+                    {language === 'en' ? 'Registration Date' : language === 'ru' ? 'Дата регистрации' : 'Qeydiyyat Tarixi'}
+                  </th>
+                  <th className="p-3.5">
+                    {language === 'en' ? 'Account Status' : language === 'ru' ? 'Статус аккаунта' : 'Hesab Statusu'}
+                  </th>
+                  <th className="p-3.5 text-right">
+                    {language === 'en' ? 'Actions' : language === 'ru' ? 'Действия' : 'Əməliyyatlar'}
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {filteredUsers.map((user) => (
+                {filteredUsers.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="p-8 text-center text-slate-400 font-medium">
+                      {language === 'en'
+                        ? 'No users found.'
+                        : language === 'ru'
+                        ? 'Пользователи не найдены.'
+                        : 'Heç bir istifadəçi tapılmadı.'}
+                    </td>
+                  </tr>
+                ) : (
+                  filteredUsers.map((user) => (
                   <tr key={user.id} className="hover:bg-slate-50/70 transition-colors">
                     <td className="p-3.5">
                       <div className="flex items-center gap-2.5">
@@ -769,14 +999,22 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                               : 'bg-blue-100 text-blue-800'
                           }`}
                         >
-                          {user.role === 'admin' ? 'Admin' : user.role === 'business' ? 'İşəgötürən' : 'Namizəd'}
+                          {user.role === 'admin'
+                            ? 'Admin'
+                            : user.role === 'business'
+                            ? (language === 'en' ? 'Employer' : language === 'ru' ? 'Работодатель' : 'İşəgötürən')
+                            : (language === 'en' ? 'Candidate' : language === 'ru' ? 'Соискатель' : 'Namizəd')}
                         </span>
                         {user.role !== 'admin' && (
                           <button
                             type="button"
                             onClick={() => handleToggleUserRole(user.id, user.role, user.email)}
                             className="text-[10px] text-slate-400 hover:text-emerald-700 hover:bg-emerald-50 p-1 rounded border border-transparent hover:border-emerald-200 transition-colors cursor-pointer"
-                            title={user.role === 'business' ? 'Namizəd roluna keçir' : 'İşəgötürən roluna keçir'}
+                            title={
+                              user.role === 'business'
+                                ? (language === 'en' ? 'Switch to Candidate role' : language === 'ru' ? 'Переключить на соискателя' : 'Namizəd roluna keçir')
+                                : (language === 'en' ? 'Switch to Employer role' : language === 'ru' ? 'Переключить на работодателя' : 'İşəgötürən roluna keçir')
+                            }
                           >
                             ⇄
                           </button>
@@ -786,11 +1024,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
                     <td className="p-3.5">
                       <div className="font-medium text-slate-800">{user.companyName || '-'}</div>
-                      <div className="text-[11px] text-slate-500">{user.phone || 'Göstərilməyib'}</div>
+                      <div className="text-[11px] text-slate-500">
+                        {user.phone || (language === 'en' ? 'Not specified' : language === 'ru' ? 'Не указан' : 'Göstərilməyib')}
+                      </div>
                     </td>
 
                     <td className="p-3.5 text-slate-600">
-                      {new Date(user.createdAt).toLocaleDateString('az-AZ')}
+                      {new Date(user.createdAt).toLocaleDateString(language === 'en' ? 'en-US' : language === 'ru' ? 'ru-RU' : 'az-AZ')}
                     </td>
 
                     <td className="p-3.5">
@@ -801,7 +1041,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             : 'bg-red-100 text-red-800'
                         }`}
                       >
-                        {user.status === 'active' ? 'Aktiv' : 'Deaktiv'}
+                        {user.status === 'active'
+                          ? (language === 'en' ? 'Active' : language === 'ru' ? 'Активен' : 'Aktiv')
+                          : (language === 'en' ? 'Inactive' : language === 'ru' ? 'Неактивен' : 'Deaktiv')}
                       </span>
                     </td>
 
@@ -815,12 +1057,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                               : 'border-emerald-200 text-emerald-700 hover:bg-emerald-50'
                           }`}
                         >
-                          {user.status === 'active' ? 'Deaktiv Et' : 'Aktivləşdir'}
+                          {user.status === 'active'
+                            ? (language === 'en' ? 'Deactivate' : language === 'ru' ? 'Деактивировать' : 'Deaktiv Et')
+                            : (language === 'en' ? 'Activate' : language === 'ru' ? 'Активировать' : 'Aktivləşdir')}
                         </button>
                       )}
                     </td>
                   </tr>
-                ))}
+                )))}
               </tbody>
             </table>
           </div>
@@ -843,7 +1087,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                 }`}
               >
-                Hamısı ({vacancies.length})
+                {language === 'en'
+                  ? `All (${vacancies.length})`
+                  : language === 'ru'
+                  ? `Все (${vacancies.length})`
+                  : `Hamısı (${vacancies.length})`}
               </button>
               <button
                 onClick={() => setVacancyModerationFilter('pending')}
@@ -854,7 +1102,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 }`}
               >
                 <Clock className="w-3.5 h-3.5" />
-                <span>⏳ Təsdiq Gözləyənlər ({pendingVacanciesCount})</span>
+                <span>
+                  ⏳ {language === 'en'
+                    ? `Pending Approval (${pendingVacanciesCount})`
+                    : language === 'ru'
+                    ? `Ожидают проверки (${pendingVacanciesCount})`
+                    : `Təsdiq Gözləyənlər (${pendingVacanciesCount})`}
+                </span>
               </button>
               <button
                 onClick={() => setVacancyModerationFilter('approved')}
@@ -865,7 +1119,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 }`}
               >
                 <Check className="w-3.5 h-3.5" />
-                <span>✓ Dərc Edilənlər ({approvedVacanciesCount})</span>
+                <span>
+                  ✓ {language === 'en'
+                    ? `Published (${approvedVacanciesCount})`
+                    : language === 'ru'
+                    ? `Опубликованные (${approvedVacanciesCount})`
+                    : `Dərc Edilənlər (${approvedVacanciesCount})`}
+                </span>
               </button>
               <button
                 onClick={() => setVacancyModerationFilter('rejected')}
@@ -876,19 +1136,51 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 }`}
               >
                 <XCircle className="w-3.5 h-3.5" />
-                <span>İmtina Edilənlər ({rejectedVacanciesCount})</span>
+                <span>
+                  {language === 'en'
+                    ? `Rejected (${rejectedVacanciesCount})`
+                    : language === 'ru'
+                    ? `Отклоненные (${rejectedVacanciesCount})`
+                    : `İmtina Edilənlər (${rejectedVacanciesCount})`}
+                </span>
               </button>
             </div>
 
-            <div className="relative flex-1 max-w-xs">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Vakansiya və ya şirkət axtar..."
-                className="w-full pl-9 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-hidden focus:bg-white focus:border-blue-600 text-xs"
-              />
+            <div className="flex items-center gap-2 flex-1 max-w-md">
+              <div className="relative flex-1">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder={
+                    language === 'en'
+                      ? 'Search vacancy or company...'
+                      : language === 'ru'
+                      ? 'Поиск вакансии или компании...'
+                      : 'Vakansiya və ya şirkət axtar...'
+                  }
+                  className="w-full pl-9 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-hidden focus:bg-white focus:border-blue-600 text-xs"
+                />
+              </div>
+
+              {onOpenPostJobModal && (
+                <button
+                  type="button"
+                  onClick={() => onOpenPostJobModal()}
+                  className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg flex items-center gap-1.5 shadow-xs transition active:scale-95 cursor-pointer whitespace-nowrap"
+                  title="Admin kimi yeni vakansiya dərc et"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>
+                    {language === 'en'
+                      ? 'Post Vacancy'
+                      : language === 'ru'
+                      ? 'Создать вакансию'
+                      : 'Yeni Vakansiya Yarat'}
+                  </span>
+                </button>
+              )}
             </div>
           </div>
 
@@ -898,10 +1190,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               <div className="flex items-center gap-2">
                 <Layers className="w-4 h-4 text-blue-400" />
                 <span className="font-bold text-white">
-                  {selectedVacancyIds.length} vakansiya seçildi
+                  {language === 'en'
+                    ? `${selectedVacancyIds.length} vacancies selected`
+                    : language === 'ru'
+                    ? `Выбрано вакансий: ${selectedVacancyIds.length}`
+                    : `${selectedVacancyIds.length} vakansiya seçildi`}
                 </span>
                 <span className="text-slate-400 text-[11px] hidden sm:inline">
-                  (Toplu təsdiq, imtina və ya VIP status)
+                  {language === 'en'
+                    ? '(Bulk approve, reject or VIP status)'
+                    : language === 'ru'
+                    ? '(Массовое одобрение, отклонение или VIP-статус)'
+                    : '(Toplu təsdiq, imtina və ya VIP status)'}
                 </span>
               </div>
 
@@ -910,30 +1210,54 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   type="button"
                   onClick={handleBulkApprove}
                   className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg shadow-xs flex items-center gap-1.5 transition-colors cursor-pointer"
-                  title="Seçilmiş bütün vakansiyaları dərhal təsdiqlə"
+                  title={
+                    language === 'en'
+                      ? 'Immediately approve all selected vacancies'
+                      : language === 'ru'
+                      ? 'Немедленно одобрить все выбранные вакансии'
+                      : 'Seçilmiş bütün vakansiyaları dərhal təsdiqlə'
+                  }
                 >
                   <Check className="w-3.5 h-3.5" />
-                  <span>Toplu Təsdiqlə</span>
+                  <span>
+                    {language === 'en' ? 'Bulk Approve' : language === 'ru' ? 'Одобрить выбранные' : 'Toplu Təsdiqlə'}
+                  </span>
                 </button>
 
                 <button
                   type="button"
                   onClick={handleBulkReject}
                   className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg shadow-xs flex items-center gap-1.5 transition-colors cursor-pointer"
-                  title="Seçilmiş bütün vakansiyaları dərcdən çıxar / imtina et"
+                  title={
+                    language === 'en'
+                      ? 'Unpublish / reject all selected vacancies'
+                      : language === 'ru'
+                      ? 'Снять с публикации / отклонить все выбранные вакансии'
+                      : 'Seçilmiş bütün vakansiyaları dərcdən çıxar / imtina et'
+                  }
                 >
                   <XCircle className="w-3.5 h-3.5" />
-                  <span>Toplu İmtina</span>
+                  <span>
+                    {language === 'en' ? 'Bulk Reject' : language === 'ru' ? 'Отклонить выбранные' : 'Toplu İmtina'}
+                  </span>
                 </button>
 
                 <button
                   type="button"
                   onClick={handleBulkFeature}
                   className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-lg shadow-xs flex items-center gap-1.5 transition-colors cursor-pointer"
-                  title="Seçilmiş vakansiyaların VIP statusunu dəyiş"
+                  title={
+                    language === 'en'
+                      ? 'Toggle VIP status for selected vacancies'
+                      : language === 'ru'
+                      ? 'Изменить VIP статус выбранных вакансий'
+                      : 'Seçilmiş vakansiyaların VIP statusunu dəyiş'
+                  }
                 >
                   <Star className="w-3.5 h-3.5" />
-                  <span>Toplu VIP</span>
+                  <span>
+                    {language === 'en' ? 'Bulk VIP' : language === 'ru' ? 'Сделать VIP' : 'Toplu VIP'}
+                  </span>
                 </button>
 
                 <button
@@ -941,7 +1265,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   onClick={() => setSelectedVacancyIds([])}
                   className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-semibold rounded-lg transition-colors cursor-pointer"
                 >
-                  Seçimi Sıfırla
+                  {language === 'en' ? 'Clear Selection' : language === 'ru' ? 'Сбросить выбор' : 'Seçimi Sıfırla'}
                 </button>
               </div>
             </div>
@@ -956,7 +1280,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       type="button"
                       onClick={handleSelectAllFilteredVacancies}
                       className="text-slate-500 hover:text-blue-600 transition-colors cursor-pointer"
-                      title={selectedVacancyIds.length > 0 && selectedVacancyIds.length === filteredVacancies.length ? 'Bütün seçimləri ləğv et' : 'Bütün filtr olunmuşları seç'}
+                      title={
+                        selectedVacancyIds.length > 0 && selectedVacancyIds.length === filteredVacancies.length
+                          ? (language === 'en' ? 'Deselect all' : language === 'ru' ? 'Снять все выделения' : 'Bütün seçimləri ləğv et')
+                          : (language === 'en' ? 'Select all filtered' : language === 'ru' ? 'Выбрать все отфильтрованные' : 'Bütün filtr olunmuşları seç')
+                      }
                     >
                       {selectedVacancyIds.length > 0 && selectedVacancyIds.length === filteredVacancies.length ? (
                         <CheckSquare className="w-4 h-4 text-blue-600" />
@@ -965,20 +1293,36 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       )}
                     </button>
                   </th>
-                  <th className="p-3.5">Vakansiya & Şirkət</th>
-                  <th className="p-3.5">Kateqoriya</th>
-                  <th className="p-3.5">Maaş</th>
-                  <th className="p-3.5">Status</th>
-                  <th className="p-3.5">Redaktə</th>
+                  <th className="p-3.5">
+                    {language === 'en' ? 'Vacancy & Company' : language === 'ru' ? 'Вакансия и Компания' : 'Vakansiya & Şirkət'}
+                  </th>
+                  <th className="p-3.5">
+                    {language === 'en' ? 'Category' : language === 'ru' ? 'Категория' : 'Kateqoriya'}
+                  </th>
+                  <th className="p-3.5">
+                    {language === 'en' ? 'Salary' : language === 'ru' ? 'Зарплата' : 'Maaş'}
+                  </th>
+                  <th className="p-3.5">
+                    {language === 'en' ? 'Status' : language === 'ru' ? 'Статус' : 'Status'}
+                  </th>
+                  <th className="p-3.5">
+                    {language === 'en' ? 'Edits' : language === 'ru' ? 'Правки' : 'Redaktə'}
+                  </th>
                   <th className="p-3.5">Featured</th>
-                  <th className="p-3.5 text-right">Əməliyyatlar</th>
+                  <th className="p-3.5 text-right">
+                    {language === 'en' ? 'Actions' : language === 'ru' ? 'Действия' : 'Əməliyyatlar'}
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {filteredVacancies.length === 0 ? (
                   <tr>
                     <td colSpan={8} className="p-8 text-center text-slate-400 font-medium">
-                      Bu filtr üzrə vakansiya tapılmadı.
+                      {language === 'en'
+                        ? 'No vacancies found for this filter.'
+                        : language === 'ru'
+                        ? 'Вакансий по этому фильтру не найдено.'
+                        : 'Bu filtr üzrə vakansiya tapılmadı.'}
                     </td>
                   </tr>
                 ) : (
@@ -1015,20 +1359,22 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                               <div className="font-bold text-slate-900 flex items-center gap-1.5">
                                 <span>{job.title}</span>
                               </div>
-                              <div className="text-[11px] text-slate-500">{job.companyName} • {job.city}</div>
+                              <div className="text-[11px] text-slate-500">
+                                {job.companyName} • {getLocalizedCity(job.city || 'Bakı', language)}
+                              </div>
                             </div>
                           </div>
                         </td>
 
                         <td className="p-3.5">
                           <span className="bg-slate-100 px-2 py-0.5 rounded text-slate-700 font-medium">
-                            {job.category}
+                            {getLocalizedCategory(job.category, language)}
                           </span>
                         </td>
 
                         <td className="p-3.5 font-bold text-blue-700">
                           {job.hideSalary
-                            ? 'Gizli (Razılaşma ilə)'
+                            ? (language === 'en' ? 'By agreement' : language === 'ru' ? 'По договоренности' : 'Gizli (Razılaşma ilə)')
                             : `${job.minSalary || 0} - ${job.maxSalary || 0} ${job.currency || 'AZN'}`}
                         </td>
 
@@ -1036,19 +1382,25 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                           {isApproved && (
                             <span className="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2.5 py-0.5 rounded-full flex items-center gap-1 w-max">
                               <Check className="w-3 h-3 text-emerald-600" />
-                              <span>✓ Dərc edilib</span>
+                              <span>
+                                ✓ {language === 'en' ? 'Published' : language === 'ru' ? 'Опубликовано' : 'Dərc edilib'}
+                              </span>
                             </span>
                           )}
                           {isPending && (
                             <span className="bg-amber-100 text-amber-900 text-[10px] font-bold px-2.5 py-0.5 rounded-full flex items-center gap-1 w-max animate-pulse">
                               <Clock className="w-3 h-3 text-amber-700" />
-                              <span>⏳ Gözləmədə</span>
+                              <span>
+                                ⏳ {language === 'en' ? 'Pending' : language === 'ru' ? 'В ожидании' : 'Gözləmədə'}
+                              </span>
                             </span>
                           )}
                           {isRejected && (
                             <span className="bg-red-100 text-red-800 text-[10px] font-bold px-2.5 py-0.5 rounded-full flex items-center gap-1 w-max">
                               <X className="w-3 h-3 text-red-600" />
-                              <span>✕ İmtina edilib</span>
+                              <span>
+                                ✕ {language === 'en' ? 'Rejected' : language === 'ru' ? 'Отклонено' : 'İmtina edilib'}
+                              </span>
                             </span>
                           )}
                         </td>
@@ -1056,10 +1408,20 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         <td className="p-3.5">
                           {(job.editCount || 0) >= 1 ? (
                             <span className="bg-blue-50 text-blue-800 border border-blue-200 text-[10px] font-bold px-2 py-0.5 rounded">
-                              1 dəfə redaktə olunub
+                              {language === 'en'
+                                ? `${job.editCount || 1} time edited`
+                                : language === 'ru'
+                                ? `Отредактировано: ${job.editCount || 1}`
+                                : `${job.editCount || 1} dəfə redaktə olunub`}
                             </span>
                           ) : (
-                            <span className="text-slate-400 text-[10px]">İlkin variant (0 redaktə)</span>
+                            <span className="text-slate-400 text-[10px]">
+                              {language === 'en'
+                                ? 'Original version'
+                                : language === 'ru'
+                                ? 'Первоначальная версия'
+                                : 'İlkin variant (0 redaktə)'}
+                            </span>
                           )}
                         </td>
 
@@ -1073,7 +1435,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             }`}
                           >
                             <Star className="w-3.5 h-3.5" fill={job.isFeatured ? 'currentColor' : 'none'} />
-                            <span>{job.isFeatured ? 'Önə Çıxarılıb' : 'Standart'}</span>
+                            <span>
+                              {job.isFeatured
+                                ? 'VIP Premium'
+                                : (language === 'en' ? 'Standard' : language === 'ru' ? 'Стандарт' : 'Standart')}
+                            </span>
                           </button>
                         </td>
 
@@ -1086,7 +1452,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 setIsInspectorModalOpen(true);
                               }}
                               className="p-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-md border border-indigo-200 transition-colors cursor-pointer"
-                              title="Jobia AI Qayda və Keyfiyyət Yoxlaması"
+                              title={
+                                language === 'en'
+                                  ? 'Jobia AI Compliance & Quality Check'
+                                  : language === 'ru'
+                                  ? 'Проверка соответствия правилам Jobia AI'
+                                  : 'Jobia AI Qayda və Keyfiyyət Yoxlaması'
+                              }
                             >
                               <ShieldCheck className="w-3.5 h-3.5" />
                             </button>
@@ -1095,7 +1467,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             <button
                               onClick={() => setSelectedVacancyForDetail(job)}
                               className="p-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-md transition-colors cursor-pointer"
-                              title="Vakansiyaya Tam Baxış"
+                              title={
+                                language === 'en'
+                                  ? 'Preview Vacancy Details'
+                                  : language === 'ru'
+                                  ? 'Полный просмотр вакансии'
+                                  : 'Vakansiyaya Tam Baxış'
+                              }
                             >
                               <Eye className="w-3.5 h-3.5" />
                             </button>
@@ -1105,7 +1483,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                               <button
                                 onClick={() => onApproveVacancy(job.id)}
                                 className="p-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-md transition-colors cursor-pointer"
-                                title="Təsdiqlə və Dərc Et"
+                                title={
+                                  language === 'en'
+                                    ? 'Approve and Publish'
+                                    : language === 'ru'
+                                    ? 'Одобрить и опубликовать'
+                                    : 'Təsdiqlə və Dərc Et'
+                                }
                               >
                                 <Check className="w-3.5 h-3.5" />
                               </button>
@@ -1116,7 +1500,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                               <button
                                 onClick={() => onRejectVacancy(job.id)}
                                 className="p-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-md transition-colors cursor-pointer"
-                                title="Dərcdən çıxar"
+                                title={
+                                  language === 'en'
+                                    ? 'Unpublish / Reject'
+                                    : language === 'ru'
+                                    ? 'Снять с публикации'
+                                    : 'Dərcdən çıxar'
+                                }
                               >
                                 <XCircle className="w-3.5 h-3.5" />
                               </button>
@@ -1125,12 +1515,23 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             {/* Delete Vacancy */}
                             <button
                               onClick={() => {
-                                if (window.confirm(`"${job.title}" vakansiyasını həmişəlik silmək istəyirsiniz? Bu əməliyyat geri qaytarılmır.`)) {
+                                const confirmMsg = language === 'en'
+                                  ? `Are you sure you want to permanently delete "${job.title}"? This cannot be undone.`
+                                  : language === 'ru'
+                                  ? `Вы уверены, что хотите навсегда удалить "${job.title}"? Это действие необратимо.`
+                                  : `"${job.title}" vakansiyasını həmişəlik silmək istəyirsiniz? Bu əməliyyat geri qaytarılmır.`;
+                                if (window.confirm(confirmMsg)) {
                                   onDeleteVacancy(job.id);
                                 }
                               }}
                               className="p-1.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-md border border-red-200 transition-colors cursor-pointer"
-                              title="Həmişəlik Sil"
+                              title={
+                                language === 'en'
+                                  ? 'Delete permanently'
+                                  : language === 'ru'
+                                  ? 'Удалить навсегда'
+                                  : 'Həmişəlik Sil'
+                              }
                             >
                               <Trash2 className="w-3.5 h-3.5" />
                             </button>
@@ -1151,61 +1552,125 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       {/* ============================================================== */}
       {activeTab === 'companies' && (
         <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
-          <div className="p-4 border-b border-slate-100 font-bold text-xs text-slate-800">
-            Qeydiyyatdan Keçmiş Bizneslər və Şirkətlər
+          <div className="p-4 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50/50">
+            <div>
+              <div className="flex items-center gap-2">
+                <Building2 className="w-4 h-4 text-blue-600" />
+                <h3 className="font-bold text-xs sm:text-sm text-slate-800">
+                  {language === 'en'
+                    ? `Registered Businesses & Companies (${companies.length})`
+                    : language === 'ru'
+                    ? `Зарегистрированные компании и бизнесы (${companies.length})`
+                    : `Qeydiyyatdan Keçmiş Bizneslər və Şirkətlər (${companies.length})`}
+                </h3>
+              </div>
+              <p className="text-[11px] text-slate-500 mt-0.5">
+                Vakansiyaları idarə etmək və şirkət adından paylaşımlar etmək üçün şirkətlər reyestri.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2 flex-wrap">
+              <div className="relative">
+                <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  value={companySearchText}
+                  onChange={(e) => setCompanySearchText(e.target.value)}
+                  placeholder="Şirkət axtar..."
+                  className="pl-8 pr-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs outline-none focus:border-blue-600 font-medium"
+                />
+              </div>
+
+              {onCreateCompany && (
+                <button
+                  type="button"
+                  onClick={() => setIsCreateCompanyModalOpen(true)}
+                  className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg flex items-center gap-1.5 shadow-xs transition active:scale-95 cursor-pointer whitespace-nowrap"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>+ Yeni Şirkət Yarat</span>
+                </button>
+              )}
+            </div>
           </div>
 
           <div className="divide-y divide-slate-100">
-            {companies.map((comp) => {
-              const count = vacancies.filter((v) => v.companyId === comp.id).length;
+            {filteredAdminCompanies.length === 0 ? (
+              <div className="p-8 text-center text-slate-400 font-medium">
+                {companySearchText.trim()
+                  ? 'Axtarışa uyğun şirkət tapılmadı.'
+                  : language === 'en'
+                  ? 'No companies registered yet.'
+                  : language === 'ru'
+                  ? 'Пока нет зарегистрированных компаний.'
+                  : 'Hələ ki heç bir şirkət qeydiyyatdan keçməyib.'}
+              </div>
+            ) : (
+              filteredAdminCompanies.map((comp) => {
+                const count = vacancies.filter((v) => v.companyId === comp.id).length;
 
-              return (
-                <div key={comp.id} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-xs">
-                  <div className="flex items-center gap-3.5">
-                    <img
-                      src={comp.logo}
-                      alt={comp.name}
-                      className="w-11 h-11 rounded-lg object-cover border border-slate-200 shrink-0"
-                      referrerPolicy="no-referrer"
-                    />
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <h4 className="font-bold text-slate-900 text-sm">{comp.name}</h4>
-                        {comp.verified || comp.verificationStatus === 'verified' ? (
-                          <span className="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded-full border border-emerald-200">
-                            ✓ Təsdiqlənib (Dərcdədir)
-                          </span>
-                        ) : (
-                          <span className="bg-amber-100 text-amber-900 text-[10px] font-bold px-2 py-0.5 rounded-full border border-amber-300">
-                            ⏳ Admin Təsdiqi Gözləyir (Gizlidir)
-                          </span>
-                        )}
+                return (
+                  <div key={comp.id} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-xs hover:bg-slate-50/50 transition-colors">
+                    <div className="flex items-center gap-3.5 min-w-0">
+                      <img
+                        src={comp.logo}
+                        alt={comp.name}
+                        className="w-11 h-11 rounded-lg object-cover border border-slate-200 shrink-0 bg-white"
+                        referrerPolicy="no-referrer"
+                      />
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h4 className="font-bold text-slate-900 text-sm">{comp.name}</h4>
+                          {comp.verified || comp.verificationStatus === 'verified' ? (
+                            <span className="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded-full border border-emerald-200 flex items-center gap-1">
+                              ✓ {language === 'en' ? 'Verified (Live)' : language === 'ru' ? 'Подтверждено' : 'Təsdiqlənib'}
+                            </span>
+                          ) : (
+                            <span className="bg-amber-100 text-amber-900 text-[10px] font-bold px-2 py-0.5 rounded-full border border-amber-300">
+                              ⏳ {language === 'en' ? 'Pending Admin Approval' : language === 'ru' ? 'Ожидает одобрения' : 'Gözləmədə'}
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-slate-500 truncate mt-0.5">
+                          {getLocalizedIndustry(comp.industry || '', language)} • {getLocalizedCity(comp.location || 'Bakı', language)} {comp.phone ? `• ${comp.phone}` : ''}
+                        </p>
                       </div>
-                      <p className="text-slate-500">{comp.industry} • {comp.location} • {comp.email}</p>
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0 flex-wrap">
+                      <span className="font-semibold text-slate-700 bg-slate-100 px-2.5 py-1.5 rounded-lg text-xs">
+                        {count} {language === 'en' ? 'Vacancies' : language === 'ru' ? 'Вакансий' : 'Vakansiya'}
+                      </span>
+
+                      {onOpenPostJobModal && (
+                        <button
+                          type="button"
+                          onClick={() => onOpenPostJobModal(comp)}
+                          className="px-3 py-1.5 rounded-lg font-bold text-xs bg-blue-50 border border-blue-200 text-blue-700 hover:bg-blue-100 transition-colors flex items-center gap-1 cursor-pointer shadow-2xs"
+                          title="Bu şirkət adından yeni vakansiya paylaş"
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                          <span>Vakansiya Paylaş</span>
+                        </button>
+                      )}
+
+                      <button
+                        onClick={() => onToggleCompanyVerified(comp.id)}
+                        className={`px-3 py-1.5 rounded-lg font-bold border transition-colors cursor-pointer text-xs ${
+                          comp.verified || comp.verificationStatus === 'verified'
+                            ? 'bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-100'
+                            : 'bg-emerald-600 border-emerald-600 text-white hover:bg-emerald-700 shadow-xs'
+                        }`}
+                      >
+                        {comp.verified || comp.verificationStatus === 'verified'
+                          ? (language === 'en' ? 'Revoke (Hide)' : language === 'ru' ? 'Отозвать' : 'Təsdiqi Ləğv Et')
+                          : (language === 'en' ? 'Verify (Publish)' : language === 'ru' ? 'Подтвердить' : 'Təsdiqlə')}
+                      </button>
                     </div>
                   </div>
-
-                  <div className="flex items-center gap-3">
-                    <span className="font-semibold text-slate-700 bg-slate-100 px-3 py-1 rounded-md">
-                      {count} Aktiv Vakansiya
-                    </span>
-
-                    <button
-                      onClick={() => onToggleCompanyVerified(comp.id)}
-                      className={`px-3 py-1.5 rounded-lg font-medium border transition-colors cursor-pointer ${
-                        comp.verified || comp.verificationStatus === 'verified'
-                          ? 'bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-100'
-                          : 'bg-emerald-600 border-emerald-600 text-white hover:bg-emerald-700 shadow-xs'
-                      }`}
-                    >
-                      {comp.verified || comp.verificationStatus === 'verified'
-                        ? 'Təsdiqi Ləğv Et (Dərcdən Çıxar)'
-                        : 'Şirkəti Təsdiqlə (Dərc Et)'}
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
+                );
+              })
+            )}
           </div>
         </div>
       )}
@@ -1216,35 +1681,49 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       {activeTab === 'applications' && (
         <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
           <div className="p-4 border-b border-slate-100 font-bold text-xs text-slate-800">
-            Platformada Edilmiş Bütün Müraciətlər ({applications.length})
+            {language === 'en'
+              ? `All Job Applications on Platform (${applications.length})`
+              : language === 'ru'
+              ? `Все отклики на платформе (${applications.length})`
+              : `Platformada Edilmiş Bütün Müraciətlər (${applications.length})`}
           </div>
 
           <div className="divide-y divide-slate-100">
-            {applications.map((app) => (
-              <div key={app.id} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-bold text-slate-900 text-sm">{app.candidateName}</span>
-                    <span className="text-slate-400">→</span>
-                    <span className="font-bold text-blue-700">{app.vacancyTitle}</span>
-                  </div>
-                  <div className="text-[11px] text-slate-500 mt-0.5">
-                    Şirkət: <span className="font-semibold text-slate-700">{app.companyName}</span> • Tarix: {app.appliedDate} • Email: {app.candidateEmail}
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-3">
-                  {app.matchScore && (
-                    <span className="text-[11px] font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
-                      {app.matchScore}% Uyğunluq
-                    </span>
-                  )}
-                  <span className="bg-slate-100 font-medium text-slate-800 px-3 py-1 rounded-full border border-slate-200 text-xs">
-                    {app.status}
-                  </span>
-                </div>
+            {applications.length === 0 ? (
+              <div className="p-8 text-center text-slate-400 font-medium">
+                {language === 'en'
+                  ? 'No job applications recorded yet.'
+                  : language === 'ru'
+                  ? 'Откликов пока нет.'
+                  : 'Hələ ki heç bir müraciət qeydə alınmayıb.'}
               </div>
-            ))}
+            ) : (
+              applications.map((app) => (
+                <div key={app.id} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-slate-900 text-sm">{app.candidateName}</span>
+                      <span className="text-slate-400">→</span>
+                      <span className="font-bold text-blue-700">{app.vacancyTitle}</span>
+                    </div>
+                    <div className="text-[11px] text-slate-500 mt-0.5">
+                      {language === 'en' ? 'Company' : language === 'ru' ? 'Компания' : 'Şirkət'}: <span className="font-semibold text-slate-700">{app.companyName}</span> • {language === 'en' ? 'Date' : language === 'ru' ? 'Дата' : 'Tarix'}: {app.appliedDate} • Email: {app.candidateEmail}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    {app.matchScore && (
+                      <span className="text-[11px] font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
+                        {app.matchScore}% {language === 'en' ? 'Match' : language === 'ru' ? 'Совпадение' : 'Uyğunluq'}
+                      </span>
+                    )}
+                    <span className="bg-slate-100 font-medium text-slate-800 px-3 py-1 rounded-full border border-slate-200 text-xs">
+                      {getLocalizedApplicationStatus(app.status, language)}
+                    </span>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </div>
       )}
@@ -1262,16 +1741,25 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   <History className="w-4 h-4" />
                 </div>
                 <h2 className="text-base font-bold text-slate-900">
-                  Təsdiq Tarixçəsi və Audit Jurnalı (Approval History)
+                  {language === 'en'
+                    ? 'Approval History & Audit Trail'
+                    : language === 'ru'
+                    ? 'История подтверждений и журнал аудита'
+                    : 'Təsdiq Tarixçəsi və Audit Jurnalı (Approval History)'}
                 </h2>
               </div>
               <p className="text-xs text-slate-500 mt-1 max-w-2xl">
-                Platformadakı hər bir vakansiya və şirkət statusunun dəyişdirilməsi, təsdiqləyən və ya imtina edən admin hesabı, dəqiq tarix və detallarla rəsmi qeydə alınır.
+                {language === 'en'
+                  ? 'Every vacancy and company status modification, responsible admin account, exact timestamp, and details are logged.'
+                  : language === 'ru'
+                  ? 'Каждое изменение статуса вакансии или компании регистрируется с указанием администратора, точного времени и деталей.'
+                  : 'Platformadakı hər bir vakansiya və şirkət statusunun dəyişdirilməsi, təsdiqləyən və ya imtina edən admin hesabı, dəqiq tarix və detallarla rəsmi qeydə alınır.'}
               </p>
               <div className="mt-2.5 inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-slate-50 border border-slate-200 text-xs text-slate-700">
                 <ShieldCheck className="w-3.5 h-3.5 text-blue-600 shrink-0" />
                 <span>
-                  Hazırkı Fəal Admin: <strong className="text-slate-900">{currentAdmin.fullName}</strong> ({currentAdmin.email})
+                  {language === 'en' ? 'Current Active Admin:' : language === 'ru' ? 'Текущий активный админ:' : 'Hazırkı Fəal Admin:'}{' '}
+                  <strong className="text-slate-900">{currentAdmin.fullName}</strong> ({currentAdmin.email})
                 </span>
               </div>
             </div>
@@ -1280,18 +1768,22 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               <button
                 onClick={handleRefresh}
                 className="px-3 py-2 rounded-xl text-xs font-bold border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 transition-colors flex items-center gap-1.5 cursor-pointer"
-                title="Audit loqlarını yenilə"
+                title={language === 'en' ? 'Refresh audit logs' : language === 'ru' ? 'Обновить логи' : 'Audit loqlarını yenilə'}
               >
                 <RefreshCw className="w-3.5 h-3.5" />
-                <span>Yenilə</span>
+                <span>{language === 'en' ? 'Refresh' : language === 'ru' ? 'Обновить' : 'Yenilə'}</span>
               </button>
 
               <button
                 onClick={() => {
-                  const headers = ['ID', 'Tarix', 'Admin Adı', 'Admin E-poçtu', 'Rol', 'Əməliyyat', 'Hədəf Növü', 'Hədəf ID', 'Hədəf Adı', 'Əvvəlki Status', 'Yeni Status', 'Detallar'];
+                  const headers = language === 'en'
+                    ? ['ID', 'Date', 'Admin Name', 'Admin Email', 'Role', 'Action', 'Target Type', 'Target ID', 'Target Name', 'Previous Status', 'New Status', 'Details']
+                    : language === 'ru'
+                    ? ['ID', 'Дата', 'Имя админа', 'Email админа', 'Роль', 'Действие', 'Тип цели', 'ID цели', 'Название цели', 'Предыдущий статус', 'Новый статус', 'Детали']
+                    : ['ID', 'Tarix', 'Admin Adı', 'Admin E-poçtu', 'Rol', 'Əməliyyat', 'Hədəf Növü', 'Hədəf ID', 'Hədəf Adı', 'Əvvəlki Status', 'Yeni Status', 'Detallar'];
                   const rows = auditLogs.map((l) => [
                     `"${l.id}"`,
-                    `"${new Date(l.timestamp).toLocaleString('az-AZ')}"`,
+                    `"${new Date(l.timestamp).toLocaleString(language === 'en' ? 'en-US' : language === 'ru' ? 'ru-RU' : 'az-AZ')}"`,
                     `"${(l.adminName || '').replace(/"/g, '""')}"`,
                     `"${(l.adminEmail || '').replace(/"/g, '""')}"`,
                     `"${l.adminRole || 'admin'}"`,
@@ -1315,7 +1807,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 className="px-3.5 py-2 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer"
               >
                 <Download className="w-3.5 h-3.5" />
-                <span>CSV İxrac Et</span>
+                <span>{language === 'en' ? 'Export CSV' : language === 'ru' ? 'Экспорт в CSV' : 'CSV İxrac Et'}</span>
               </button>
             </div>
           </div>
@@ -1323,33 +1815,49 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           {/* Audit Key Statistics Cards */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
-              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">Ümumi Qeydlər</span>
+              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">
+                {language === 'en' ? 'Total Logs' : language === 'ru' ? 'Всего записей' : 'Ümumi Qeydlər'}
+              </span>
               <div className="text-xl font-black text-slate-900 mt-1">{auditLogs.length}</div>
-              <span className="text-[11px] text-slate-500">Sistem audit hadisəsi</span>
+              <span className="text-[11px] text-slate-500">
+                {language === 'en' ? 'System audit events' : language === 'ru' ? 'Событий аудита' : 'Sistem audit hadisəsi'}
+              </span>
             </div>
 
             <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
-              <span className="text-[11px] font-bold text-emerald-700 uppercase tracking-wider block">Vakansiya Təsdiqi</span>
+              <span className="text-[11px] font-bold text-emerald-700 uppercase tracking-wider block">
+                {language === 'en' ? 'Job Approvals' : language === 'ru' ? 'Одобрения вакансий' : 'Vakansiya Təsdiqi'}
+              </span>
               <div className="text-xl font-black text-emerald-700 mt-1">
                 {auditLogs.filter(l => l.action === 'approve_vacancy').length}
               </div>
-              <span className="text-[11px] text-emerald-600 font-medium">Platformada dərc olundu</span>
+              <span className="text-[11px] text-emerald-600 font-medium">
+                {language === 'en' ? 'Published live' : language === 'ru' ? 'Опубликовано' : 'Platformada dərc olundu'}
+              </span>
             </div>
 
             <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
-              <span className="text-[11px] font-bold text-amber-700 uppercase tracking-wider block">Vakansiya İmtinası</span>
+              <span className="text-[11px] font-bold text-amber-700 uppercase tracking-wider block">
+                {language === 'en' ? 'Job Rejections' : language === 'ru' ? 'Отклонения вакансий' : 'Vakansiya İmtinası'}
+              </span>
               <div className="text-xl font-black text-amber-700 mt-1">
                 {auditLogs.filter(l => l.action === 'reject_vacancy').length}
               </div>
-              <span className="text-[11px] text-amber-600 font-medium">Dərcdən çıxarıldı</span>
+              <span className="text-[11px] text-amber-600 font-medium">
+                {language === 'en' ? 'Unpublished / Rejected' : language === 'ru' ? 'Снято с публикации' : 'Dərcdən çıxarıldı'}
+              </span>
             </div>
 
             <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
-              <span className="text-[11px] font-bold text-purple-700 uppercase tracking-wider block">Şirkət Təsdiqləri</span>
+              <span className="text-[11px] font-bold text-purple-700 uppercase tracking-wider block">
+                {language === 'en' ? 'Company Approvals' : language === 'ru' ? 'Верификации компаний' : 'Şirkət Təsdiqləri'}
+              </span>
               <div className="text-xl font-black text-purple-700 mt-1">
                 {auditLogs.filter(l => l.action === 'approve_company').length}
               </div>
-              <span className="text-[11px] text-purple-600 font-medium">Rəsmi verifikasiya</span>
+              <span className="text-[11px] text-purple-600 font-medium">
+                {language === 'en' ? 'Official verification' : language === 'ru' ? 'Официальная проверка' : 'Rəsmi verifikasiya'}
+              </span>
             </div>
           </div>
 
@@ -1366,7 +1874,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                   }`}
                 >
-                  Hamısı ({auditLogs.length})
+                  {language === 'en'
+                    ? `All (${auditLogs.length})`
+                    : language === 'ru'
+                    ? `Все (${auditLogs.length})`
+                    : `Hamısı (${auditLogs.length})`}
                 </button>
 
                 <button
@@ -1377,7 +1889,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       : 'bg-emerald-50 text-emerald-800 hover:bg-emerald-100'
                   }`}
                 >
-                  ✓ Vakansiya Təsdiqləri ({auditLogs.filter(l => l.action === 'approve_vacancy').length})
+                  ✓ {language === 'en' ? 'Job Approvals' : language === 'ru' ? 'Одобрения вакансий' : 'Vakansiya Təsdiqləri'} ({auditLogs.filter(l => l.action === 'approve_vacancy').length})
                 </button>
 
                 <button
@@ -1388,7 +1900,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       : 'bg-amber-50 text-amber-800 hover:bg-amber-100'
                   }`}
                 >
-                  ✕ Vakansiya İmtinaları ({auditLogs.filter(l => l.action === 'reject_vacancy').length})
+                  ✕ {language === 'en' ? 'Job Rejections' : language === 'ru' ? 'Отклонения вакансий' : 'Vakansiya İmtinaları'} ({auditLogs.filter(l => l.action === 'reject_vacancy').length})
                 </button>
 
                 <button
@@ -1399,7 +1911,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       : 'bg-purple-50 text-purple-800 hover:bg-purple-100'
                   }`}
                 >
-                  🏢 Şirkət Təsdiqləri ({auditLogs.filter(l => l.action === 'approve_company').length})
+                  🏢 {language === 'en' ? 'Company Approvals' : language === 'ru' ? 'Верификации компаний' : 'Şirkət Təsdiqləri'} ({auditLogs.filter(l => l.action === 'approve_company').length})
                 </button>
 
                 <button
@@ -1410,19 +1922,23 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                   }`}
                 >
-                  ⚙️ Digər Dəyişikliklər
+                  ⚙️ {language === 'en' ? 'Other Changes' : language === 'ru' ? 'Другие изменения' : 'Digər Dəyişikliklər'}
                 </button>
               </div>
 
               {/* Admin Selector Dropdown */}
               <div className="flex items-center gap-2 w-full md:w-auto shrink-0">
-                <span className="text-xs font-bold text-slate-500 whitespace-nowrap">Admin Filtri:</span>
+                <span className="text-xs font-bold text-slate-500 whitespace-nowrap">
+                  {language === 'en' ? 'Admin Filter:' : language === 'ru' ? 'Фильтр админа:' : 'Admin Filtri:'}
+                </span>
                 <select
                   value={auditAdminFilter}
                   onChange={(e) => setAuditAdminFilter(e.target.value)}
                   className="bg-slate-50 border border-slate-200 text-slate-800 text-xs font-semibold rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500"
                 >
-                  <option value="all">Bütün Adminlər (Hamısı)</option>
+                  <option value="all">
+                    {language === 'en' ? 'All Admins (All)' : language === 'ru' ? 'Все администраторы' : 'Bütün Adminlər (Hamısı)'}
+                  </option>
                   {Array.from(new Set(auditLogs.map(l => l.adminEmail).filter(Boolean))).map((email) => (
                     <option key={email} value={email}>
                       {email}
@@ -1439,7 +1955,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 type="text"
                 value={auditSearchQuery}
                 onChange={(e) => setAuditSearchQuery(e.target.value)}
-                placeholder="Admin adı, e-poçtu, vakansiya adı, şirkət adı və ya detal üzrə axtarın..."
+                placeholder={
+                  language === 'en'
+                    ? 'Search admin name, email, vacancy, company or detail...'
+                    : language === 'ru'
+                    ? 'Поиск по имени админа, email, вакансии, компании или детали...'
+                    : 'Admin adı, e-poçtu, vakansiya adı, şirkət adı və ya detal üzrə axtarın...'
+                }
                 className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:outline-none focus:ring-1 focus:ring-blue-500"
               />
               {auditSearchQuery && (
@@ -1447,7 +1969,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   onClick={() => setAuditSearchQuery('')}
                   className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 text-xs cursor-pointer"
                 >
-                  Təmizlə
+                  {language === 'en' ? 'Clear' : language === 'ru' ? 'Очистить' : 'Təmizlə'}
                 </button>
               )}
             </div>
@@ -1459,12 +1981,24 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               <table className="w-full text-left text-xs text-slate-700">
                 <thead className="bg-slate-50 text-slate-500 border-b border-slate-200 font-bold uppercase tracking-wider text-[10px]">
                   <tr>
-                    <th className="py-3 px-4">Təsdiqləyən Admin Hesabı</th>
-                    <th className="py-3 px-4">Əməliyyat Növü</th>
-                    <th className="py-3 px-4">Hədəf (Vakansiya / Şirkət)</th>
-                    <th className="py-3 px-4">Status Dəyişikliyi</th>
-                    <th className="py-3 px-4">Detallar və Qeyd</th>
-                    <th className="py-3 px-4 text-right">Tarix və Saat</th>
+                    <th className="py-3 px-4">
+                      {language === 'en' ? 'Admin Account' : language === 'ru' ? 'Аккаунт администратора' : 'Təsdiqləyən Admin Hesabı'}
+                    </th>
+                    <th className="py-3 px-4">
+                      {language === 'en' ? 'Action Type' : language === 'ru' ? 'Тип операции' : 'Əməliyyat Növü'}
+                    </th>
+                    <th className="py-3 px-4">
+                      {language === 'en' ? 'Target (Job / Company)' : language === 'ru' ? 'Цель (Вакансия / Компания)' : 'Hədəf (Vakansiya / Şirkət)'}
+                    </th>
+                    <th className="py-3 px-4">
+                      {language === 'en' ? 'Status Transition' : language === 'ru' ? 'Смена статуса' : 'Status Dəyişikliyi'}
+                    </th>
+                    <th className="py-3 px-4">
+                      {language === 'en' ? 'Details & Notes' : language === 'ru' ? 'Детали и примечания' : 'Detallar və Qeyd'}
+                    </th>
+                    <th className="py-3 px-4 text-right">
+                      {language === 'en' ? 'Date & Time' : language === 'ru' ? 'Дата и время' : 'Tarix və Saat'}
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 font-medium">
@@ -1496,9 +2030,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                           <td colSpan={6} className="py-12 text-center text-slate-400">
                             <div className="flex flex-col items-center justify-center gap-2">
                               <History className="w-8 h-8 text-slate-300" />
-                              <div className="text-sm font-bold text-slate-700">Uyğun audit qeydi tapılmadı</div>
+                              <div className="text-sm font-bold text-slate-700">
+                                {language === 'en'
+                                  ? 'No matching audit records found'
+                                  : language === 'ru'
+                                  ? 'Соответствующие записи аудита не найдены'
+                                  : 'Uyğun audit qeydi tapılmadı'}
+                              </div>
                               <p className="text-xs text-slate-400 max-w-sm">
-                                Seçilmiş filtrlərə uyğun heç bir təsdiq və ya status dəyişikliyi jurnalı mövcud deyil.
+                                {language === 'en'
+                                  ? 'No approval or status modification logs match the selected filters.'
+                                  : language === 'ru'
+                                  ? 'Нет записей аудита, соответствующих выбранным фильтрам.'
+                                  : 'Seçilmiş filtrlərə uyğun heç bir təsdiq və ya status dəyişikliyi jurnalı mövcud deyil.'}
                               </p>
                               {(auditFilterType !== 'all' || auditAdminFilter !== 'all' || auditSearchQuery) && (
                                 <button
@@ -1509,7 +2053,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                   }}
                                   className="mt-2 text-xs text-blue-600 font-bold hover:underline cursor-pointer"
                                 >
-                                  Bütün filtrləri sıfırla
+                                  {language === 'en'
+                                    ? 'Reset all filters'
+                                    : language === 'ru'
+                                    ? 'Сбросить все фильтры'
+                                    : 'Bütün filtrləri sıfırla'}
                                 </button>
                               )}
                             </div>
@@ -1529,49 +2077,91 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         actionBadge = (
                           <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
                             <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                            <span>Vakansiya Təsdiqləndi</span>
+                            <span>
+                              {language === 'en'
+                                ? 'Vacancy Approved'
+                                : language === 'ru'
+                                ? 'Вакансия одобрена'
+                                : 'Vakansiya Təsdiqləndi'}
+                            </span>
                           </span>
                         );
                       } else if (log.action === 'reject_vacancy') {
                         actionBadge = (
                           <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-bold bg-amber-50 text-amber-800 border border-amber-200">
                             <XCircle className="w-3 h-3 text-amber-600" />
-                            <span>Vakansiya İmtina Edildi</span>
+                            <span>
+                              {language === 'en'
+                                ? 'Vacancy Rejected'
+                                : language === 'ru'
+                                ? 'Вакансия отклонена'
+                                : 'Vakansiya İmtina Edildi'}
+                            </span>
                           </span>
                         );
                       } else if (log.action === 'approve_company') {
                         actionBadge = (
                           <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-bold bg-purple-50 text-purple-700 border border-purple-200">
                             <Building2 className="w-3 h-3 text-purple-600" />
-                            <span>Şirkət Təsdiqləndi</span>
+                            <span>
+                              {language === 'en'
+                                ? 'Company Approved'
+                                : language === 'ru'
+                                ? 'Компания одобрена'
+                                : 'Şirkət Təsdiqləndi'}
+                            </span>
                           </span>
                         );
                       } else if (log.action === 'revoke_company') {
                         actionBadge = (
                           <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
                             <XCircle className="w-3 h-3 text-rose-600" />
-                            <span>Şirkət Ləğv Edildi</span>
+                            <span>
+                              {language === 'en'
+                                ? 'Company Revoked'
+                                : language === 'ru'
+                                ? 'Верификация компании отозвана'
+                                : 'Şirkət Ləğv Edildi'}
+                            </span>
                           </span>
                         );
                       } else if (log.action === 'toggle_featured_vacancy') {
                         actionBadge = (
                           <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
                             <Star className="w-3 h-3 text-indigo-600 fill-indigo-600" />
-                            <span>Premium Dəyişdirildi</span>
+                            <span>
+                              {language === 'en'
+                                ? 'VIP Status Changed'
+                                : language === 'ru'
+                                ? 'VIP статус изменен'
+                                : 'Premium Dəyişdirildi'}
+                            </span>
                           </span>
                         );
                       } else if (log.action === 'delete_vacancy') {
                         actionBadge = (
                           <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-bold bg-red-50 text-red-700 border border-red-200">
                             <Trash2 className="w-3 h-3 text-red-600" />
-                            <span>Vakansiya Silindi</span>
+                            <span>
+                              {language === 'en'
+                                ? 'Vacancy Deleted'
+                                : language === 'ru'
+                                ? 'Вакансия удалена'
+                                : 'Vakansiya Silindi'}
+                            </span>
                           </span>
                         );
                       } else if (log.action === 'change_user_status' || log.action === 'change_user_role') {
                         actionBadge = (
                           <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
                             <Users className="w-3 h-3 text-blue-600" />
-                            <span>İstifadəçi Dəyişikliyi</span>
+                            <span>
+                              {language === 'en'
+                                ? 'User Modified'
+                                : language === 'ru'
+                                ? 'Изменение пользователя'
+                                : 'İstifadəçi Dəyişikliyi'}
+                            </span>
                           </span>
                         );
                       }
@@ -1614,7 +2204,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                     ? 'bg-purple-50 text-purple-700 border border-purple-200'
                                     : 'bg-slate-100 text-slate-700'
                                 }`}>
-                                  {log.targetType === 'vacancy' ? 'Vakansiya' : log.targetType === 'company' ? 'Şirkət' : log.targetType}
+                                  {log.targetType === 'vacancy'
+                                    ? (language === 'en' ? 'Vacancy' : language === 'ru' ? 'Вакансия' : 'Vakansiya')
+                                    : log.targetType === 'company'
+                                    ? (language === 'en' ? 'Company' : language === 'ru' ? 'Компания' : 'Şirkət')
+                                    : log.targetType}
                                 </span>
                                 <span className="text-[10px] text-slate-400 font-mono">
                                   #{log.targetId}
@@ -1652,14 +2246,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                           {/* Timestamp */}
                           <td className="py-3.5 px-4 align-top text-right whitespace-nowrap">
                             <div className="font-bold text-slate-900 text-xs">
-                              {new Date(log.timestamp).toLocaleDateString('az-AZ', {
+                              {new Date(log.timestamp).toLocaleDateString(language === 'en' ? 'en-US' : language === 'ru' ? 'ru-RU' : 'az-AZ', {
                                 day: '2-digit',
                                 month: 'short',
                                 year: 'numeric',
                               })}
                             </div>
                             <div className="text-[10px] text-slate-400 font-mono">
-                              {new Date(log.timestamp).toLocaleTimeString('az-AZ', {
+                              {new Date(log.timestamp).toLocaleTimeString(language === 'en' ? 'en-US' : language === 'ru' ? 'ru-RU' : 'az-AZ', {
                                 hour: '2-digit',
                                 minute: '2-digit',
                                 second: '2-digit',
@@ -1699,21 +2293,25 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     </h3>
                     {selectedVacancyForDetail.isApproved !== false && selectedVacancyForDetail.status === 'published' ? (
                       <span className="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2.5 py-0.5 rounded-full flex items-center gap-1">
-                        <Check className="w-3 h-3 text-emerald-600" /> Dərc edilib
+                        <Check className="w-3 h-3 text-emerald-600" /> {language === 'en' ? 'Published' : language === 'ru' ? 'Опубликовано' : 'Dərc edilib'}
                       </span>
                     ) : (
                       <span className="bg-amber-100 text-amber-900 text-[10px] font-bold px-2.5 py-0.5 rounded-full flex items-center gap-1">
-                        <Clock className="w-3 h-3 text-amber-700" /> Təsdiq Gözləyir
+                        <Clock className="w-3 h-3 text-amber-700" /> {language === 'en' ? 'Pending Approval' : language === 'ru' ? 'Ожидает одобрения' : 'Təsdiq Gözləyir'}
                       </span>
                     )}
                     {(selectedVacancyForDetail.editCount || 0) >= 1 && (
                       <span className="bg-blue-50 text-blue-800 border border-blue-200 text-[10px] font-bold px-2 py-0.5 rounded">
-                        1 dəfə redaktə olunub
+                        {language === 'en'
+                          ? `Edited ${selectedVacancyForDetail.editCount} time(s)`
+                          : language === 'ru'
+                          ? `Отредактировано ${selectedVacancyForDetail.editCount} раз(а)`
+                          : `${selectedVacancyForDetail.editCount} dəfə redaktə olunub`}
                       </span>
                     )}
                   </div>
                   <p className="text-xs text-slate-500 mt-0.5">
-                    {selectedVacancyForDetail.companyName} • {selectedVacancyForDetail.category} • {selectedVacancyForDetail.city || 'Bakı'}
+                    {selectedVacancyForDetail.companyName} • {getLocalizedCategory(selectedVacancyForDetail.category, language)} • {getLocalizedCity(selectedVacancyForDetail.city || 'Bakı', language)}
                   </p>
                 </div>
               </div>
@@ -1731,32 +2329,40 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               {/* Quick Info Grid */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
-                  <div className="text-[10px] text-slate-400 font-semibold uppercase">Maaş</div>
+                  <div className="text-[10px] text-slate-400 font-semibold uppercase">
+                    {language === 'en' ? 'Salary' : language === 'ru' ? 'Зарплата' : 'Maaş'}
+                  </div>
                   <div className="font-bold text-blue-700 text-sm mt-0.5">
                     {selectedVacancyForDetail.hideSalary
-                      ? 'Razılaşma ilə'
+                      ? (language === 'en' ? 'Negotiable' : language === 'ru' ? 'По договоренности' : 'Razılaşma ilə')
                       : `${selectedVacancyForDetail.minSalary || 0} - ${selectedVacancyForDetail.maxSalary || 0} ${selectedVacancyForDetail.currency || 'AZN'}`}
                   </div>
                 </div>
 
                 <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
-                  <div className="text-[10px] text-slate-400 font-semibold uppercase">İş Qrafiki</div>
+                  <div className="text-[10px] text-slate-400 font-semibold uppercase">
+                    {language === 'en' ? 'Work Schedule' : language === 'ru' ? 'График работы' : 'İş Qrafiki'}
+                  </div>
                   <div className="font-bold text-slate-900 text-sm mt-0.5">
-                    {selectedVacancyForDetail.employmentType || 'Tam ştat'}
+                    {getLocalizedEmploymentType(selectedVacancyForDetail.employmentType || 'Tam ştat', language)}
                   </div>
                 </div>
 
                 <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
-                  <div className="text-[10px] text-slate-400 font-semibold uppercase">Təcrübə</div>
+                  <div className="text-[10px] text-slate-400 font-semibold uppercase">
+                    {language === 'en' ? 'Experience' : language === 'ru' ? 'Опыт работы' : 'Təcrübə'}
+                  </div>
                   <div className="font-bold text-slate-900 text-sm mt-0.5 truncate">
-                    {selectedVacancyForDetail.experienceLevel || '1-3 il'}
+                    {getLocalizedExperienceLevel(selectedVacancyForDetail.experienceLevel || '1-3 il', language)}
                   </div>
                 </div>
 
                 <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
-                  <div className="text-[10px] text-slate-400 font-semibold uppercase">Son Tarix</div>
+                  <div className="text-[10px] text-slate-400 font-semibold uppercase">
+                    {language === 'en' ? 'Deadline' : language === 'ru' ? 'Крайний срок' : 'Son Tarix'}
+                  </div>
                   <div className="font-bold text-slate-900 text-sm mt-0.5">
-                    {selectedVacancyForDetail.deadline || '30 gün'}
+                    {selectedVacancyForDetail.deadline || (language === 'en' ? '30 days' : language === 'ru' ? '30 дней' : '30 gün')}
                   </div>
                 </div>
               </div>
@@ -1764,7 +2370,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               {/* Description */}
               {selectedVacancyForDetail.description && (
                 <div>
-                  <h4 className="font-bold text-slate-900 text-sm mb-2">İşin Təsviri</h4>
+                  <h4 className="font-bold text-slate-900 text-sm mb-2">
+                    {language === 'en' ? 'Job Description' : language === 'ru' ? 'Описание работы' : 'İşin Təsviri'}
+                  </h4>
                   <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 whitespace-pre-line text-slate-700 leading-relaxed">
                     {selectedVacancyForDetail.description}
                   </div>
@@ -1774,7 +2382,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               {/* Responsibilities */}
               {selectedVacancyForDetail.responsibilities && selectedVacancyForDetail.responsibilities.length > 0 && (
                 <div>
-                  <h4 className="font-bold text-slate-900 text-sm mb-2">Vəzifə Öhdəlikləri</h4>
+                  <h4 className="font-bold text-slate-900 text-sm mb-2">
+                    {language === 'en' ? 'Key Responsibilities' : language === 'ru' ? 'Обязанности' : 'Vəzifə Öhdəlikləri'}
+                  </h4>
                   <ul className="list-disc list-inside space-y-1 bg-slate-50 p-4 rounded-xl border border-slate-100 text-slate-700">
                     {selectedVacancyForDetail.responsibilities.map((r, i) => (
                       <li key={i}>{r}</li>
@@ -1786,7 +2396,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               {/* Requirements */}
               {selectedVacancyForDetail.requirements && selectedVacancyForDetail.requirements.length > 0 && (
                 <div>
-                  <h4 className="font-bold text-slate-900 text-sm mb-2">Tələblər</h4>
+                  <h4 className="font-bold text-slate-900 text-sm mb-2">
+                    {language === 'en' ? 'Requirements' : language === 'ru' ? 'Требования' : 'Tələblər'}
+                  </h4>
                   <ul className="list-disc list-inside space-y-1 bg-slate-50 p-4 rounded-xl border border-slate-100 text-slate-700">
                     {selectedVacancyForDetail.requirements.map((r, i) => (
                       <li key={i}>{r}</li>
@@ -1798,14 +2410,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               {/* Contact Information */}
               <div className="bg-blue-50/60 p-4 rounded-xl border border-blue-100 flex flex-wrap items-center justify-between gap-3">
                 <div>
-                  <div className="font-bold text-blue-900">Əlaqə Məlumatları</div>
+                  <div className="font-bold text-blue-900">
+                    {language === 'en' ? 'Contact Details' : language === 'ru' ? 'Контактная информация' : 'Əlaqə Məlumatları'}
+                  </div>
                   <div className="text-blue-700 text-xs mt-0.5">
-                    Telefon / WhatsApp: {selectedVacancyForDetail.contactPhone || selectedVacancyForDetail.contactWhatsapp || 'Qeyd edilməyib'}
+                    {language === 'en' ? 'Phone / WhatsApp' : language === 'ru' ? 'Телефон / WhatsApp' : 'Telefon / WhatsApp'}:{' '}
+                    {selectedVacancyForDetail.contactPhone || selectedVacancyForDetail.contactWhatsapp || (language === 'en' ? 'Not specified' : language === 'ru' ? 'Не указано' : 'Qeyd edilməyib')}
                   </div>
                 </div>
                 {selectedVacancyForDetail.createdBy && (
                   <div className="text-[11px] text-blue-600 bg-white px-3 py-1 rounded-lg border border-blue-200">
-                    Paylaşan ID: {selectedVacancyForDetail.createdBy}
+                    {language === 'en' ? 'Creator ID' : language === 'ru' ? 'ID автора' : 'Paylaşan ID'}: {selectedVacancyForDetail.createdBy}
                   </div>
                 )}
               </div>
@@ -1815,9 +2430,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 <div className="flex items-center justify-between mb-2.5">
                   <div className="flex items-center gap-1.5 text-xs font-bold text-slate-800">
                     <History className="w-3.5 h-3.5 text-blue-600" />
-                    <span>Bu Vakansiyanın Təsdiq və Moderasiya Tarixçəsi</span>
+                    <span>
+                      {language === 'en'
+                        ? 'Approval & Moderation History for This Vacancy'
+                        : language === 'ru'
+                        ? 'История модерации этой вакансии'
+                        : 'Bu Vakansiyanın Təsdiq və Moderasiya Tarixçəsi'}
+                    </span>
                   </div>
-                  <span className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider">Audit Loqu</span>
+                  <span className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider">
+                    {language === 'en' ? 'Audit Log' : language === 'ru' ? 'Аудит-лог' : 'Audit Loqu'}
+                  </span>
                 </div>
 
                 {(() => {
@@ -1825,7 +2448,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   if (jobLogs.length === 0) {
                     return (
                       <p className="text-xs text-slate-400 italic">
-                        Bu vakansiya üçün hələ qeydə alınmış heç bir moderasiya əməliyyatı yoxdur.
+                        {language === 'en'
+                          ? 'No moderation actions recorded for this vacancy yet.'
+                          : language === 'ru'
+                          ? 'Для этой вакансии пока нет записей модерации.'
+                          : 'Bu vakansiya üçün hələ qeydə alınmış heç bir moderasiya əməliyyatı yoxdur.'}
                       </p>
                     );
                   }
@@ -1845,13 +2472,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                   ? 'bg-amber-100 text-amber-800'
                                   : 'bg-blue-100 text-blue-800'
                               }`}>
-                                {log.action === 'approve_vacancy' ? '✓ Təsdiqləndi' : log.action === 'reject_vacancy' ? '✕ İmtina Edildi' : log.action}
+                                {log.action === 'approve_vacancy'
+                                  ? (language === 'en' ? '✓ Approved' : language === 'ru' ? '✓ Одобрено' : '✓ Təsdiqləndi')
+                                  : log.action === 'reject_vacancy'
+                                  ? (language === 'en' ? '✕ Rejected' : language === 'ru' ? '✕ Отклонено' : '✕ İmtina Edildi')
+                                  : log.action}
                               </span>
                             </div>
                             <p className="text-[11px] text-slate-600 mt-1">{log.details}</p>
                           </div>
                           <div className="text-[10px] text-slate-400 text-right shrink-0 font-mono">
-                            {new Date(log.timestamp).toLocaleString('az-AZ')}
+                            {new Date(log.timestamp).toLocaleString(language === 'en' ? 'en-US' : language === 'ru' ? 'ru-RU' : 'az-AZ')}
                           </div>
                         </div>
                       ))}
@@ -1876,12 +2507,21 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   }`}
                 >
                   <Star className="w-4 h-4" fill={selectedVacancyForDetail.isFeatured ? 'currentColor' : 'none'} />
-                  <span>{selectedVacancyForDetail.isFeatured ? 'Önə Çıxarılıb' : 'Önə Çıxar'}</span>
+                  <span>
+                    {selectedVacancyForDetail.isFeatured
+                      ? (language === 'en' ? 'VIP Premium (Active)' : language === 'ru' ? 'VIP Премиум (Активен)' : 'VIP Premium (Aktivdir)')
+                      : (language === 'en' ? 'Make VIP Premium' : language === 'ru' ? 'Сделать VIP' : 'VIP Premium Et')}
+                  </span>
                 </button>
 
                 <button
                   onClick={() => {
-                    if (window.confirm(`"${selectedVacancyForDetail.title}" vakansiyasını həmişəlik silmək istəyirsiniz?`)) {
+                    const confirmMsg = language === 'en'
+                      ? `Are you sure you want to permanently delete "${selectedVacancyForDetail.title}"?`
+                      : language === 'ru'
+                      ? `Вы уверены, что хотите навсегда удалить вакансию "${selectedVacancyForDetail.title}"?`
+                      : `"${selectedVacancyForDetail.title}" vakansiyasını həmişəlik silmək istəyirsiniz?`;
+                    if (window.confirm(confirmMsg)) {
                       onDeleteVacancy(selectedVacancyForDetail.id);
                       setSelectedVacancyForDetail(null);
                     }
@@ -1889,7 +2529,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   className="px-3 py-2 rounded-xl text-xs font-bold bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 transition-colors flex items-center gap-1.5 cursor-pointer"
                 >
                   <Trash2 className="w-4 h-4" />
-                  <span>Həmişəlik Sil</span>
+                  <span>{language === 'en' ? 'Delete Permanently' : language === 'ru' ? 'Удалить навсегда' : 'Həmişəlik Sil'}</span>
                 </button>
               </div>
 
@@ -1902,10 +2542,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     setIsInspectorModalOpen(true);
                   }}
                   className="px-3.5 py-2 rounded-xl text-xs font-bold bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 transition-colors flex items-center gap-1.5 shadow-2xs cursor-pointer"
-                  title="Jobia AI Qanunvericilik və Keyfiyyət Yoxlaması"
+                  title={
+                    language === 'en'
+                      ? 'Jobia AI Legal Compliance & Quality Check'
+                      : language === 'ru'
+                      ? 'Проверка качества и законодательства Jobia AI'
+                      : 'Jobia AI Qanunvericilik və Keyfiyyət Yoxlaması'
+                  }
                 >
                   <ShieldCheck className="w-4 h-4 text-indigo-600" />
-                  <span>Jobia AI Yoxla</span>
+                  <span>{language === 'en' ? 'Jobia AI Check' : language === 'ru' ? 'Проверить Jobia AI' : 'Jobia AI Yoxla'}</span>
                 </button>
 
                 {selectedVacancyForDetail.isApproved === false || selectedVacancyForDetail.status !== 'published' ? (
@@ -1917,7 +2563,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     className="px-4 py-2 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer"
                   >
                     <Check className="w-4 h-4" />
-                    <span>Təsdiqlə və Dərc Et</span>
+                    <span>{language === 'en' ? 'Approve & Publish' : language === 'ru' ? 'Одобрить и опубликовать' : 'Təsdiqlə və Dərc Et'}</span>
                   </button>
                 ) : (
                   <button
@@ -1928,7 +2574,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     className="px-4 py-2 rounded-xl text-xs font-bold bg-amber-500 hover:bg-amber-600 text-white shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer"
                   >
                     <XCircle className="w-4 h-4" />
-                    <span>Dərcdən Çıxar (İmtina)</span>
+                    <span>{language === 'en' ? 'Unpublish (Reject)' : language === 'ru' ? 'Снять с публикации' : 'Dərcdən Çıxar (İmtina)'}</span>
                   </button>
                 )}
 
@@ -1936,7 +2582,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   onClick={() => setSelectedVacancyForDetail(null)}
                   className="px-4 py-2 rounded-xl text-xs font-bold bg-slate-200 hover:bg-slate-300 text-slate-700 transition-colors cursor-pointer"
                 >
-                  Bağla
+                  {language === 'en' ? 'Close' : language === 'ru' ? 'Закрыть' : 'Bağla'}
                 </button>
               </div>
             </div>
@@ -1966,9 +2612,29 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         }}
       />
 
+      {/* Create Company Modal for Admin */}
+      {onCreateCompany && (
+        <CreateCompanyModal
+          isOpen={isCreateCompanyModalOpen}
+          onClose={() => setIsCreateCompanyModalOpen(false)}
+          onCreateCompany={onCreateCompany}
+          onCompanyCreated={(newComp) => {
+            if (onOpenPostJobModal) {
+              onOpenPostJobModal(newComp);
+            }
+          }}
+        />
+      )}
+
       {/* Dynamic Animated Section Footer with Job Intelligence & Automation */}
       <JobiaSectionFooter 
-        extraTagline="Jobia.az Mərkəzi İdarəetmə, VÖEN Verifikasiya və Təhlükəsizlik Paneli"
+        extraTagline={
+          language === 'en'
+            ? 'Jobia.az Central Administration, Tax ID (TIN) Verification & Security Panel'
+            : language === 'ru'
+            ? 'Панель центрального управления, верификации ИНН и безопасности Jobia.az'
+            : 'Jobia.az Mərkəzi İdarəetmə, VÖEN Verifikasiya və Təhlükəsizlik Paneli'
+        }
         showBackToTop={true}
       />
     </div>

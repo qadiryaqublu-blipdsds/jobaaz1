@@ -23,6 +23,15 @@ export interface User {
   firstName?: string;
   lastName?: string;
   phone?: string;
+  jobTitle?: string;
+  location?: string;
+  bio?: string;
+  skills?: string[];
+  expectedSalary?: number;
+  livingRegion?: string;
+  livingCity?: string;
+  eligibleWorkRegions?: string[];
+  willingToRelocate?: boolean;
   companyId?: string;
   companyName?: string;
   companyDescription?: string;
@@ -35,6 +44,81 @@ export interface User {
   createdAt: string;
   lastLoginAt?: string;
   emailPreferences?: UserEmailPreferences;
+  cvData?: CVData;
+  isOpenToEmployers?: boolean;
+  profileVisibility?: 'public' | 'private';
+  openToWork?: OpenToWorkPreferences;
+  hiring?: HiringPreferences;
+  connectionsCount?: number;
+}
+
+// -------------------------------------------------------------
+// LINKEDIN PROFESSIONAL NETWORKING & BADGES TYPES
+// -------------------------------------------------------------
+export interface OpenToWorkPreferences {
+  isOpen: boolean; // whether #OpenToWork is active (green ring)
+  targetJobTitles: string[]; // e.g. ['Frontend Developer', 'React Mühəndisi']
+  workplaceTypes: ('remote' | 'hybrid' | 'on-site')[];
+  location?: string;
+  jobTypes?: ('Tam ştat' | 'Yarım ştat' | 'Müqaviləli' | 'Təcrübə')[];
+  availability: 'immediately' | 'casually_looking' | 'two_weeks_notice';
+  visibility: 'all_members' | 'recruiters_only'; // all members (green frame) or recruiters only
+  updatedAt?: string;
+}
+
+export interface HiringPreferences {
+  isHiring: boolean; // whether #Hiring badge is active (purple ring)
+  rolesHiringFor: string[];
+  companyName?: string;
+  updatedAt?: string;
+}
+
+export type ConnectionStatus = 'pending' | 'accepted' | 'declined';
+
+export interface ProfessionalConnection {
+  id: string;
+  requesterId: string;
+  requesterName: string;
+  requesterTitle?: string;
+  requesterAvatar?: string;
+  recipientId: string;
+  recipientName: string;
+  recipientTitle?: string;
+  recipientAvatar?: string;
+  status: ConnectionStatus;
+  mutualCount?: number;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface SkillEndorsement {
+  skillName: string;
+  endorserId: string;
+  endorserName: string;
+  endorserTitle?: string;
+  targetUserId: string;
+  createdAt: string;
+}
+
+export interface UserSkillWithEndorsements {
+  name: string;
+  endorsementsCount: number;
+  endorsedByMe: boolean;
+  endorsers: { id: string; name: string; title?: string }[];
+}
+
+export interface ProfessionalRecommendation {
+  id: string;
+  authorId: string;
+  authorName: string;
+  authorTitle: string;
+  authorAvatar?: string;
+  authorCompany?: string;
+  recipientId: string;
+  relationship: 'worked_together' | 'manager' | 'mentor' | 'client' | 'peer';
+  text: string;
+  status: 'pending' | 'approved';
+  createdAt: string;
 }
 
 export interface AuthSession {
@@ -64,9 +148,21 @@ export interface CandidateProfile {
   expectedSalary?: number;
   preferredEmploymentType?: string;
   preferredLocation?: string;
+  livingRegion?: string;
+  livingCity?: string;
+  eligibleWorkRegions?: string[];
+  willingToRelocate?: boolean;
   cvUrl?: string;
   cvFileName?: string;
+  cvData?: CVData;
   profileVisibility: 'public' | 'private';
+  isOpenToEmployers?: boolean;
+  openToWork?: OpenToWorkPreferences;
+  hiring?: HiringPreferences;
+  connectionsCount?: number;
+  endorsements?: Record<string, number>;
+  endorsers?: Record<string, { id: string; name: string; title?: string }[]>;
+  recommendations?: ProfessionalRecommendation[];
   createdAt: string;
   updatedAt: string;
 }
@@ -206,6 +302,7 @@ export interface Company {
   verificationStatus?: 'pending' | 'verified' | 'rejected' | 'suspended';
   industry: string;
   location: string;
+  city?: string;
   address?: string;
   website?: string;
   email: string;
@@ -215,6 +312,7 @@ export interface Company {
   description: string;
   employeeCount: string;
   activeJobsCount: number;
+  subscriptionPlan?: EmployerPlanTier;
   createdBy?: string;
   createdAt?: string;
   updatedAt?: string;
@@ -265,6 +363,7 @@ export interface Vacancy {
   contactPhone?: string;
   contactWhatsapp?: string;
   isBlueCollarFriendly?: boolean;
+  isEasyApply?: boolean;
   createdBy?: string;
   createdAt?: string;
   updatedAt?: string;
@@ -273,30 +372,35 @@ export interface Vacancy {
 export interface ExperienceItem {
   id: string;
   company: string;
-  position: string;
-  location: string;
-  startDate: string;
-  endDate: string;
-  current: boolean;
+  position?: string;
+  role?: string;
+  location?: string;
+  startDate?: string;
+  endDate?: string;
+  period?: string;
+  current?: boolean;
   description: string;
 }
 
 export interface EducationItem {
   id: string;
   institution: string;
+  school?: string;
   degree: string;
-  fieldOfStudy: string;
-  startDate: string;
-  endDate: string;
-  current: boolean;
+  fieldOfStudy?: string;
+  startDate?: string;
+  endDate?: string;
+  graduationYear?: string;
+  current?: boolean;
   gpa?: string;
+  description?: string;
 }
 
 export interface SkillItem {
   id: string;
   name: string;
-  level: 'Başlanğıc' | 'Orta' | 'Yaxşı' | 'Əla / Ekspert';
-  category: 'Texniki' | 'Soft skill' | 'Alət / Proqram';
+  level: 'Başlanğıc' | 'Orta' | 'Yaxşı' | 'Əla / Ekspert' | string;
+  category?: 'Texniki' | 'Soft skill' | 'Alət / Proqram' | string;
 }
 
 export interface LanguageItem {
@@ -319,7 +423,8 @@ export interface CertificateItem {
   id: string;
   name: string;
   issuer: string;
-  issueDate: string;
+  issueDate?: string;
+  year?: string;
   credentialUrl?: string;
 }
 
@@ -331,6 +436,8 @@ export interface CVData {
   id: string;
   title: string;
   language?: CVLanguage;
+  template?: CVTemplateType;
+  showPhoto?: boolean;
   lastUpdated: string;
   personalInfo: {
     fullName: string;
@@ -352,6 +459,7 @@ export interface CVData {
   languages: LanguageItem[];
   projects: ProjectItem[];
   certificates: CertificateItem[];
+  certifications?: CertificateItem[];
 }
 
 export type CVTemplateType = 
@@ -393,11 +501,15 @@ export interface Application {
   appliedDate: string;
   status: ApplicationStatus;
   cvData: CVData;
+  cvTemplate?: CVTemplateType;
+  showPhoto?: boolean;
   cvUrl?: string;
   cvFileName?: string;
   cvFileType?: string;
   cvFileData?: string;
   isGuestApplication?: boolean;
+  hasPlatformCV?: boolean;
+  cvSource?: 'platform' | 'file_upload';
   coverNote?: string;
   matchScore?: number;
   matchHighlights?: string[];

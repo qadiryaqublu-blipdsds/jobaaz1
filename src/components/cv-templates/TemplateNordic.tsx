@@ -14,9 +14,9 @@ export const TemplateNordic: React.FC<TemplateProps> = ({ data, showPhoto = true
   const displayPhoto = showPhoto && !!personalInfo.photoUrl;
 
   return (
-    <div id="cv-preview-nordic" className="bg-white text-slate-800 rounded-lg shadow-sm border border-teal-100 font-sans max-w-[850px] mx-auto min-h-[1050px] flex flex-col md:flex-row overflow-hidden">
+    <div id="cv-preview-nordic" className="bg-white text-slate-800 rounded-lg shadow-sm border border-teal-100 font-sans w-full max-w-[800px] mx-auto min-h-[1050px] flex flex-row overflow-hidden">
       {/* Left Sidebar (Nordic Teal) */}
-      <div className="w-full md:w-72 bg-gradient-to-b from-teal-900 to-slate-900 text-teal-50 p-6 shrink-0 flex flex-col justify-between">
+      <div className="w-72 bg-gradient-to-b from-teal-900 to-slate-900 text-teal-50 p-6 shrink-0 flex flex-col justify-between">
         <div className="space-y-6">
           {/* Avatar & Name */}
           <div className="text-center">
@@ -32,47 +32,47 @@ export const TemplateNordic: React.FC<TemplateProps> = ({ data, showPhoto = true
                 {personalInfo.fullName?.charAt(0) || 'N'}
               </div>
             )}
-            <h1 className="text-xl font-bold text-white tracking-tight">{personalInfo.fullName || 'Ad Soyad'}</h1>
-            <p className="text-xs font-semibold text-teal-300 mt-1 uppercase tracking-wider">{personalInfo.jobTitle || 'Mütəxəssis'}</p>
+            <h1 className="text-xl font-bold text-white tracking-tight break-words">{personalInfo.fullName || 'Ad Soyad'}</h1>
+            <p className="text-xs font-semibold text-teal-300 mt-1 uppercase tracking-wider break-words">{personalInfo.jobTitle || 'Mütəxəssis'}</p>
           </div>
 
           {/* Contact Details */}
           <div className="space-y-2.5 text-xs text-teal-100 pt-3 border-t border-teal-800/80">
             <h3 className="text-[10px] font-bold uppercase tracking-widest text-teal-400 mb-2">Əlaqə</h3>
             {personalInfo.email && (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 min-w-0">
                 <Mail className="w-3.5 h-3.5 text-teal-400 shrink-0" />
-                <span className="truncate">{personalInfo.email}</span>
+                <span className="truncate flex-1 min-w-0">{personalInfo.email}</span>
               </div>
             )}
             {personalInfo.phone && (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 min-w-0">
                 <Phone className="w-3.5 h-3.5 text-teal-400 shrink-0" />
-                <span>{personalInfo.phone}</span>
+                <span className="truncate flex-1 min-w-0">{personalInfo.phone}</span>
               </div>
             )}
             {personalInfo.address && (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 min-w-0">
                 <MapPin className="w-3.5 h-3.5 text-teal-400 shrink-0" />
-                <span>{personalInfo.address}</span>
+                <span className="truncate flex-1 min-w-0">{personalInfo.address}</span>
               </div>
             )}
             {personalInfo.linkedin && (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 min-w-0">
                 <Linkedin className="w-3.5 h-3.5 text-teal-400 shrink-0" />
-                <span className="truncate">{personalInfo.linkedin.replace(/^https?:\/\//, '')}</span>
+                <span className="truncate flex-1 min-w-0">{personalInfo.linkedin.replace(/^https?:\/\//, '')}</span>
               </div>
             )}
             {personalInfo.github && (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 min-w-0">
                 <Github className="w-3.5 h-3.5 text-teal-400 shrink-0" />
-                <span className="truncate">{personalInfo.github.replace(/^https?:\/\//, '')}</span>
+                <span className="truncate flex-1 min-w-0">{personalInfo.github.replace(/^https?:\/\//, '')}</span>
               </div>
             )}
             {personalInfo.portfolio && (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 min-w-0">
                 <Globe className="w-3.5 h-3.5 text-teal-400 shrink-0" />
-                <span className="truncate">{personalInfo.portfolio.replace(/^https?:\/\//, '')}</span>
+                <span className="truncate flex-1 min-w-0">{personalInfo.portfolio.replace(/^https?:\/\//, '')}</span>
               </div>
             )}
           </div>
@@ -149,16 +149,16 @@ export const TemplateNordic: React.FC<TemplateProps> = ({ data, showPhoto = true
             <div className="space-y-4">
               {experiences.map((exp) => (
                 <div key={exp.id} className="relative pl-3.5 border-l-2 border-teal-300">
-                  <div className="flex justify-between items-baseline flex-wrap gap-1">
-                    <h3 className="text-xs font-bold text-slate-900">{exp.position}</h3>
-                    <span className="text-[10px] font-bold text-teal-700 bg-teal-50 px-2 py-0.5 rounded">
+                  <div className="flex justify-between items-baseline gap-2 min-w-0">
+                    <h3 className="text-xs font-bold text-slate-900 flex-1 min-w-0 break-words">{exp.position}</h3>
+                    <span className="text-[10px] font-bold text-teal-700 bg-teal-50 px-2 py-0.5 rounded shrink-0 whitespace-nowrap">
                       {exp.startDate} – {exp.current ? terms.present : exp.endDate}
                     </span>
                   </div>
-                  <div className="text-[11px] font-medium text-teal-900 mb-1">
+                  <div className="text-[11px] font-medium text-teal-900 mb-1 break-words">
                     {exp.company} {exp.location ? `• ${exp.location}` : ''}
                   </div>
-                  <div className="text-[11px] text-slate-600 leading-relaxed whitespace-pre-line">
+                  <div className="text-[11px] text-slate-600 leading-relaxed whitespace-pre-line break-words">
                     {exp.description}
                   </div>
                 </div>

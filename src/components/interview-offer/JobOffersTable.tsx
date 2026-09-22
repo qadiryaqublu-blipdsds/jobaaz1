@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { JobOffer, OfferStatus, OfferAuditLog } from '../../types';
 import { downloadJobOfferPDF } from '../../services/offerPdfService';
 import { OfferDocumentView } from './OfferDocumentView';
+import { useLanguage } from '../../context/LanguageContext';
+import { getLocalizedOfferStatus } from '../../i18n/localizeData';
 import { 
   CheckCircle2, 
   XCircle, 
@@ -18,7 +20,7 @@ import {
   ShieldCheck, 
   RefreshCw, 
   FileText, 
-  X,
+  X, 
   Loader2
 } from 'lucide-react';
 
@@ -39,6 +41,7 @@ export const JobOffersTable: React.FC<JobOffersTableProps> = ({
   onResendOffer,
   onOpenCandidatePortal,
 }) => {
+  const { language } = useLanguage();
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [viewingOffer, setViewingOffer] = useState<JobOffer | null>(null);
@@ -64,40 +67,41 @@ export const JobOffersTable: React.FC<JobOffersTableProps> = ({
   });
 
   const getStatusBadge = (status: OfferStatus) => {
+    const localizedLabel = getLocalizedOfferStatus(status, language);
     switch (status) {
       case 'ACCEPTED':
         return (
           <span className="px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 font-bold flex items-center gap-1 text-[10px]">
             <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-            QƏBUL EDİLDİ
+            {localizedLabel.toUpperCase()}
           </span>
         );
       case 'DECLINED':
         return (
           <span className="px-2.5 py-1 rounded-full bg-red-100 text-red-800 border border-red-300 font-bold flex items-center gap-1 text-[10px]">
             <XCircle className="w-3 h-3 text-red-600" />
-            İMTİNA EDİLDİ
+            {localizedLabel.toUpperCase()}
           </span>
         );
       case 'SENT':
         return (
           <span className="px-2.5 py-1 rounded-full bg-blue-100 text-blue-800 border border-blue-300 font-bold flex items-center gap-1 text-[10px]">
             <Send className="w-3 h-3 text-blue-600" />
-            GÖNDƏRİLDİ
+            {localizedLabel.toUpperCase()}
           </span>
         );
       case 'VIEWED':
         return (
           <span className="px-2.5 py-1 rounded-full bg-purple-100 text-purple-800 border border-purple-300 font-semibold flex items-center gap-1 text-[10px]">
             <Eye className="w-3 h-3 text-purple-600" />
-            BAXILDI
+            {localizedLabel.toUpperCase()}
           </span>
         );
       case 'PENDING_APPROVAL':
         return (
           <span className="px-2.5 py-1 rounded-full bg-amber-100 text-amber-800 border border-amber-300 font-semibold flex items-center gap-1 text-[10px]">
             <Clock className="w-3 h-3 text-amber-600" />
-            TƏSDİQ GÖZLƏYİR
+            {localizedLabel.toUpperCase()}
           </span>
         );
       case 'DRAFT':
@@ -105,7 +109,7 @@ export const JobOffersTable: React.FC<JobOffersTableProps> = ({
         return (
           <span className="px-2.5 py-1 rounded-full bg-slate-100 text-slate-700 border border-slate-300 font-medium flex items-center gap-1 text-[10px]">
             <FileText className="w-3 h-3 text-slate-500" />
-            QARALAMA (DRAFT)
+            {localizedLabel.toUpperCase()}
           </span>
         );
     }
@@ -138,33 +142,53 @@ export const JobOffersTable: React.FC<JobOffersTableProps> = ({
       {/* Metric Stats Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
         <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs">
-          <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">Cəmi Təkliflər</span>
+          <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">
+            {language === 'en' ? 'Total Offers' : language === 'ru' ? 'Всего предложений' : 'Cəmi Təkliflər'}
+          </span>
           <div className="text-2xl font-black text-slate-900 mt-1">{totalCount}</div>
-          <span className="text-[10px] text-slate-400 font-medium">Bütün tarixlər üzrə</span>
+          <span className="text-[10px] text-slate-400 font-medium">
+            {language === 'en' ? 'All time records' : language === 'ru' ? 'За все время' : 'Bütün tarixlər üzrə'}
+          </span>
         </div>
 
         <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs">
-          <span className="text-[11px] font-bold text-blue-600 uppercase tracking-wider block">Göndərilənlər</span>
+          <span className="text-[11px] font-bold text-blue-600 uppercase tracking-wider block">
+            {language === 'en' ? 'Sent' : language === 'ru' ? 'Отправлено' : 'Göndərilənlər'}
+          </span>
           <div className="text-2xl font-black text-blue-700 mt-1">{sentCount}</div>
-          <span className="text-[10px] text-blue-500 font-medium">Namizədlərə çatdırılıb</span>
+          <span className="text-[10px] text-blue-500 font-medium">
+            {language === 'en' ? 'Delivered to candidates' : language === 'ru' ? 'Доставлено соискателям' : 'Namizədlərə çatdırılıb'}
+          </span>
         </div>
 
         <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs">
-          <span className="text-[11px] font-bold text-emerald-600 uppercase tracking-wider block">Qəbul Edilənlər</span>
+          <span className="text-[11px] font-bold text-emerald-600 uppercase tracking-wider block">
+            {language === 'en' ? 'Accepted' : language === 'ru' ? 'Принято' : 'Qəbul Edilənlər'}
+          </span>
           <div className="text-2xl font-black text-emerald-700 mt-1">{acceptedCount}</div>
-          <span className="text-[10px] text-emerald-600 font-bold">Uğurlu İşe Qəbul (Hired)</span>
+          <span className="text-[10px] text-emerald-600 font-bold">
+            {language === 'en' ? 'Successfully Hired' : language === 'ru' ? 'Успешно наняты' : 'Uğurlu İşe Qəbul (Hired)'}
+          </span>
         </div>
 
         <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs">
-          <span className="text-[11px] font-bold text-red-600 uppercase tracking-wider block">İmtina Edilənlər</span>
+          <span className="text-[11px] font-bold text-red-600 uppercase tracking-wider block">
+            {language === 'en' ? 'Declined' : language === 'ru' ? 'Отклонено' : 'İmtina Edilənlər'}
+          </span>
           <div className="text-2xl font-black text-red-700 mt-1">{declinedCount}</div>
-          <span className="text-[10px] text-red-500 font-medium">Səbəblər qeyd olunub</span>
+          <span className="text-[10px] text-red-500 font-medium">
+            {language === 'en' ? 'With feedback reasons' : language === 'ru' ? 'С указанием причин' : 'Səbəblər qeyd olunub'}
+          </span>
         </div>
 
         <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs">
-          <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">Qaralamalar</span>
+          <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">
+            {language === 'en' ? 'Drafts' : language === 'ru' ? 'Черновики' : 'Qaralamalar'}
+          </span>
           <div className="text-2xl font-black text-slate-700 mt-1">{draftCount}</div>
-          <span className="text-[10px] text-slate-400 font-medium">Hazırlıq mərhələsində</span>
+          <span className="text-[10px] text-slate-400 font-medium">
+            {language === 'en' ? 'In preparation' : language === 'ru' ? 'На стадии подготовки' : 'Hazırlıq mərhələsində'}
+          </span>
         </div>
       </div>
 
@@ -172,17 +196,17 @@ export const JobOffersTable: React.FC<JobOffersTableProps> = ({
       <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs flex flex-wrap items-center justify-between gap-3 text-xs">
         <div className="flex flex-wrap items-center gap-1.5 font-medium">
           {[
-            { id: 'all', label: `Hamısı (${totalCount})` },
-            { id: 'SENT', label: `Göndərildi` },
-            { id: 'VIEWED', label: `Baxıldı` },
-            { id: 'ACCEPTED', label: `Qəbul edildi (${acceptedCount})` },
-            { id: 'DECLINED', label: `İmtina edildi (${declinedCount})` },
-            { id: 'DRAFT', label: `Qaralamalar (${draftCount})` },
+            { id: 'all', label: language === 'en' ? `All (${totalCount})` : language === 'ru' ? `Все (${totalCount})` : `Hamısı (${totalCount})` },
+            { id: 'SENT', label: language === 'en' ? 'Sent' : language === 'ru' ? 'Отправлено' : 'Göndərildi' },
+            { id: 'VIEWED', label: language === 'en' ? 'Viewed' : language === 'ru' ? 'Просмотрено' : 'Baxıldı' },
+            { id: 'ACCEPTED', label: language === 'en' ? `Accepted (${acceptedCount})` : language === 'ru' ? `Принято (${acceptedCount})` : `Qəbul edildi (${acceptedCount})` },
+            { id: 'DECLINED', label: language === 'en' ? `Declined (${declinedCount})` : language === 'ru' ? `Отклонено (${declinedCount})` : `İmtina edildi (${declinedCount})` },
+            { id: 'DRAFT', label: language === 'en' ? `Drafts (${draftCount})` : language === 'ru' ? `Черновики (${draftCount})` : `Qaralamalar (${draftCount})` },
           ].map((tab) => (
             <button
               key={tab.id}
               onClick={() => setStatusFilter(tab.id)}
-              className={`px-3 py-1.5 rounded-lg transition-all ${
+              className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
                 statusFilter === tab.id
                   ? 'bg-blue-600 text-white font-bold shadow-2xs'
                   : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
@@ -197,7 +221,7 @@ export const JobOffersTable: React.FC<JobOffersTableProps> = ({
           <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
           <input
             type="text"
-            placeholder="Namizəd və ya vəzifə axtar..."
+            placeholder={language === 'en' ? 'Search candidate or title...' : language === 'ru' ? 'Поиск соискателя или должности...' : 'Namizəd və ya vəzifə axtar...'}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-8 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none font-medium"
@@ -209,19 +233,19 @@ export const JobOffersTable: React.FC<JobOffersTableProps> = ({
       <div className="bg-white rounded-xl border border-slate-200 shadow-2xs overflow-hidden">
         {filteredOffers.length === 0 ? (
           <div className="p-12 text-center text-slate-400 text-xs">
-            Seçilmiş filter üzrə iş təklifi tapılmadı.
+            {language === 'en' ? 'No job offers found matching current filter.' : language === 'ru' ? 'Предложения работы по данному фильтру не найдены.' : 'Seçilmiş filter üzrə iş təklifi tapılmadı.'}
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs border-collapse">
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-200 text-slate-600 uppercase font-bold text-[10px] tracking-wider">
-                  <th className="py-3 px-4">Namizəd</th>
-                  <th className="py-3 px-4">Vəzifə & Şöbə</th>
-                  <th className="py-3 px-4">Əməkhaqqı (Gross / Net)</th>
-                  <th className="py-3 px-4">Başlama Tarixi</th>
-                  <th className="py-3 px-4">Status</th>
-                  <th className="py-3 px-4 text-right">Əməliyyatlar</th>
+                  <th className="py-3 px-4">{language === 'en' ? 'Candidate' : language === 'ru' ? 'Соискатель' : 'Namizəd'}</th>
+                  <th className="py-3 px-4">{language === 'en' ? 'Role & Dept' : language === 'ru' ? 'Должность & Отдел' : 'Vəzifə & Şöbə'}</th>
+                  <th className="py-3 px-4">{language === 'en' ? 'Salary (Gross / Net)' : language === 'ru' ? 'Оклад (Gross / Net)' : 'Əməkhaqqı (Gross / Net)'}</th>
+                  <th className="py-3 px-4">{language === 'en' ? 'Start Date' : language === 'ru' ? 'Дата начала' : 'Başlama Tarixi'}</th>
+                  <th className="py-3 px-4">{language === 'en' ? 'Status' : language === 'ru' ? 'Статус' : 'Status'}</th>
+                  <th className="py-3 px-4 text-right">{language === 'en' ? 'Actions' : language === 'ru' ? 'Действия' : 'Əməliyyatlar'}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -241,17 +265,17 @@ export const JobOffersTable: React.FC<JobOffersTableProps> = ({
 
                     <td className="py-3.5 px-4">
                       <div className="font-bold text-slate-900">
-                        {offer.grossSalary.toLocaleString('az-AZ')} AZN <span className="text-[10px] text-slate-400 font-normal">Gross</span>
+                        {offer.grossSalary.toLocaleString(language === 'en' ? 'en-US' : language === 'ru' ? 'ru-RU' : 'az-AZ')} AZN <span className="text-[10px] text-slate-400 font-normal">Gross</span>
                       </div>
                       <div className="text-[11px] text-emerald-600 font-semibold">
-                        ~{offer.netSalary.toLocaleString('az-AZ')} AZN Net
+                        ~{offer.netSalary.toLocaleString(language === 'en' ? 'en-US' : language === 'ru' ? 'ru-RU' : 'az-AZ')} AZN Net
                       </div>
                     </td>
 
                     <td className="py-3.5 px-4">
                       <div className="font-semibold text-slate-800">{offer.startDate}</div>
                       <div className="text-[10px] text-slate-400">
-                        Sınaq: {offer.probationPeriod}
+                        {language === 'en' ? 'Probation: ' : language === 'ru' ? 'Испытательный срок: ' : 'Sınaq: '}{offer.probationPeriod}
                       </div>
                     </td>
 
@@ -259,7 +283,7 @@ export const JobOffersTable: React.FC<JobOffersTableProps> = ({
                       <div>{getStatusBadge(offer.status)}</div>
                       {offer.status === 'DECLINED' && offer.declineReason && (
                         <div className="text-[10px] text-red-600 mt-1 max-w-[140px] truncate" title={offer.declineReason.text}>
-                          Səbəb: {offer.declineReason.category}
+                          {language === 'en' ? 'Reason: ' : language === 'ru' ? 'Причина: ' : 'Səbəb: '}{offer.declineReason.category}
                         </div>
                       )}
                     </td>
@@ -269,8 +293,8 @@ export const JobOffersTable: React.FC<JobOffersTableProps> = ({
                         {/* Candidate Secure Link */}
                         <button
                           onClick={() => handleCopyLink(offer.secureToken, offer.id)}
-                          className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors"
-                          title="Təhlükəsiz linki kopyala"
+                          className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors cursor-pointer"
+                          title={language === 'en' ? 'Copy secure link' : language === 'ru' ? 'Копировать безопасную ссылку' : 'Təhlükəsiz linki kopyala'}
                         >
                           {copiedTokenId === offer.id ? (
                             <Check className="w-3.5 h-3.5 text-emerald-600" />
@@ -282,8 +306,8 @@ export const JobOffersTable: React.FC<JobOffersTableProps> = ({
                         {/* View in Candidate Portal */}
                         <button
                           onClick={() => onOpenCandidatePortal(offer)}
-                          className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors"
-                          title="Namizəd Portalında Bax"
+                          className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors cursor-pointer"
+                          title={language === 'en' ? 'View in Candidate Portal' : language === 'ru' ? 'Просмотр в портале соискателя' : 'Namizəd Portalında Bax'}
                         >
                           <ExternalLink className="w-3.5 h-3.5" />
                         </button>
@@ -291,8 +315,8 @@ export const JobOffersTable: React.FC<JobOffersTableProps> = ({
                         {/* View Document Modal */}
                         <button
                           onClick={() => setViewingOffer(offer)}
-                          className="p-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 transition-colors"
-                          title="Sənədə Bax"
+                          className="p-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 transition-colors cursor-pointer"
+                          title={language === 'en' ? 'View Document' : language === 'ru' ? 'Просмотр документа' : 'Sənədə Bax'}
                         >
                           <Eye className="w-3.5 h-3.5" />
                         </button>
@@ -301,8 +325,8 @@ export const JobOffersTable: React.FC<JobOffersTableProps> = ({
                         <button
                           onClick={() => handleDownloadPDF(offer)}
                           disabled={isDownloadingId === offer.id}
-                          className="p-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 transition-colors disabled:opacity-50"
-                          title="Rəsmi PDF Yüklə"
+                          className="p-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 transition-colors disabled:opacity-50 cursor-pointer"
+                          title={language === 'en' ? 'Download Official PDF' : language === 'ru' ? 'Скачать официальный PDF' : 'Rəsmi PDF Yüklə'}
                         >
                           {isDownloadingId === offer.id ? (
                             <Loader2 className="w-3.5 h-3.5 animate-spin text-emerald-700" />
@@ -314,8 +338,8 @@ export const JobOffersTable: React.FC<JobOffersTableProps> = ({
                         {/* Audit Log */}
                         <button
                           onClick={() => onOpenAuditLog(offer.id, offer.candidateName)}
-                          className="p-1.5 rounded-lg bg-purple-50 hover:bg-purple-100 text-purple-700 transition-colors"
-                          title="Əməliyyat Tarixçəsi (Audit Log)"
+                          className="p-1.5 rounded-lg bg-purple-50 hover:bg-purple-100 text-purple-700 transition-colors cursor-pointer"
+                          title={language === 'en' ? 'Audit Log' : language === 'ru' ? 'История действий' : 'Əməliyyat Tarixçəsi (Audit Log)'}
                         >
                           <History className="w-3.5 h-3.5" />
                         </button>
@@ -323,11 +347,11 @@ export const JobOffersTable: React.FC<JobOffersTableProps> = ({
                         {/* Resend Offer */}
                         <button
                           onClick={() => onResendOffer(offer)}
-                          className="px-2.5 py-1 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold transition-colors flex items-center gap-1 shadow-2xs"
-                          title="Təklifi yenidən redaktə et və ya göndər"
+                          className="px-2.5 py-1 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold transition-colors flex items-center gap-1 shadow-2xs cursor-pointer"
+                          title={language === 'en' ? 'Resend Offer' : language === 'ru' ? 'Отправить повторно' : 'Təklifi yenidən redaktə et və ya göndər'}
                         >
                           <Send className="w-3 h-3" />
-                          <span>Yenidən Göndər</span>
+                          <span>{language === 'en' ? 'Resend' : language === 'ru' ? 'Повторить' : 'Yenidən Göndər'}</span>
                         </button>
                       </div>
                     </td>

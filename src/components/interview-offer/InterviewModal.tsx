@@ -16,6 +16,7 @@ import { validateOfferBeforeSending, buildOfferEmailContent, sendJobOfferEmail }
 import { downloadJobOfferPDF } from '../../services/offerPdfService';
 import { OfferDocumentView } from './OfferDocumentView';
 import { ModalBottomLogo } from '../ModalBottomLogo';
+import { ModalPortal } from '../common/ModalPortal';
 import { safeFetchJson } from '../../utils/apiHelper';
 import { 
   X, 
@@ -407,8 +408,14 @@ export const InterviewModal: React.FC<InterviewModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-6 animate-fade-in">
-      <div className="bg-white w-full max-w-5xl rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[92vh]">
+    <ModalPortal>
+      <div 
+        className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-5 bg-slate-950/70 backdrop-blur-xs animate-fade-in"
+        onClick={(e) => {
+          if (e.target === e.currentTarget) onClose();
+        }}
+      >
+        <div className="bg-white w-full max-w-5xl rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[90vh] sm:max-h-[88vh]">
         {/* Top Header & Progress Stepper */}
         <div className="p-4 sm:p-5 border-b border-slate-200 bg-slate-50 flex flex-col gap-4">
           <div className="flex items-center justify-between">
@@ -1366,6 +1373,7 @@ export const InterviewModal: React.FC<InterviewModalProps> = ({
           </div>
         </div>
       )}
-    </div>
-  );
-};
+        </div>
+      </ModalPortal>
+    );
+  };

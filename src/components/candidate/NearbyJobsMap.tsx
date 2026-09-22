@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Vacancy } from '../../types';
 import { useLanguage } from '../../context/LanguageContext';
+import { SectionBottomLogo } from '../common/SectionBottomLogo';
 import L from 'leaflet';
 import { 
   AZERBAIJAN_REGIONS, 
@@ -46,7 +47,6 @@ import {
   SlidersHorizontal,
   HelpCircle
 } from 'lucide-react';
-import { JobiaSectionFooter } from '../JobiaSectionFooter';
 
 interface NearbyJobsMapProps {
   vacancies: Vacancy[];
@@ -1498,11 +1498,8 @@ export const NearbyJobsMap: React.FC<NearbyJobsMapProps> = ({
         </div>
       </div>
 
-      {/* Dynamic Animated Section Footer with Job Intelligence & Automation */}
-      <JobiaSectionFooter 
-        extraTagline="Xəritə üzərindən Bakı və Azərbaycanın bütün regionlarında olan vakansiyaları məsafə və gediş-gəliş vaxtına görə kəşf edin"
-        showBackToTop={true}
-      />
+      {/* Section Bottom Logo */}
+      <SectionBottomLogo size="sm" tagline="İş yerinə qədər olan dəqiq məsafə və metro xəritəsi" />
     </div>
   );
 };

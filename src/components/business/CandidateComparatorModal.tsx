@@ -16,6 +16,7 @@ import {
   Download
 } from 'lucide-react';
 import { ModalBottomLogo } from '../ModalBottomLogo';
+import { ModalPortal } from '../common/ModalPortal';
 
 interface CandidateComparatorModalProps {
   isOpen: boolean;
@@ -39,8 +40,14 @@ export const CandidateComparatorModal: React.FC<CandidateComparatorModalProps> =
   if (!isOpen || candidates.length === 0) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-slate-900/60 backdrop-blur-xs overflow-y-auto animate-fade-in">
-      <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-5xl my-auto overflow-hidden flex flex-col max-h-[90vh]">
+    <ModalPortal>
+      <div 
+        className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-5 bg-slate-950/70 backdrop-blur-xs animate-fade-in"
+        onClick={(e) => {
+          if (e.target === e.currentTarget) onClose();
+        }}
+      >
+        <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-5xl overflow-hidden flex flex-col max-h-[90vh] sm:max-h-[88vh]">
         {/* Header */}
         <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between bg-gradient-to-r from-slate-900 via-slate-800 to-blue-950 text-white shrink-0">
           <div className="flex items-center gap-3">
@@ -288,15 +295,10 @@ export const CandidateComparatorModal: React.FC<CandidateComparatorModalProps> =
         {/* Footer */}
         <div className="px-6 py-3.5 bg-slate-50 border-t border-slate-200 flex items-center justify-between shrink-0">
           <ModalBottomLogo tagline="Jobia.az Namizəd Müqayisə & Analiz Sistemi" size="xs" variant="slate" />
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-800 text-xs font-bold rounded-xl transition-colors cursor-pointer"
-          >
-            Müqayisə Pəncərəsini Bağla
-          </button>
+          <span className="text-xs text-slate-500 font-medium">Bütün göstəricilər AI tərəfindən hesablanmışdır</span>
         </div>
       </div>
     </div>
-  );
+  </ModalPortal>
+);
 };

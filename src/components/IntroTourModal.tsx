@@ -20,7 +20,7 @@ import { useLanguage } from '../context/LanguageContext';
 interface IntroTourModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onNavigateToTab?: (tab: 'jobs' | 'salary-trends' | 'calculia', role?: 'candidate' | 'business') => void;
+  onNavigateToTab?: (tab: 'jobs' | 'salary-trends' | 'salary-calculator' | 'vacation-calculator' | 'calculia', role?: 'candidate' | 'business') => void;
 }
 
 export const IntroTourModal: React.FC<IntroTourModalProps> = ({
@@ -107,31 +107,31 @@ export const IntroTourModal: React.FC<IntroTourModalProps> = ({
       badgeColor: 'bg-indigo-600 text-white',
       glowColor: 'from-indigo-600 to-purple-600',
       title: {
-        az: 'Salaria & Vacatia – Maliyyə və Məzuniyyət Kalkulyatoru',
-        en: 'Salaria & Vacatia – Salary & Vacation Calculators',
-        ru: 'Salaria & Vacatia – Калькулятор зарплат и отпускных'
+        az: 'Maaşını hesabla & Məzuniyyətini hesabla',
+        en: 'Calculate Salary & Vacation Tools',
+        ru: 'Рассчитать зарплату и отпуск'
       },
       subtitle: {
-        az: 'Gross/Net əməkhaqqı, vergilər və dəqiq məzuniyyət ödənişi',
+        az: 'Gross/Net əməkhaqqı, vergilər və rəsmi məzuniyyət ödənişi',
         en: 'Gross/Net salary, deductions, and official vacation compensation',
         ru: 'Gross/Net зарплата, налоги и точный расчет отпускных'
       },
       description: {
-        az: 'Azərbaycan Əmək Məcəlləsinə tam uyğun olaraq gəlir vergisi, DSMF, işsizlik və icbari tibbi sığorta tutulmalarını Gross-dan Net-ə və ya Net-dən Gross-a hesablayın. Həmçinin iş günlərinə görə məzuniyyət pulunuzu dərhal öyrənin.',
+        az: 'Azərbaycan Əmək Məcəlləsinə tam uyğun olaraq gəlir vergisi, DSMF, işsizlik və icbari tibbi sığorta tutulmalarını dəqiq hesablayın. Həmçinin iş stajınıza və əsas günlərə görə məzuniyyət pulunuzu dərhal öyrənin.',
         en: 'Calculate tax, social insurance, and medical insurance deductions for oil/non-oil sectors accurately. Calculate your exact vacation allowance in seconds.',
         ru: 'Рассчитывайте налоги, пенсионные и страховые отчисления по законодательству Азербайджана, а также точные отпускные выплаты.'
       },
       highlights: [
-        { az: 'Qeyri-neft/özəl və dövlət/neft sektoru rejimləri', en: 'Non-oil private & state/oil sector rules', ru: 'Ненефтяной частный и госсектор' },
-        { az: 'Gross <-> Net ikitərəfli ani hesablama', en: 'Bi-directional Gross <-> Net conversion', ru: 'Двусторонний расчет Gross <-> Net' },
-        { az: 'Məzuniyyət günləri və orta aylıq əməkhaqqı', en: 'Vacation days & average compensation', ru: 'Отпускные дни и средняя зарплата' },
+        { az: 'Maaşını hesabla (Gross <-> Net çevirici)', en: 'Calculate Salary (Gross <-> Net)', ru: 'Расчет зарплаты (Gross <-> Net)' },
+        { az: 'Məzuniyyətini hesabla (Staj və günlər üzrə)', en: 'Calculate Vacation (Experience & Days)', ru: 'Расчет отпуска (Стаж и дни)' },
+        { az: 'AR qanunvericiliyinə 100% rəsmi uyğunluq', en: '100% Compliant with Labor Regulations', ru: '100% официальное соответствие' },
       ],
-      actionTab: 'calculia' as const,
+      actionTab: 'salary-calculator' as const,
       actionRole: 'candidate' as const,
       actionLabel: {
-        az: 'Kalkulyatoru Aç',
-        en: 'Open Calculator',
-        ru: 'Открыть калькулятор'
+        az: 'Maaşını Hesabla',
+        en: 'Calculate Salary',
+        ru: 'Рассчитать зарплату'
       }
     },
     {

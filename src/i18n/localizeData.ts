@@ -425,3 +425,127 @@ export function getLocalizedVacancyRequirements(req: string, _lang: Language): s
   return req || '';
 }
 
+// ============================================================================
+// 7. APPLICATION STATUS LOCALIZATION
+// ============================================================================
+export const APPLICATION_STATUS_MAP: Record<string, Record<Language, string>> = {
+  'Müraciət edildi': { az: 'Müraciət edildi', en: 'Applied', ru: 'Отправлено' },
+  'Baxıldı': { az: 'Baxıldı', en: 'Viewed', ru: 'Просмотрено' },
+  'Baxılır': { az: 'Baxılır', en: 'Under Review', ru: 'На рассмотрении' },
+  'İlkin seçim': { az: 'İlkin seçim', en: 'Shortlisted', ru: 'Предварительный отбор' },
+  'Müsahibəyə dəvət': { az: 'Müsahibəyə dəvət', en: 'Interview Invite', ru: 'Приглашение на интервью' },
+  'Müsahibə': { az: 'Müsahibə', en: 'Interview', ru: 'Собеседование' },
+  'Təklif verildi': { az: 'Təklif verildi', en: 'Offer Extended', ru: 'Оффер сделан' },
+  'Təklif göndərildi': { az: 'Təklif göndərildi', en: 'Offer Sent', ru: 'Оффер отправлен' },
+  'Qəbul edildi': { az: 'Qəbul edildi', en: 'Accepted', ru: 'Принято' },
+  'İmtina edildi': { az: 'İmtina edildi', en: 'Rejected', ru: 'Отклонено' },
+};
+
+export function getLocalizedApplicationStatus(status: string, lang: Language): string {
+  if (!status) return '';
+  if (APPLICATION_STATUS_MAP[status]) {
+    return APPLICATION_STATUS_MAP[status][lang] || status;
+  }
+  const sLower = status.toLowerCase().trim();
+  for (const [key, trans] of Object.entries(APPLICATION_STATUS_MAP)) {
+    if (key.toLowerCase() === sLower) {
+      return trans[lang] || key;
+    }
+  }
+  return status;
+}
+
+// ============================================================================
+// 8. VACANCY STATUS LOCALIZATION
+// ============================================================================
+export const VACANCY_STATUS_MAP: Record<string, Record<Language, string>> = {
+  'published': { az: 'Dərc olunub', en: 'Published', ru: 'Опубликовано' },
+  'pending_review': { az: 'Təsdiq gözləyir', en: 'Pending Review', ru: 'На модерации' },
+  'draft': { az: 'Qaralama', en: 'Draft', ru: 'Черновик' },
+  'rejected': { az: 'İmtina olunub', en: 'Rejected', ru: 'Отклонено' },
+  'closed': { az: 'Bağlanıb', en: 'Closed', ru: 'Закрыто' },
+  'archived': { az: 'Arxivlənib', en: 'Archived', ru: 'В архиве' },
+};
+
+export function getLocalizedVacancyStatus(status: string, lang: Language): string {
+  if (!status) return '';
+  return VACANCY_STATUS_MAP[status]?.[lang] || status;
+}
+
+// ============================================================================
+// 9. USER ROLE LOCALIZATION
+// ============================================================================
+export const USER_ROLE_MAP: Record<string, Record<Language, string>> = {
+  'candidate': { az: 'Namizəd', en: 'Candidate', ru: 'Соискатель' },
+  'business': { az: 'İşəgötürən', en: 'Employer', ru: 'Работодатель' },
+  'admin': { az: 'Sistem Administratoru', en: 'System Administrator', ru: 'Администратор' },
+};
+
+export function getLocalizedUserRole(role: string, lang: Language): string {
+  if (!role) return '';
+  return USER_ROLE_MAP[role]?.[lang] || role;
+}
+
+// ============================================================================
+// 10. SUBSCRIPTION TIER & STATUS LOCALIZATION
+// ============================================================================
+export const SUBSCRIPTION_TIER_MAP: Record<string, Record<Language, string>> = {
+  'FREE': { az: 'Pulsuz Plan', en: 'Free Plan', ru: 'Бесплатный план' },
+  'PRO': { az: 'Pro Plan', en: 'Pro Plan', ru: 'Профессиональный' },
+  'BUSINESS': { az: 'Korporativ Plan', en: 'Business Plan', ru: 'Бизнес-план' },
+  'ENTERPRISE': { az: 'Enterprise', en: 'Enterprise', ru: 'Enterprise' },
+};
+
+export function getLocalizedSubscriptionTier(tier: string, lang: Language): string {
+  if (!tier) return '';
+  return SUBSCRIPTION_TIER_MAP[tier]?.[lang] || tier;
+}
+
+export const SUBSCRIPTION_STATUS_MAP: Record<string, Record<Language, string>> = {
+  'active': { az: 'Aktiv', en: 'Active', ru: 'Активный' },
+  'cancelled': { az: 'Ləğv edilib', en: 'Cancelled', ru: 'Отменено' },
+  'expired': { az: 'Vaxtı bitib', en: 'Expired', ru: 'Истек' },
+  'pending': { az: 'Gözləyir', en: 'Pending', ru: 'В ожидании' },
+};
+
+export function getLocalizedSubscriptionStatus(status: string, lang: Language): string {
+  if (!status) return '';
+  return SUBSCRIPTION_STATUS_MAP[status]?.[lang] || status;
+}
+
+// ============================================================================
+// 11. JOB OFFER STATUS LOCALIZATION
+// ============================================================================
+export const OFFER_STATUS_MAP: Record<string, Record<Language, string>> = {
+  'SENT': { az: 'Göndərildi', en: 'Sent', ru: 'Отправлено' },
+  'VIEWED': { az: 'Baxıldı', en: 'Viewed', ru: 'Просмотрено' },
+  'ACCEPTED': { az: 'Qəbul edildi', en: 'Accepted', ru: 'Принято' },
+  'DECLINED': { az: 'İmtina edildi', en: 'Declined', ru: 'Отклонено' },
+  'EXPIRED': { az: 'Vaxtı bitdi', en: 'Expired', ru: 'Истек' },
+};
+
+export function getLocalizedOfferStatus(status: string, lang: Language): string {
+  if (!status) return '';
+  return OFFER_STATUS_MAP[status]?.[lang] || status;
+}
+
+// ============================================================================
+// 12. AUDIT LOG ACTIONS LOCALIZATION
+// ============================================================================
+export const AUDIT_ACTION_MAP: Record<string, Record<Language, string>> = {
+  'APPROVE_VACANCY': { az: 'Vakansiya təsdiqləndi', en: 'Vacancy Approved', ru: 'Вакансия одобрена' },
+  'REJECT_VACANCY': { az: 'Vakansiyadan imtina edildi', en: 'Vacancy Rejected', ru: 'Вакансия отклонена' },
+  'DELETE_VACANCY': { az: 'Vakansiya silindi', en: 'Vacancy Deleted', ru: 'Вакансия удалена' },
+  'FEATURE_VACANCY': { az: 'Vakansiya VIP statusuna qaldırıldı', en: 'Vacancy Featured (VIP)', ru: 'Вакансия отмечена как VIP' },
+  'VERIFY_COMPANY': { az: 'Şirkət VÖEN təsdiqləndi', en: 'Company Verified', ru: 'Компания верифицирована' },
+  'UNVERIFY_COMPANY': { az: 'Şirkətin təsdiqi geri çağırıldı', en: 'Company Unverified', ru: 'Верификация компании отозвана' },
+  'BLOCK_USER': { az: 'İstifadəçi bloklandı', en: 'User Blocked', ru: 'Пользователь заблокирован' },
+  'ACTIVATE_USER': { az: 'İstifadəçi aktivləşdirildi', en: 'User Activated', ru: 'Пользователь активирован' },
+};
+
+export function getLocalizedAuditAction(action: string, lang: Language): string {
+  if (!action) return '';
+  return AUDIT_ACTION_MAP[action]?.[lang] || action;
+}
+
+

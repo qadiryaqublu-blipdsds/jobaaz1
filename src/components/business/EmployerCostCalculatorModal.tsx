@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { calculateFromGross, calculateFromNet, SectorType } from '../../services/salaryCalculator';
 import { ModalBottomLogo } from '../ModalBottomLogo';
+import { ModalPortal } from '../common/ModalPortal';
 
 interface EmployerCostCalculatorModalProps {
   isOpen: boolean;
@@ -59,8 +60,14 @@ export const EmployerCostCalculatorModal: React.FC<EmployerCostCalculatorModalPr
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-slate-900/60 backdrop-blur-xs overflow-y-auto animate-fade-in">
-      <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-3xl my-auto overflow-hidden flex flex-col max-h-[92vh]">
+    <ModalPortal>
+      <div 
+        className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-5 bg-slate-950/70 backdrop-blur-xs animate-fade-in"
+        onClick={(e) => {
+          if (e.target === e.currentTarget) onClose();
+        }}
+      >
+        <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-3xl overflow-hidden flex flex-col max-h-[90vh] sm:max-h-[88vh]">
         {/* Header */}
         <div className="px-6 py-4 bg-gradient-to-r from-blue-700 via-indigo-700 to-slate-900 text-white flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
@@ -320,17 +327,10 @@ export const EmployerCostCalculatorModal: React.FC<EmployerCostCalculatorModalPr
                 <ArrowRight className="w-4 h-4" />
               </button>
             )}
-
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-800 text-xs font-bold rounded-xl transition-colors cursor-pointer"
-            >
-              Bağla
-            </button>
           </div>
         </div>
       </div>
     </div>
-  );
+  </ModalPortal>
+);
 };

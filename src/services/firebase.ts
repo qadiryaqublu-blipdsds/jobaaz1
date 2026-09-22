@@ -2,12 +2,14 @@ import { initializeApp, getApps, getApp } from 'firebase/app';
 import { 
   getAuth, 
   setPersistence, 
-  browserLocalPersistence 
+  browserLocalPersistence,
+  inMemoryPersistence
 } from 'firebase/auth';
 import { 
   getFirestore, 
   doc,
-  getDocFromServer
+  getDoc,
+  setDoc
 } from 'firebase/firestore';
 import { 
   getStorage
@@ -36,10 +38,19 @@ export const storage = getStorage(firebaseApp);
 // Test and validate connection to Firestore on initialization
 async function testConnection() {
   try {
-    await getDocFromServer(doc(db, 'test', 'connection'));
+    const testDocRef = doc(db, 'test', 'connection');
+    const snap = await getDoc(testDocRef);
+    if (!snap.exists()) {
+      await setDoc(testDocRef, {
+        status: 'online',
+        databaseId: firebaseConfigJson.firestoreDatabaseId,
+        initializedAt: new Date().toISOString()
+      }, { merge: true });
+    }
   } catch (error) {
-    if (error instanceof Error && (error.message.includes('the client is offline') || error.message.includes('unavailable'))) {
-      console.warn('Firestore connection check notice: Client is operating in standard mode. Connectivity will sync when available.');
+    // Non-blocking background connectivity ping
+    if (error instanceof Error && (error.message.includes('offline') || error.message.includes('unavailable'))) {
+      // Offline fallback is active
     }
   }
 }
@@ -47,10 +58,13 @@ async function testConnection() {
 if (typeof window !== 'undefined') {
   setTimeout(() => {
     testConnection().catch(() => {});
-  }, 1200);
+  }, 1000);
 }
 
-// Enable browser local persistence for authentication
-setPersistence(auth, browserLocalPersistence).catch((err) => {
-  console.warn('Firebase auth persistence warning:', err);
-});
+// Enable browser local persistence with graceful fallback for iframe sandboxes
+if (typeof window !== 'undefined') {
+  setPersistence(auth, browserLocalPersistence).catch(() => {
+    setPersistence(auth, inMemoryPersistence).catch(() => {});
+  });
+}
+

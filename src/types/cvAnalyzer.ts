@@ -167,10 +167,43 @@ export interface JobMatchAnalysis {
   requirements: JobMatchRequirementItem[];
 }
 
+export interface DetailedKeywordItem {
+  name: string;
+  category: 'technical' | 'tool' | 'industry' | 'soft';
+  importance: 'critical' | 'recommended' | 'optional';
+  status: 'matched' | 'missing' | 'partial';
+  placementAdvice?: string;
+  sampleSentence?: string;
+}
+
+export interface ConcreteAdviceItem {
+  id: string;
+  category: 'metric' | 'keyword' | 'structure' | 'summary';
+  title: string;
+  priority: 'high' | 'medium' | 'low';
+  currentState: string;
+  actionableFix: string;
+  beforeExample: string;
+  afterExample: string;
+  impactScore: string;
+}
+
+export interface KeywordCategoryBreakdown {
+  category: string;
+  categoryLabel: string;
+  matchedCount: number;
+  missingCount: number;
+  totalCount: number;
+  matchRate: number;
+}
+
 export interface KeywordAnalysis {
   matchedKeywords: string[];
   partiallyMatchedKeywords: string[];
   missingKeywords: string[];
+  detailedKeywords?: DetailedKeywordItem[];
+  concreteAdvice?: ConcreteAdviceItem[];
+  categoryBreakdown?: KeywordCategoryBreakdown[];
   ethicalRecommendations: string[]; // e.g. "Consider adding SAP only if you genuinely have SAP experience."
 }
 

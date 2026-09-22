@@ -13,17 +13,17 @@ export const TemplateSimpleClean: React.FC<TemplateProps> = ({ data, showPhoto =
   const displayPhoto = showPhoto && !!personalInfo.photoUrl;
 
   return (
-    <div id="cv-preview-simple-clean" className="bg-white text-slate-900 p-8 sm:p-10 font-sans max-w-[850px] mx-auto min-h-[1050px] text-left border border-slate-200">
+    <div id="cv-preview-simple-clean" className="bg-white text-slate-900 p-8 sm:p-10 font-sans w-full max-w-[800px] mx-auto min-h-[1050px] text-left border border-slate-200">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5 border-b border-slate-300 pb-5 mb-6">
-        <div className="space-y-1 flex-1">
-          <h1 className="text-3xl font-extrabold tracking-tight text-slate-950">
+      <div className="flex flex-row items-center justify-between gap-5 border-b border-slate-300 pb-5 mb-6">
+        <div className="space-y-1 flex-1 min-w-0">
+          <h1 className="text-3xl font-extrabold tracking-tight text-slate-950 break-words">
             {personalInfo.fullName || 'Ad Soyad'}
           </h1>
-          <p className="text-base font-semibold text-slate-700">
+          <p className="text-base font-semibold text-slate-700 break-words">
             {personalInfo.jobTitle || 'Vəzifə'}
           </p>
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-600 pt-2 font-medium">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-600 pt-2 font-medium break-all">
             {personalInfo.email && <span>{personalInfo.email}</span>}
             {personalInfo.phone && <span>• {personalInfo.phone}</span>}
             {personalInfo.address && <span>• {personalInfo.address}</span>}
@@ -40,7 +40,7 @@ export const TemplateSimpleClean: React.FC<TemplateProps> = ({ data, showPhoto =
           <img
             src={personalInfo.photoUrl}
             alt={personalInfo.fullName || 'Namizəd'}
-            className={`${getPhotoClasses(personalInfo.photoSize, personalInfo.photoShape)} border border-slate-300 shadow-2xs`}
+            className={`${getPhotoClasses(personalInfo.photoSize, personalInfo.photoShape)} border border-slate-300 shadow-2xs shrink-0`}
             referrerPolicy="no-referrer"
           />
         )}
@@ -52,7 +52,7 @@ export const TemplateSimpleClean: React.FC<TemplateProps> = ({ data, showPhoto =
           <h2 className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">
             {terms.summary}
           </h2>
-          <p className="text-xs sm:text-sm text-slate-800 leading-relaxed">
+          <p className="text-xs sm:text-sm text-slate-800 leading-relaxed whitespace-pre-line break-words">
             {personalInfo.summary}
           </p>
         </div>
@@ -67,17 +67,17 @@ export const TemplateSimpleClean: React.FC<TemplateProps> = ({ data, showPhoto =
           <div className="space-y-4">
             {experiences.map((exp) => (
               <div key={exp.id}>
-                <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-1">
-                  <div className="text-sm font-bold text-slate-900">
+                <div className="flex flex-row items-baseline justify-between gap-2 min-w-0">
+                  <div className="text-sm font-bold text-slate-900 flex-1 min-w-0 break-words">
                     {exp.position} <span className="font-normal text-slate-600">— {exp.company}</span>
                   </div>
-                  <div className="text-xs text-slate-500">
+                  <div className="text-xs text-slate-500 shrink-0 whitespace-nowrap">
                     {exp.startDate} – {exp.current ? terms.present : exp.endDate}
                   </div>
                 </div>
-                {exp.location && <div className="text-xs text-slate-400">{exp.location}</div>}
+                {exp.location && <div className="text-xs text-slate-400 break-words">{exp.location}</div>}
                 {exp.description && (
-                  <p className="text-xs text-slate-700 leading-relaxed whitespace-pre-line mt-1.5 pl-2 border-l-2 border-slate-200">
+                  <p className="text-xs text-slate-700 leading-relaxed whitespace-pre-line mt-1.5 pl-2 border-l-2 border-slate-200 break-words">
                     {exp.description}
                   </p>
                 )}
@@ -95,12 +95,12 @@ export const TemplateSimpleClean: React.FC<TemplateProps> = ({ data, showPhoto =
           </h2>
           <div className="space-y-3">
             {education.map((edu) => (
-              <div key={edu.id} className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-1">
-                <div>
-                  <div className="text-sm font-bold text-slate-900">{edu.degree}</div>
-                  <div className="text-xs text-slate-600">{edu.institution} {edu.fieldOfStudy ? `• ${edu.fieldOfStudy}` : ''}</div>
+              <div key={edu.id} className="flex flex-row items-baseline justify-between gap-2 min-w-0">
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-bold text-slate-900 break-words">{edu.degree}</div>
+                  <div className="text-xs text-slate-600 break-words">{edu.institution} {edu.fieldOfStudy ? `• ${edu.fieldOfStudy}` : ''}</div>
                 </div>
-                <div className="text-xs text-slate-500">
+                <div className="text-xs text-slate-500 shrink-0 whitespace-nowrap">
                   {edu.startDate} – {edu.endDate}
                 </div>
               </div>
@@ -110,7 +110,7 @@ export const TemplateSimpleClean: React.FC<TemplateProps> = ({ data, showPhoto =
       )}
 
       {/* Skills & Languages Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-6">
+      <div className="grid grid-cols-2 gap-6 mb-6">
         {skills && skills.length > 0 && (
           <div>
             <h2 className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-2 border-b border-slate-200 pb-1">

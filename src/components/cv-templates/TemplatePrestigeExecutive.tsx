@@ -14,23 +14,23 @@ export const TemplatePrestigeExecutive: React.FC<TemplateProps> = ({ data, showP
   const displayPhoto = showPhoto && !!personalInfo.photoUrl;
 
   return (
-    <div id="cv-preview-prestige-executive" className="bg-white text-slate-900 font-serif max-w-[850px] mx-auto min-h-[1050px] border border-slate-300">
+    <div id="cv-preview-prestige-executive" className="bg-white text-slate-900 font-serif w-full max-w-[800px] mx-auto min-h-[1050px] border border-slate-300">
       {/* Executive Dark Header */}
-      <div className="bg-slate-950 text-white p-8 sm:p-10 border-b-4 border-amber-600">
-        <div className="flex flex-col sm:flex-row items-center sm:items-start justify-between gap-6">
-          <div className="flex-1 text-center sm:text-left space-y-2 font-sans">
+      <div className="bg-slate-950 text-white p-8 border-b-4 border-amber-600">
+        <div className="flex flex-row items-center justify-between gap-6">
+          <div className="flex-1 min-w-0 text-left space-y-2 font-sans">
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 text-[11px] font-bold tracking-widest uppercase border border-amber-500/30">
-              <ShieldCheck className="w-3.5 h-3.5" />
+              <ShieldCheck className="w-3.5 h-3.5 shrink-0" />
               Executive Leadership & Board Level
             </div>
-            <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-white font-serif">
+            <h1 className="text-3xl font-black tracking-tight text-white font-serif break-words">
               {personalInfo.fullName || 'Ad Soyad'}
             </h1>
-            <p className="text-base sm:text-lg font-medium text-amber-400">
+            <p className="text-base font-medium text-amber-400 break-words">
               {personalInfo.jobTitle || 'Baş İcraçı Direktor / İdarə Heyəti Üzvü'}
             </p>
 
-            <div className="flex flex-wrap items-center justify-center sm:justify-start gap-x-5 gap-y-1.5 text-xs text-slate-300 pt-2 font-sans">
+            <div className="flex flex-wrap items-center justify-start gap-x-5 gap-y-1.5 text-xs text-slate-300 pt-2 font-sans break-all">
               {personalInfo.email && <span>✉️ {personalInfo.email}</span>}
               {personalInfo.phone && <span>📞 {personalInfo.phone}</span>}
               {personalInfo.address && <span>📍 {personalInfo.address}</span>}
@@ -44,7 +44,7 @@ export const TemplatePrestigeExecutive: React.FC<TemplateProps> = ({ data, showP
             <img
               src={personalInfo.photoUrl}
               alt={personalInfo.fullName || 'Namizəd'}
-              className={`${getPhotoClasses(personalInfo.photoSize, personalInfo.photoShape)} border-2 border-amber-500 shadow-xl`}
+              className={`${getPhotoClasses(personalInfo.photoSize, personalInfo.photoShape)} border-2 border-amber-500 shadow-md shrink-0`}
               referrerPolicy="no-referrer"
             />
           )}
@@ -98,7 +98,7 @@ export const TemplatePrestigeExecutive: React.FC<TemplateProps> = ({ data, showP
         )}
 
         {/* Education & Executive Credentials */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2 font-sans">
+        <div className="grid grid-cols-2 gap-6 pt-2 font-sans">
           {education && education.length > 0 && (
             <div>
               <h2 className="text-xs font-extrabold uppercase tracking-widest text-slate-900 border-b-2 border-slate-900 pb-2 mb-3">
@@ -107,8 +107,8 @@ export const TemplatePrestigeExecutive: React.FC<TemplateProps> = ({ data, showP
               <div className="space-y-3">
                 {education.map((edu) => (
                   <div key={edu.id}>
-                    <div className="text-xs font-bold text-slate-900">{edu.degree}</div>
-                    <div className="text-xs text-slate-600">{edu.institution}</div>
+                    <div className="text-xs font-bold text-slate-900 break-words">{edu.degree}</div>
+                    <div className="text-xs text-slate-600 break-words">{edu.institution}</div>
                     <div className="text-[11px] text-slate-400">{edu.startDate} – {edu.endDate}</div>
                   </div>
                 ))}
@@ -134,7 +134,7 @@ export const TemplatePrestigeExecutive: React.FC<TemplateProps> = ({ data, showP
         </div>
 
         {/* Projects / Deals / Transformations & Certificates */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2 font-sans">
+        <div className="grid grid-cols-2 gap-6 pt-2 font-sans">
           {projects && projects.length > 0 && (
             <div>
               <h2 className="text-xs font-extrabold uppercase tracking-widest text-slate-900 border-b-2 border-slate-900 pb-2 mb-3">

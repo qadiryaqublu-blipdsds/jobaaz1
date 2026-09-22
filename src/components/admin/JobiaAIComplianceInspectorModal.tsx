@@ -11,11 +11,12 @@ import {
   FileText, 
   DollarSign, 
   Users, 
-  Building2,
-  Lock,
-  ArrowRight
+  Building2, 
+  Lock, 
+  ArrowRight 
 } from 'lucide-react';
 import { ModalBottomLogo } from '../ModalBottomLogo';
+import { useLanguage } from '../../context/LanguageContext';
 
 interface JobiaAIComplianceInspectorModalProps {
   isOpen: boolean;
@@ -32,6 +33,8 @@ export const JobiaAIComplianceInspectorModal: React.FC<JobiaAIComplianceInspecto
   onApprove,
   onReject,
 }) => {
+  const { language } = useLanguage();
+
   if (!isOpen || !vacancy) return null;
 
   // Run comprehensive rules audit
@@ -40,8 +43,8 @@ export const JobiaAIComplianceInspectorModal: React.FC<JobiaAIComplianceInspecto
   const reqs = (vacancy.requirements || []).join(' ').toLowerCase();
 
   // 1. Check illegal discrimination (gender, age limits)
-  const hasGenderBias = desc.includes('bəy') || desc.includes('xanım') || reqs.includes('bəy') || reqs.includes('xanım');
-  const hasAgeRestriction = desc.includes('yaş') || reqs.includes('yaş') || desc.includes('yaşadək') || reqs.includes('yaşadək');
+  const hasGenderBias = desc.includes('bəy') || desc.includes('xanım') || reqs.includes('bəy') || reqs.includes('xanım') || desc.includes('male') || desc.includes('female');
+  const hasAgeRestriction = desc.includes('yaş') || reqs.includes('yaş') || desc.includes('yaşadək') || reqs.includes('yaşadək') || desc.includes('age');
 
   // 2. Check salary credibility
   const isSalaryValid = vacancy.hideSalary || (vacancy.minSalary && vacancy.minSalary >= 345);
@@ -74,7 +77,13 @@ export const JobiaAIComplianceInspectorModal: React.FC<JobiaAIComplianceInspecto
             </div>
             <div>
               <h3 className="text-base font-bold text-white flex items-center gap-2">
-                <span>Jobia AI Moderasiya & Qanunvericilik Yoxlayıcısı</span>
+                <span>
+                  {language === 'en'
+                    ? 'Jobia AI Moderation & Compliance Inspector'
+                    : language === 'ru'
+                    ? 'Jobia AI Инспектор модерации и комплаенса'
+                    : 'Jobia AI Moderasiya & Qanunvericilik Yoxlayıcısı'}
+                </span>
               </h3>
               <p className="text-xs text-slate-300">
                 {vacancy.title} • {vacancy.companyName}
@@ -86,7 +95,7 @@ export const JobiaAIComplianceInspectorModal: React.FC<JobiaAIComplianceInspecto
             type="button"
             onClick={onClose}
             className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
-            title="Bağla"
+            title={language === 'en' ? 'Close' : language === 'ru' ? 'Закрыть' : 'Bağla'}
           >
             <X className="w-5 h-5" />
           </button>
@@ -98,33 +107,61 @@ export const JobiaAIComplianceInspectorModal: React.FC<JobiaAIComplianceInspecto
           <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 flex items-center justify-between gap-4">
             <div className="space-y-1">
               <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
-                Platforma Qaydalarına Uyğunluq İndeksi
+                {language === 'en'
+                  ? 'Platform Compliance Index'
+                  : language === 'ru'
+                  ? 'Индекс соответствия правилам платформы'
+                  : 'Platforma Qaydalarına Uyğunluq İndeksi'}
               </span>
               <h4 className="text-base font-black text-slate-900">
                 {score >= 85 ? (
                   <span className="text-emerald-700 flex items-center gap-1.5">
                     <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                    <span>Dərhal Təsdiqə Tövsiyə Edilir (100% Qanuni)</span>
+                    <span>
+                      {language === 'en'
+                        ? 'Recommended for Immediate Approval (100% Compliant)'
+                        : language === 'ru'
+                        ? 'Рекомендовано к немедленному одобрению (100% соответствие)'
+                        : 'Dərhal Təsdiqə Tövsiyə Edilir (100% Qanuni)'}
+                    </span>
                   </span>
                 ) : score >= 60 ? (
                   <span className="text-amber-700 flex items-center gap-1.5">
                     <AlertTriangle className="w-4 h-4 text-amber-600" />
-                    <span>Şərti Uyğun (Düzəliş Tövsiyə Edilir)</span>
+                    <span>
+                      {language === 'en'
+                        ? 'Conditionally Compliant (Adjustments Recommended)'
+                        : language === 'ru'
+                        ? 'Условно соответствует (Рекомендуется доработка)'
+                        : 'Şərti Uyğun (Düzəliş Tövsiyə Edilir)'}
+                    </span>
                   </span>
                 ) : (
                   <span className="text-rose-700 flex items-center gap-1.5">
                     <XCircle className="w-4 h-4 text-rose-600" />
-                    <span>Qayda Pozuntusu Aşkarlandı (İmtina Edilməlidir)</span>
+                    <span>
+                      {language === 'en'
+                        ? 'Violation Detected (Should be Rejected)'
+                        : language === 'ru'
+                        ? 'Обнаружено нарушение (Подлежит отклонению)'
+                        : 'Qayda Pozuntusu Aşkarlandı (İmtina Edilməlidir)'}
+                    </span>
                   </span>
                 )}
               </h4>
               <p className="text-xs text-slate-600">
-                AR Əmək Məcəlləsi və Jobia.az Keyfiyyət Standartları üzrə yoxlanıldı.
+                {language === 'en'
+                  ? 'Audited against Labor Code & Jobia.az Quality Standards.'
+                  : language === 'ru'
+                  ? 'Проверено в соответствии с Трудовым кодексом и стандартами качества Jobia.az.'
+                  : 'AR Əmək Məcəlləsi və Jobia.az Keyfiyyət Standartları üzrə yoxlanıldı.'}
               </p>
             </div>
 
             <div className="bg-white px-4 py-2.5 rounded-xl border border-slate-200 text-center shrink-0">
-              <span className="text-[10px] font-bold text-slate-400 uppercase block">Audit Balı</span>
+              <span className="text-[10px] font-bold text-slate-400 uppercase block">
+                {language === 'en' ? 'Audit Score' : language === 'ru' ? 'Балл аудита' : 'Audit Balı'}
+              </span>
               <span className={`text-2xl font-black ${
                 score >= 85 ? 'text-emerald-600' : score >= 60 ? 'text-amber-600' : 'text-rose-600'
               }`}>
@@ -136,7 +173,11 @@ export const JobiaAIComplianceInspectorModal: React.FC<JobiaAIComplianceInspecto
           {/* Audit Checks Checklist */}
           <div className="space-y-3">
             <h4 className="font-bold text-xs text-slate-700 uppercase tracking-wider">
-              Yoxlama Meyarları & Rəylər
+              {language === 'en'
+                ? 'Checklist & Feedback'
+                : language === 'ru'
+                ? 'Критерии проверки и отзывы'
+                : 'Yoxlama Meyarları & Rəylər'}
             </h4>
 
             <div className="space-y-2 text-xs">
@@ -149,14 +190,30 @@ export const JobiaAIComplianceInspectorModal: React.FC<JobiaAIComplianceInspecto
                 )}
                 <div className="space-y-0.5 flex-1">
                   <div className="font-bold text-slate-900">
-                    Ayrı-seçkilik Qadağası (AR Əmək Məcəlləsi Maddə 16)
+                    {language === 'en'
+                      ? 'Anti-Discrimination Policy (Labor Code Art. 16)'
+                      : language === 'ru'
+                      ? 'Запрет дискриминации (ТК АР Статья 16)'
+                      : 'Ayrı-seçkilik Qadağası (AR Əmək Məcəlləsi Maddə 16)'}
                   </div>
                   <p className="text-slate-600 leading-relaxed">
                     {hasGenderBias
-                      ? '⚠️ Mətndə cinsiyyət üzrə fərqləndirmə ("bəy" / "xanım") aşkarlandı. Neytral vəzifə adlarından istifadə tövsiyə edilir.'
+                      ? (language === 'en'
+                          ? '⚠️ Gender bias detected. Using neutral job titles is strongly recommended.'
+                          : language === 'ru'
+                          ? '⚠️ Обнаружено разделение по полу. Рекомендуется использовать нейтральные названия.'
+                          : '⚠️ Mətndə cinsiyyət üzrə fərqləndirmə ("bəy" / "xanım") aşkarlandı. Neytral vəzifə adlarından istifadə tövsiyə edilir.')
                       : hasAgeRestriction
-                      ? '⚠️ Yaş məhdudiyyəti qeydi aşkarlandı. Qanunvericiliyə görə ixtisas və bacarıqlara üstünlük verilməlidir.'
-                      : '✅ Heç bir cinsiyyət, yaş və ya sosial ayrı-seçkilik elementi aşkar edilmədi.'}
+                      ? (language === 'en'
+                          ? '⚠️ Age restriction mentioned. Law prefers focusing strictly on qualifications.'
+                          : language === 'ru'
+                          ? '⚠️ Обнаружено возрастное ограничение. По закону предпочтение отдается навыкам.'
+                          : '⚠️ Yaş məhdudiyyəti qeydi aşkarlandı. Qanunvericiliyə görə ixtisas və bacarıqlara üstünlük verilməlidir.')
+                      : (language === 'en'
+                          ? '✅ No gender, age, or social discrimination elements detected.'
+                          : language === 'ru'
+                          ? '✅ Дискриминационных элементов по полу, возрасту или социальному статусу не обнаружено.'
+                          : '✅ Heç bir cinsiyyət, yaş və ya sosial ayrı-seçkilik elementi aşkar edilmədi.')}
                   </p>
                 </div>
               </div>
@@ -170,14 +227,30 @@ export const JobiaAIComplianceInspectorModal: React.FC<JobiaAIComplianceInspecto
                 )}
                 <div className="space-y-0.5 flex-1">
                   <div className="font-bold text-slate-900">
-                    Əməkhaqqı Qanunvericiliyi və Minimum Maaş
+                    {language === 'en'
+                      ? 'Wage Legislation & Minimum Salary'
+                      : language === 'ru'
+                      ? 'Законодательство об оплате труда и минимальная зарплата'
+                      : 'Əməkhaqqı Qanunvericiliyi və Minimum Maaş'}
                   </div>
                   <p className="text-slate-600 leading-relaxed">
                     {vacancy.hideSalary
-                      ? 'ℹ️ Maaş məbləği gizli saxlanılıb (Müsahibə əsasında təyin ediləcək).'
+                      ? (language === 'en'
+                          ? 'ℹ️ Salary is undisclosed (Negotiable upon interview).'
+                          : language === 'ru'
+                          ? 'ℹ️ Зарплата скрыта (По договоренности на собеседовании).'
+                          : 'ℹ️ Maaş məbləği gizli saxlanılıb (Müsahibə əsasında təyin ediləcək).')
                       : isSalaryValid
-                      ? `✅ Göstərilən maaş (${vacancy.minSalary} - ${vacancy.maxSalary || ''} AZN) AR minimum əməkhaqqı (345 AZN) tələbinə tam cavab verir.`
-                      : '❌ Təklif edilən maaş AR minimum əməkhaqqı normativindən (345 AZN) aşağıdır!'}
+                      ? (language === 'en'
+                          ? `✅ Provided salary (${vacancy.minSalary} - ${vacancy.maxSalary || ''} AZN) satisfies minimum wage requirements (345 AZN).`
+                          : language === 'ru'
+                          ? `✅ Указанная зарплата (${vacancy.minSalary} - ${vacancy.maxSalary || ''} AZN) полностью соответствует минимальной зарплате (345 AZN).`
+                          : `✅ Göstərilən maaş (${vacancy.minSalary} - ${vacancy.maxSalary || ''} AZN) AR minimum əməkhaqqı (345 AZN) tələbinə tam cavab verir.`)
+                      : (language === 'en'
+                          ? '❌ Offered salary is below the statutory minimum wage threshold (345 AZN)!'
+                          : language === 'ru'
+                          ? '❌ Предлагаемая зарплата ниже установленной нормы минимальной оплаты труда (345 AZN)!'
+                          : '❌ Təklif edilən maaş AR minimum əməkhaqqı normativindən (345 AZN) aşağıdır!')}
                   </p>
                 </div>
               </div>
@@ -191,12 +264,24 @@ export const JobiaAIComplianceInspectorModal: React.FC<JobiaAIComplianceInspecto
                 )}
                 <div className="space-y-0.5 flex-1">
                   <div className="font-bold text-slate-900">
-                    Vəzifə Təlimatının Dolğunluğu və Keyfiyyəti
+                    {language === 'en'
+                      ? 'Job Description Thoroughness & Quality'
+                      : language === 'ru'
+                      ? 'Полнота и качество описания вакансии'
+                      : 'Vəzifə Təlimatının Dolğunluğu və Keyfiyyəti'}
                   </div>
                   <p className="text-slate-600 leading-relaxed">
                     {hasResponsibilities && hasRequirements
-                      ? `✅ Vakansiya ${vacancy.responsibilities.length} öhdəlik və ${vacancy.requirements.length} tələb ilə ətraflı tərtib olunub.`
-                      : '⚠️ Vakansiya tələbləri və ya öhdəlikləri çox qısadır. Namizədlərin aydın anlaması üçün dolğunlaşdırılması tövsiyə edilir.'}
+                      ? (language === 'en'
+                          ? `✅ Vacancy is detailed with ${vacancy.responsibilities.length} responsibilities and ${vacancy.requirements.length} requirements.`
+                          : language === 'ru'
+                          ? `✅ Вакансия подробно составлена с ${vacancy.responsibilities.length} обязанностями и ${vacancy.requirements.length} требованиями.`
+                          : `✅ Vakansiya ${vacancy.responsibilities.length} öhdəlik və ${vacancy.requirements.length} tələb ilə ətraflı tərtib olunub.`)
+                      : (language === 'en'
+                          ? '⚠️ Requirements or responsibilities are brief. Adding more details is recommended for clarity.'
+                          : language === 'ru'
+                          ? '⚠️ Требования или обязанности слишком кратки. Рекомендуется расширить для наглядности.'
+                          : '⚠️ Vakansiya tələbləri və ya öhdəlikləri çox qısadır. Namizədlərin aydın anlaması üçün dolğunlaşdırılması tövsiyə edilir.')}
                   </p>
                 </div>
               </div>
@@ -206,10 +291,18 @@ export const JobiaAIComplianceInspectorModal: React.FC<JobiaAIComplianceInspecto
                 <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
                 <div className="space-y-0.5 flex-1">
                   <div className="font-bold text-slate-900">
-                    Şirkət Doğrulaması və Əlaqə Etibarlılığı
+                    {language === 'en'
+                      ? 'Company Verification & Contact Reliability'
+                      : language === 'ru'
+                      ? 'Верификация компании и надежность контактов'
+                      : 'Şirkət Doğrulaması və Əlaqə Etibarlılığı'}
                   </div>
                   <p className="text-slate-600 leading-relaxed">
-                    Müəssisə adı: <strong>{vacancy.companyName}</strong>. Əlaqə məlumatları və korporativ təyinat qaydalara uyğundur.
+                    {language === 'en'
+                      ? <>Company name: <strong>{vacancy.companyName}</strong>. Contact information meets platform standards.</>
+                      : language === 'ru'
+                      ? <>Название предприятия: <strong>{vacancy.companyName}</strong>. Контактные данные соответствуют правилам.</>
+                      : <>Müəssisə adı: <strong>{vacancy.companyName}</strong>. Əlaqə məlumatları və korporativ təyinat qaydalara uyğundur.</>}
                   </p>
                 </div>
               </div>
@@ -219,7 +312,7 @@ export const JobiaAIComplianceInspectorModal: React.FC<JobiaAIComplianceInspecto
 
         {/* Footer & Actions */}
         <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 flex flex-wrap items-center justify-between gap-3 shrink-0">
-          <ModalBottomLogo tagline="Jobia.az İntellektual Moderasiya Mərkəzi" size="xs" variant="slate" />
+          <ModalBottomLogo tagline="Jobia.az AI Moderation Center" size="xs" variant="slate" />
 
           <div className="flex items-center gap-2">
             <button
@@ -231,7 +324,7 @@ export const JobiaAIComplianceInspectorModal: React.FC<JobiaAIComplianceInspecto
               className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-xl shadow-xs flex items-center gap-1.5 transition-colors cursor-pointer"
             >
               <XCircle className="w-3.5 h-3.5" />
-              <span>İmtina Et</span>
+              <span>{language === 'en' ? 'Reject' : language === 'ru' ? 'Отклонить' : 'İmtina Et'}</span>
             </button>
 
             <button
@@ -243,15 +336,7 @@ export const JobiaAIComplianceInspectorModal: React.FC<JobiaAIComplianceInspecto
               className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-xs flex items-center gap-1.5 transition-colors cursor-pointer"
             >
               <Check className="w-3.5 h-3.5" />
-              <span>Dərhal Təsdiqlə</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-800 text-xs font-bold rounded-xl transition-colors cursor-pointer"
-            >
-              Bağla
+              <span>{language === 'en' ? 'Approve Now' : language === 'ru' ? 'Одобрить сейчас' : 'Dərhal Təsdiqlə'}</span>
             </button>
           </div>
         </div>

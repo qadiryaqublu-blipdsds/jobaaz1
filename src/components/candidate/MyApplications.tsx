@@ -1,5 +1,7 @@
 import React from 'react';
 import { Application, ApplicationStatus, JobOffer, User } from '../../types';
+import { useLanguage } from '../../context/LanguageContext';
+import { getLocalizedApplicationStatus, getLocalizedOfferStatus } from '../../i18n/localizeData';
 import { 
   CheckCircle2, 
   Building2, 
@@ -11,7 +13,7 @@ import {
   ChevronRight,
   LogIn,
   UserPlus,
-  Sparkles
+  Lock
 } from 'lucide-react';
 import { JobiaSectionFooter } from '../JobiaSectionFooter';
 
@@ -34,15 +36,19 @@ export const MyApplications: React.FC<MyApplicationsProps> = ({
   currentUser,
   onOpenAuthModal,
 }) => {
-  const getStatusBadge = (status: ApplicationStatus) => {
+  const { language, dict } = useLanguage();
+
+  const getStatusBadge = (status: ApplicationStatus | string) => {
     switch (status) {
       case 'Müsahibəyə dəvət':
+      case 'Müsahibə':
         return 'bg-purple-100 text-purple-800 border-purple-200 font-semibold';
       case 'Təklif verildi':
-        return 'bg-emerald-100 text-emerald-800 border-emerald-300 font-extrabold';
+      case 'Təklif göndərildi':
       case 'Qəbul edildi':
         return 'bg-emerald-100 text-emerald-800 border-emerald-300 font-extrabold';
       case 'Baxıldı':
+      case 'Baxılır':
         return 'bg-blue-100 text-blue-800 border-blue-200';
       case 'İmtina edildi':
         return 'bg-red-100 text-red-800 border-red-200';
@@ -52,6 +58,102 @@ export const MyApplications: React.FC<MyApplicationsProps> = ({
     }
   };
 
+  // If user is not logged in / not registered, show clean authentication gateway
+  if (!currentUser) {
+    return (
+      <div className="space-y-6">
+        <div className="bg-white rounded-2xl border border-slate-200 p-8 sm:p-12 text-center space-y-5 shadow-xs max-w-xl mx-auto">
+          <div className="w-16 h-16 rounded-2xl bg-blue-50 text-blue-600 mx-auto flex items-center justify-center border border-blue-100 shadow-2xs">
+            <Lock className="w-8 h-8" />
+          </div>
+          <div className="space-y-2">
+            <h3 className="text-lg sm:text-xl font-black text-slate-900">
+              {dict.applications.title}
+            </h3>
+            <p className="text-xs sm:text-sm text-slate-500 leading-relaxed max-w-md mx-auto">
+              {language === 'en'
+                ? 'Sign in or register to track your job applications, view review statuses by companies, and accept official job offers.'
+                : language === 'ru'
+                ? 'Войдите или зарегистрируйтесь, чтобы отслеживать отклики на вакансии, видеть статус рассмотрения компаниями и принимать официальные офферы.'
+                : 'Vakansiya müraciətlərinizi izləmək, göndərdiyiniz CV-lərə şirkətlərin baxış vəziyyətini görmək və rəsmi iş təkliflərini qəbul etmək üçün sistemə daxil olun və ya qeydiyyatdan keçin.'}
+            </p>
+          </div>
+
+          {/* Feature Highlights */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-left pt-1">
+            <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
+              <div className="text-blue-600 font-bold text-xs flex items-center gap-1 mb-1">
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                <span>{language === 'en' ? 'Live Status' : language === 'ru' ? 'Живой статус' : 'Canlı Status'}</span>
+              </div>
+              <p className="text-[11px] text-slate-500">
+                {language === 'en'
+                  ? 'Instantly see when employers view your CV and their feedback.'
+                  : language === 'ru'
+                  ? 'Мгновенно узнавайте, когда работодатели просматривают резюме.'
+                  : 'İşəgötürənin CV-nizə baxış vaxtını və rəylərini anında görün.'}
+              </p>
+            </div>
+            <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
+              <div className="text-indigo-600 font-bold text-xs flex items-center gap-1 mb-1">
+                <Calendar className="w-3.5 h-3.5" />
+                <span>{language === 'en' ? 'Interviews' : language === 'ru' ? 'Собеседования' : 'Müsahibələr'}</span>
+              </div>
+              <p className="text-[11px] text-slate-500">
+                {language === 'en'
+                  ? 'Confirm meeting invitations or sync them to your calendar.'
+                  : language === 'ru'
+                  ? 'Подтверждайте приглашения на встречи и добавляйте их в календарь.'
+                  : 'Gələn görüş dəvətlərini təsdiqləyin və ya təqvimə əlavə edin.'}
+              </p>
+            </div>
+            <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
+              <div className="text-emerald-600 font-bold text-xs flex items-center gap-1 mb-1">
+                <Award className="w-3.5 h-3.5" />
+                <span>{language === 'en' ? 'Official Offer' : language === 'ru' ? 'Официальный оффер' : 'Rəsmi Təklif'}</span>
+              </div>
+              <p className="text-[11px] text-slate-500">
+                {language === 'en'
+                  ? 'Review salary and contract terms and respond online.'
+                  : language === 'ru'
+                  ? 'Отвечайте на условия по зарплате и контракту онлайн.'
+                  : 'Maaş və müqavilə şərtlərini elektron qaydada cavablayın.'}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-2.5 pt-2">
+            <button
+              onClick={() => onOpenAuthModal?.('login', 'candidate')}
+              className="w-full sm:w-auto px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+            >
+              <LogIn className="w-4 h-4" />
+              <span>{dict.nav.login}</span>
+            </button>
+            <button
+              onClick={() => onOpenAuthModal?.('register', 'candidate')}
+              className="w-full sm:w-auto px-6 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl shadow-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+            >
+              <UserPlus className="w-4 h-4" />
+              <span>{dict.nav.register}</span>
+            </button>
+            <button
+              onClick={onExploreJobs}
+              className="w-full sm:w-auto px-5 py-2.5 border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-semibold rounded-xl transition-colors cursor-pointer"
+            >
+              {dict.applications.exploreJobs}
+            </button>
+          </div>
+        </div>
+
+        <JobiaSectionFooter 
+          extraTagline={language === 'en' ? 'Track your job applications in real time and respond to official job offers' : language === 'ru' ? 'Отслеживайте статус откликов в реальном времени и принимайте официальные офферы' : 'Müraciət etdiyiniz vakansiyaların statusunu canlı izləyin və rəsmi təklifləri qəbul edin'}
+          showBackToTop={true}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -59,12 +161,10 @@ export const MyApplications: React.FC<MyApplicationsProps> = ({
         <div>
           <h2 className="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2">
             <CheckCircle2 className="w-5 h-5 text-blue-600" />
-            <span>Mənim Vakansiya Müraciətlərim ({applications.length})</span>
+            <span>{dict.applications.title} ({applications.length})</span>
           </h2>
           <p className="text-xs text-slate-500 mt-0.5">
-            {currentUser 
-              ? 'Göndərdiyiniz CV-lər, şirkətlərin baxış statusları, müsahibə bildirişləri və rəsmi iş təklifləri.'
-              : 'Yalnız sizin bu cihazdan göndərdiyiniz müraciətlər burada əks olunur.'}
+            {dict.applications.subtitle}
           </p>
         </div>
 
@@ -73,89 +173,33 @@ export const MyApplications: React.FC<MyApplicationsProps> = ({
           className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg flex items-center gap-1.5 shadow-sm transition-colors cursor-pointer"
         >
           <Briefcase className="w-3.5 h-3.5" />
-          <span>Yeni Vakansiyalar Axtar</span>
+          <span>{dict.applications.exploreJobs}</span>
         </button>
       </div>
 
-      {/* Guest Notice if unauthenticated but has local guest applications */}
-      {!currentUser && applications.length > 0 && (
-        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-2xs">
-          <div className="flex items-center gap-2.5 text-xs text-amber-900">
-            <Sparkles className="w-4 h-4 text-amber-600 shrink-0" />
-            <span>
-              Bu müraciətlər cari cihazınızda qeydiyyatsız göndərilib. Məlumatları itirməmək və işəgötürənlərin cavablarını bütün cihazlardan izləmək üçün daxil olun.
-            </span>
-          </div>
-          <div className="flex items-center gap-2 shrink-0">
-            <button
-              onClick={() => onOpenAuthModal?.('login', 'candidate')}
-              className="px-3 py-1.5 bg-white border border-amber-300 hover:bg-amber-100 text-amber-900 text-xs font-bold rounded-lg cursor-pointer transition-colors"
-            >
-              Daxil Ol
-            </button>
-            <button
-              onClick={() => onOpenAuthModal?.('register', 'candidate')}
-              className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-lg cursor-pointer transition-colors shadow-2xs"
-            >
-              Qeydiyyat
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Empty State: Differentiated for Unauthenticated Guest vs Authenticated User */}
+      {/* Empty State for Authenticated User */}
       {applications.length === 0 ? (
-        !currentUser ? (
-          <div className="bg-white rounded-xl border border-slate-200 p-8 sm:p-12 text-center space-y-4 shadow-sm max-w-xl mx-auto">
-            <div className="w-14 h-14 rounded-2xl bg-blue-50 text-blue-600 mx-auto flex items-center justify-center border border-blue-100 shadow-2xs">
-              <CheckCircle2 className="w-7 h-7" />
-            </div>
-            <div className="space-y-1.5">
-              <h3 className="text-lg font-bold text-slate-900">Mənim Müraciətlərim Bölməsi</h3>
-              <p className="text-xs text-slate-500 leading-relaxed max-w-md mx-auto">
-                Göndərdiyiniz CV sənədlərini, şirkətlərin baxış statusunu, müsahibə dəvətlərini və rəsmi elektron iş təkliflərini izləmək üçün daxil olun və ya qeydiyyatdan keçin.
-              </p>
-            </div>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-2.5 pt-2">
-              <button
-                onClick={() => onOpenAuthModal?.('login', 'candidate')}
-                className="w-full sm:w-auto px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
-              >
-                <LogIn className="w-3.5 h-3.5" />
-                <span>Daxil Ol</span>
-              </button>
-              <button
-                onClick={() => onOpenAuthModal?.('register', 'candidate')}
-                className="w-full sm:w-auto px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl shadow-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
-              >
-                <UserPlus className="w-3.5 h-3.5" />
-                <span>Yeni Qeydiyyat</span>
-              </button>
-              <button
-                onClick={onExploreJobs}
-                className="w-full sm:w-auto px-5 py-2.5 border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-semibold rounded-xl transition-colors cursor-pointer"
-              >
-                Vakansiyalara Bax
-              </button>
-            </div>
+        <div className="bg-white rounded-xl border border-slate-200 p-12 text-center space-y-3 shadow-sm">
+          <div className="w-12 h-12 rounded-full bg-slate-100 text-slate-400 mx-auto flex items-center justify-center">
+            <Briefcase className="w-6 h-6" />
           </div>
-        ) : (
-          <div className="bg-white rounded-xl border border-slate-200 p-12 text-center space-y-3 shadow-sm">
-            <div className="w-12 h-12 rounded-full bg-slate-100 text-slate-400 mx-auto flex items-center justify-center">
-              <Briefcase className="w-6 h-6" />
-            </div>
-            <h3 className="text-base font-bold text-slate-800">Hələ heç bir vakansiyaya müraciət etməmisiniz</h3>
-            <p className="text-xs text-slate-500 max-w-sm mx-auto">
-              Vakansiyalar bölməsinə keçid edərək sizə uyğun iş elanlarına 1 kliklə CV-nizi göndərə bilərsiniz.
-            </p>
-            <button
-              onClick={onExploreJobs}
-              className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition-colors inline-block shadow-sm cursor-pointer"
-            >
-              Vakansiyalara Bax
-            </button>
-          </div>
-        )
+          <h3 className="text-base font-bold text-slate-800">
+            {dict.applications.noApplications}
+          </h3>
+          <p className="text-xs text-slate-500 max-w-sm mx-auto">
+            {language === 'en'
+              ? 'Visit the jobs section to send your CV to relevant vacancies in 1 click.'
+              : language === 'ru'
+              ? 'Перейдите в раздел вакансий, чтобы отправить резюме в 1 клик.'
+              : 'Vakansiyalar bölməsinə keçid edərək sizə uyğun iş elanlarına 1 kliklə CV-nizi göndərə bilərsiniz.'}
+          </p>
+          <button
+            onClick={onExploreJobs}
+            className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition-colors inline-block shadow-sm cursor-pointer"
+          >
+            {dict.applications.exploreJobs}
+          </button>
+        </div>
       ) : (
         <div className="space-y-3">
           {applications.map((app) => {
@@ -183,7 +227,9 @@ export const MyApplications: React.FC<MyApplicationsProps> = ({
                       {appOffer && (
                         <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 flex items-center gap-1">
                           <Award className="w-3 h-3 text-emerald-600" />
-                          <span>RƏSMİ İŞ TƏKLİFİ ({appOffer.status})</span>
+                          <span>
+                            {language === 'en' ? 'OFFICIAL OFFER' : language === 'ru' ? 'ОФИЦИАЛЬНЫЙ ОФФЕР' : 'RƏSMİ İŞ TƏKLİFİ'} ({getLocalizedOfferStatus(appOffer.status, language)})
+                          </span>
                         </span>
                       )}
                     </div>
@@ -196,7 +242,7 @@ export const MyApplications: React.FC<MyApplicationsProps> = ({
                       <span>•</span>
                       <span className="flex items-center gap-1 text-slate-500">
                         <Calendar className="w-3.5 h-3.5 text-slate-400" />
-                        Müraciət tarixi: {app.appliedDate}
+                        {dict.applications.appliedAt} {app.appliedDate}
                       </span>
                     </div>
 
@@ -205,7 +251,9 @@ export const MyApplications: React.FC<MyApplicationsProps> = ({
                       <div className="p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-800 mt-2 flex items-start gap-2">
                         <MessageSquare className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
                         <div>
-                          <span className="font-bold block text-slate-900">İşəgötürənin Qeydi:</span>
+                          <span className="font-bold block text-slate-900">
+                            {language === 'en' ? "Employer's Note:" : language === 'ru' ? 'Заметка работодателя:' : 'İşəgötürənin Qeydi:'}
+                          </span>
                           <span className="text-[11px] text-slate-600">{app.recruiterNotes}</span>
                         </div>
                       </div>
@@ -220,27 +268,29 @@ export const MyApplications: React.FC<MyApplicationsProps> = ({
                       app.status
                     )}`}
                   >
-                    {app.status}
+                    {getLocalizedApplicationStatus(app.status, language)}
                   </span>
 
                   <div className="flex items-center gap-2">
                     {appOffer && onViewOffer && (
                       <button
                         onClick={() => onViewOffer(appOffer)}
-                        className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-lg flex items-center gap-1 shadow-2xs transition-colors"
+                        className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-lg flex items-center gap-1 shadow-2xs transition-colors cursor-pointer"
                       >
                         <Award className="w-3.5 h-3.5" />
-                        <span>Təklifə Bax və Cavabla</span>
+                        <span>
+                          {language === 'en' ? 'View & Respond to Offer' : language === 'ru' ? 'Просмотреть и ответить на оффер' : 'Təklifə Bax və Cavabla'}
+                        </span>
                         <ChevronRight className="w-3.5 h-3.5" />
                       </button>
                     )}
 
                     <button
                       onClick={() => onOpenCVModal(app)}
-                      className="text-xs font-semibold text-blue-600 hover:text-blue-700 flex items-center gap-1 hover:underline"
+                      className="text-xs font-semibold text-blue-600 hover:text-blue-700 flex items-center gap-1 hover:underline cursor-pointer"
                     >
                       <Eye className="w-3.5 h-3.5" />
-                      <span>Göndərilən CV</span>
+                      <span>{language === 'en' ? 'Submitted CV' : language === 'ru' ? 'Отправленное резюме' : 'Göndərilən CV'}</span>
                     </button>
                   </div>
                 </div>
@@ -252,9 +302,10 @@ export const MyApplications: React.FC<MyApplicationsProps> = ({
 
       {/* Dynamic Animated Section Footer with Job Intelligence & Automation */}
       <JobiaSectionFooter 
-        extraTagline="Müraciət etdiyiniz vakansiyaların statusunu canlı izləyin və rəsmi təklifləri qəbul edin"
+        extraTagline={language === 'en' ? 'Track your job applications in real time and respond to official job offers' : language === 'ru' ? 'Отслеживайте статус откликов в реальном времени и принимайте официальные офферы' : 'Müraciət etdiyiniz vakansiyaların statusunu canlı izləyin və rəsmi təklifləri qəbul edin'}
         showBackToTop={true}
       />
     </div>
   );
 };
+

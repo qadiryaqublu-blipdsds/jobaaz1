@@ -6,7 +6,7 @@ import {
   User, 
   UserSubscription 
 } from '../../types';
-import { SUBSCRIPTION_PLANS } from '../../services/subscriptionService';
+import { SUBSCRIPTION_PLANS, formatPrice } from '../../services/subscriptionService';
 import { useLanguage } from '../../context/LanguageContext';
 import { 
   Check, 
@@ -21,6 +21,7 @@ import {
   ChevronRight,
   Flame
 } from 'lucide-react';
+import { SectionBottomLogo } from '../common/SectionBottomLogo';
 
 interface PricingPageProps {
   currentUser: User | null;
@@ -65,7 +66,7 @@ export const PricingPage: React.FC<PricingPageProps> = ({
   const isRu = language === 'ru';
 
   return (
-    <div className="min-h-screen bg-slate-50/50 pb-20 animate-fade-in">
+    <div className="min-h-screen bg-slate-50/50 pb-16 animate-fade-in text-left">
       {/* Top Header Section */}
       <div className="bg-white border-b border-slate-200 py-8 px-4 sm:px-6 lg:px-8 xl:px-10 2xl:px-12">
         <div className="w-full max-w-full mx-auto">
@@ -78,12 +79,12 @@ export const PricingPage: React.FC<PricingPageProps> = ({
           </button>
 
           <div className="text-center max-w-4xl mx-auto space-y-3">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-50 border border-blue-200 text-blue-700 rounded-full text-xs font-bold uppercase tracking-wider">
-              <Sparkles className="w-3.5 h-3.5" />
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#00a859]/10 border border-[#00a859]/20 text-[#00a859] rounded-full text-xs font-bold uppercase tracking-wider">
+              <Sparkles className="w-3.5 h-3.5 text-[#00a859]" />
               <span>{isEn ? 'Transparent & Affordable Pricing' : isRu ? 'Прозрачные и выгодные тарифы' : 'Şəffaf və Sərfəli Qiymətlər'}</span>
             </div>
 
-            <h1 className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight">
+            <h1 className="text-3xl sm:text-4xl font-black text-[#0b1b2b] tracking-tight">
               {isEn ? 'Accelerate Hiring & Your Career' : isRu ? 'Ускорьте наём сотрудников и свою карьеру' : 'İşə Qəbulu və Karyeranızı Sürətləndirin'}
             </h1>
             <p className="text-sm text-slate-600 leading-relaxed">
@@ -102,11 +103,11 @@ export const PricingPage: React.FC<PricingPageProps> = ({
                   onClick={() => setActiveTab('business')}
                   className={`flex items-center gap-2 px-5 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                     activeTab === 'business'
-                      ? 'bg-white text-slate-900 shadow-xs'
+                      ? 'bg-white text-[#0b1b2b] shadow-xs'
                       : 'text-slate-600 hover:text-slate-900'
                   }`}
                 >
-                  <Building2 className="w-4 h-4 text-slate-800" />
+                  <Building2 className="w-4 h-4 text-[#00a859]" />
                   <span>{isEn ? 'For Employers' : isRu ? 'Для работодателей' : 'İşəgötürənlər üçün'}</span>
                 </button>
                 <button
@@ -114,11 +115,11 @@ export const PricingPage: React.FC<PricingPageProps> = ({
                   onClick={() => setActiveTab('candidate')}
                   className={`flex items-center gap-2 px-5 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                     activeTab === 'candidate'
-                      ? 'bg-white text-blue-700 shadow-xs'
+                      ? 'bg-white text-[#00a859] shadow-xs'
                       : 'text-slate-600 hover:text-slate-900'
                   }`}
                 >
-                  <UserIcon className="w-4 h-4 text-blue-600" />
+                  <UserIcon className="w-4 h-4 text-[#00a859]" />
                   <span>{isEn ? 'For Candidates' : isRu ? 'Для соискателей' : 'Namizədlər üçün'}</span>
                 </button>
               </div>
@@ -126,13 +127,13 @@ export const PricingPage: React.FC<PricingPageProps> = ({
 
             {/* Monthly vs Yearly Billing Toggle */}
             <div className="flex items-center justify-center gap-3 pt-2">
-              <span className={`text-xs font-bold ${billingCycle === 'monthly' ? 'text-slate-900' : 'text-slate-500'}`}>
+              <span className={`text-xs font-bold ${billingCycle === 'monthly' ? 'text-[#0b1b2b]' : 'text-slate-500'}`}>
                 {isEn ? 'Monthly' : isRu ? 'Ежемесячно' : 'Aylıq Ödəniş'}
               </span>
               <button
                 type="button"
                 onClick={() => setBillingCycle(billingCycle === 'monthly' ? 'yearly' : 'monthly')}
-                className="w-12 h-6 bg-blue-600 rounded-full p-1 transition-colors relative cursor-pointer"
+                className="w-12 h-6 bg-[#00a859] rounded-full p-1 transition-colors relative cursor-pointer"
               >
                 <div
                   className={`w-4 h-4 bg-white rounded-full transition-transform ${
@@ -140,9 +141,9 @@ export const PricingPage: React.FC<PricingPageProps> = ({
                   }`}
                 />
               </button>
-              <span className={`text-xs font-bold flex items-center gap-1.5 ${billingCycle === 'yearly' ? 'text-slate-900' : 'text-slate-500'}`}>
+              <span className={`text-xs font-bold flex items-center gap-1.5 ${billingCycle === 'yearly' ? 'text-[#0b1b2b]' : 'text-slate-500'}`}>
                 <span>{isEn ? 'Yearly' : isRu ? 'Ежегодно' : 'İllik Ödəniş'}</span>
-                <span className="bg-emerald-100 text-emerald-800 text-[10px] px-2 py-0.5 rounded-full font-extrabold">
+                <span className="bg-[#00a859]/10 text-[#00a859] border border-[#00a859]/20 text-[10px] px-2 py-0.5 rounded-full font-extrabold">
                   {isEn ? '-20% Off' : isRu ? '-20% Скидка' : '-20% Qənaət'}
                 </span>
               </span>
@@ -166,12 +167,12 @@ export const PricingPage: React.FC<PricingPageProps> = ({
                 key={plan.id}
                 className={`rounded-2xl transition-all relative flex flex-col justify-between ${
                   plan.isPopular
-                    ? 'bg-white border-2 border-blue-600 shadow-xl ring-4 ring-blue-600/10'
+                    ? 'bg-white border-2 border-[#00a859] shadow-xl ring-4 ring-[#00a859]/10'
                     : 'bg-white border border-slate-200 shadow-xs hover:shadow-md'
                 }`}
               >
                 {plan.badge && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-blue-600 text-white text-[11px] font-black uppercase tracking-wider px-3 py-0.5 rounded-full shadow-xs flex items-center gap-1">
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-[#00a859] text-white text-[11px] font-black uppercase tracking-wider px-3 py-0.5 rounded-full shadow-xs flex items-center gap-1">
                     <Flame className="w-3.5 h-3.5" />
                     <span>{plan.badge}</span>
                   </div>
@@ -179,24 +180,24 @@ export const PricingPage: React.FC<PricingPageProps> = ({
 
                 <div className="p-6">
                   {/* Title & Tagline */}
-                  <h3 className="text-lg font-black text-slate-900">{plan.name}</h3>
+                  <h3 className="text-lg font-black text-[#0b1b2b]">{plan.name}</h3>
                   <p className="text-xs text-slate-500 mt-1 min-h-[32px]">{plan.tagline}</p>
 
                   {/* Price */}
                   <div className="mt-4 pb-4 border-b border-slate-100">
                     <div className="flex items-baseline gap-1">
-                      <span className="text-3xl sm:text-4xl font-black text-slate-900">
-                        {price} AZN
+                      <span className="text-3xl sm:text-4xl font-black text-[#0b1b2b]">
+                        {formatPrice(price)} AZN
                       </span>
                       <span className="text-xs text-slate-500 font-medium">{isEn ? '/mo' : isRu ? '/мес' : '/ay'}</span>
                     </div>
                     {billingCycle === 'yearly' && plan.priceMonthly > 0 && (
-                      <span className="text-[11px] text-emerald-600 font-bold block mt-1">
+                      <span className="text-[11px] text-[#00a859] font-bold block mt-1">
                         {isEn 
-                          ? `Billed annually at ${plan.priceYearly * 12} AZN (instead of ${plan.priceMonthly} AZN/mo)`
+                          ? `Billed annually at ${formatPrice(Math.round(plan.priceYearly * 12 * 100) / 100)} AZN (instead of ${formatPrice(plan.priceMonthly)} AZN/mo)`
                           : isRu
-                          ? `При годовой оплате ${plan.priceYearly * 12} AZN (вместо ${plan.priceMonthly} AZN/мес)`
-                          : `İllik ${plan.priceYearly * 12} AZN (Aylıq hesablandıqda ${plan.priceMonthly} AZN yerinə)`}
+                          ? `При годовой оплате ${formatPrice(Math.round(plan.priceYearly * 12 * 100) / 100)} AZN (вместо ${formatPrice(plan.priceMonthly)} AZN/мес)`
+                          : `İllik ${formatPrice(Math.round(plan.priceYearly * 12 * 100) / 100)} AZN (Aylıq hesablandıqda ${formatPrice(plan.priceMonthly)} AZN yerinə)`}
                       </span>
                     )}
                   </div>
@@ -209,7 +210,7 @@ export const PricingPage: React.FC<PricingPageProps> = ({
                     <ul className="space-y-2.5">
                       {plan.features.map((feat, i) => (
                         <li key={i} className="flex items-start gap-2.5 text-xs text-slate-700">
-                          <div className="w-4 h-4 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 mt-0.5">
+                          <div className="w-4 h-4 rounded-full bg-[#00a859]/10 text-[#00a859] flex items-center justify-center shrink-0 mt-0.5">
                             <Check className="w-3 h-3 stroke-[3]" />
                           </div>
                           <span className="leading-tight">{feat}</span>
@@ -223,7 +224,7 @@ export const PricingPage: React.FC<PricingPageProps> = ({
                 <div className="p-6 pt-0">
                   {isCurrent ? (
                     <div className="w-full py-2.5 bg-slate-100 text-slate-700 font-bold text-xs rounded-xl text-center border border-slate-200 flex items-center justify-center gap-1.5">
-                      <Check className="w-4 h-4 text-emerald-600" />
+                      <Check className="w-4 h-4 text-[#00a859]" />
                       <span>{isEn ? 'Current Active Plan' : isRu ? 'Текущий активный тариф' : 'Cari Aktiv Planınız'}</span>
                     </div>
                   ) : plan.tier === 'FREE' ? (
@@ -239,8 +240,8 @@ export const PricingPage: React.FC<PricingPageProps> = ({
                       onClick={() => handlePlanClick(plan)}
                       className={`w-full py-3 rounded-xl font-bold text-xs shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                         plan.isPopular
-                          ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-blue-500/20'
-                          : 'bg-slate-900 hover:bg-slate-800 text-white'
+                          ? 'bg-[#00a859] hover:bg-[#00914c] text-white shadow-[#00a859]/20'
+                          : 'bg-[#0b1b2b] hover:bg-slate-800 text-white'
                       }`}
                     >
                       <span>{isEn ? `Upgrade to ${plan.tier}` : isRu ? `Перейти на ${plan.tier}` : `${plan.tier}-a Yüksəlt`}</span>
@@ -254,7 +255,7 @@ export const PricingPage: React.FC<PricingPageProps> = ({
         </div>
 
         {/* Enterprise & Custom Inquiries Banner */}
-        <div className="mt-12 bg-gradient-to-r from-slate-900 to-blue-950 rounded-2xl p-6 sm:p-8 text-white flex flex-col sm:flex-row items-center justify-between gap-6 shadow-xl">
+        <div className="mt-12 bg-gradient-to-r from-[#0b1b2b] via-[#0d2238] to-[#0b1b2b] rounded-2xl p-6 sm:p-8 text-white flex flex-col sm:flex-row items-center justify-between gap-6 shadow-xl border border-slate-800">
           <div className="space-y-1">
             <h3 className="text-lg font-bold">
               {isEn ? 'Have Custom Enterprise or Holding Requirements?' : isRu ? 'Нужен индивидуальный корпоративный тариф?' : 'Xüsusi Korporativ və ya Holdinq Tələbləriniz Var?'}
@@ -269,7 +270,7 @@ export const PricingPage: React.FC<PricingPageProps> = ({
           </div>
           <a
             href="mailto:support@jobia.az"
-            className="px-6 py-2.5 bg-white text-slate-950 hover:bg-slate-100 font-bold text-xs rounded-xl shrink-0 transition-colors"
+            className="px-6 py-2.5 bg-[#00a859] hover:bg-[#00914c] text-white font-bold text-xs rounded-xl shrink-0 transition-colors shadow-xs"
           >
             {isEn ? 'Get Enterprise Quote' : isRu ? 'Корпоративное предложение' : 'Korporativ Təklif Al'}
           </a>
@@ -277,7 +278,7 @@ export const PricingPage: React.FC<PricingPageProps> = ({
 
         {/* FAQ Section */}
         <div className="mt-16 max-w-3xl mx-auto space-y-6">
-          <h2 className="text-xl font-black text-slate-900 text-center">
+          <h2 className="text-xl font-black text-[#0b1b2b] text-center">
             {isEn ? 'Frequently Asked Questions' : isRu ? 'Часто задаваемые вопросы' : 'Tez-Tez Verilən Suallar'}
           </h2>
           <div className="space-y-3">
@@ -319,8 +320,15 @@ export const PricingPage: React.FC<PricingPageProps> = ({
             </div>
           </div>
         </div>
+
+        {/* Section Bottom Jobia Logo */}
+        <SectionBottomLogo
+          tagline="Jobia.az Şəffaf və Təhlükəsiz Abunəlik Sistemi"
+          size="sm"
+        />
       </div>
     </div>
   );
 };
+
 

@@ -13,15 +13,15 @@ export const TemplateBerlinCreative: React.FC<TemplateProps> = ({ data, showPhot
   const displayPhoto = showPhoto && !!personalInfo.photoUrl;
 
   return (
-    <div id="cv-preview-berlin-creative" className="bg-white text-slate-900 font-sans max-w-[800px] w-full mx-auto min-h-[1100px] text-left border border-slate-200 shadow-sm flex flex-col sm:flex-row">
+    <div id="cv-preview-berlin-creative" className="bg-white text-slate-900 font-sans max-w-[800px] w-full mx-auto min-h-[1100px] text-left border border-slate-200 shadow-sm flex flex-row">
       {/* Left Colored Column */}
-      <div className="w-full sm:w-[260px] bg-[#1e2022] text-slate-200 p-6 sm:p-7 shrink-0 space-y-6">
+      <div className="w-[260px] bg-[#1e2022] text-slate-200 p-6 shrink-0 space-y-6">
         {displayPhoto && (
-          <div className="flex justify-center sm:justify-start">
+          <div className="flex justify-start">
             <img
               src={personalInfo.photoUrl}
               alt={personalInfo.fullName || 'Namizəd'}
-              className={`${getPhotoClasses(personalInfo.photoSize, personalInfo.photoShape)} border-2 border-orange-400 shadow-md`}
+              className={`${getPhotoClasses(personalInfo.photoSize, personalInfo.photoShape)} border-2 border-orange-400 shadow-md shrink-0`}
               referrerPolicy="no-referrer"
             />
           </div>
@@ -93,13 +93,13 @@ export const TemplateBerlinCreative: React.FC<TemplateProps> = ({ data, showPhot
       </div>
 
       {/* Right Content Area */}
-      <div className="flex-1 p-6 sm:p-8 space-y-6">
+      <div className="flex-1 min-w-0 p-6 sm:p-8 space-y-6">
         {/* Name and Title */}
         <div className="border-b-2 border-slate-900 pb-4">
-          <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-slate-950 uppercase">
+          <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-slate-950 uppercase break-words">
             {personalInfo.fullName || 'Ad Soyad'}
           </h1>
-          <p className="text-base sm:text-lg font-bold text-orange-600 mt-0.5">
+          <p className="text-base sm:text-lg font-bold text-orange-600 mt-0.5 break-words">
             {personalInfo.jobTitle || 'Creative Director'}
           </p>
         </div>
@@ -110,7 +110,7 @@ export const TemplateBerlinCreative: React.FC<TemplateProps> = ({ data, showPhot
             <h2 className="text-xs font-black uppercase tracking-widest text-slate-400 mb-2">
               {terms.summary}
             </h2>
-            <p className="text-xs sm:text-sm text-slate-800 leading-relaxed">
+            <p className="text-xs sm:text-sm text-slate-800 leading-relaxed whitespace-pre-line break-words">
               {personalInfo.summary}
             </p>
           </div>
@@ -125,17 +125,17 @@ export const TemplateBerlinCreative: React.FC<TemplateProps> = ({ data, showPhot
             <div className="space-y-4">
               {experiences.map((exp) => (
                 <div key={exp.id}>
-                  <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-1">
-                    <div className="text-sm font-bold text-slate-900">
+                  <div className="flex flex-row items-baseline justify-between gap-2 min-w-0">
+                    <div className="text-sm font-bold text-slate-900 flex-1 min-w-0 break-words">
                       {exp.position} <span className="font-medium text-orange-600">— {exp.company}</span>
                     </div>
-                    <div className="text-xs font-medium text-slate-500">
+                    <div className="text-xs font-medium text-slate-500 shrink-0 whitespace-nowrap">
                       {exp.startDate} – {exp.current ? terms.present : exp.endDate}
                     </div>
                   </div>
-                  {exp.location && <div className="text-xs text-slate-400">{exp.location}</div>}
+                  {exp.location && <div className="text-xs text-slate-400 break-words">{exp.location}</div>}
                   {exp.description && (
-                    <p className="text-xs text-slate-700 leading-relaxed whitespace-pre-line mt-1.5 pl-2 border-l-2 border-orange-200">
+                    <p className="text-xs text-slate-700 leading-relaxed whitespace-pre-line mt-1.5 pl-2 border-l-2 border-orange-200 break-words">
                       {exp.description}
                     </p>
                   )}

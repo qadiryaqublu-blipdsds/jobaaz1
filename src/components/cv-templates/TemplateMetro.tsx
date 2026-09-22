@@ -14,18 +14,18 @@ export const TemplateMetro: React.FC<TemplateProps> = ({ data, showPhoto = true 
   const displayPhoto = showPhoto && !!personalInfo.photoUrl;
 
   return (
-    <div id="cv-preview-metro" className="bg-white text-slate-800 p-8 rounded-xl shadow-sm border border-purple-100 font-sans max-w-[850px] mx-auto min-h-[1050px]">
+    <div id="cv-preview-metro" className="bg-white text-slate-800 p-8 rounded-xl shadow-sm border border-purple-100 font-sans w-full max-w-[800px] mx-auto min-h-[1050px]">
       {/* Metro Header */}
-      <div className="flex flex-col sm:flex-row items-center sm:items-start justify-between gap-5 pb-6 mb-6 border-b border-purple-200">
-        <div className="text-center sm:text-left flex-1">
+      <div className="flex flex-row items-center justify-between gap-5 pb-6 mb-6 border-b border-purple-200">
+        <div className="text-left flex-1 min-w-0">
           <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-purple-100 text-purple-800 text-[10px] font-bold uppercase tracking-wider mb-2">
-            <Sparkles className="w-3 h-3 text-purple-600" />
+            <Sparkles className="w-3 h-3 text-purple-600 shrink-0" />
             <span>Peşəkar Profil</span>
           </div>
-          <h1 className="text-3xl font-black text-slate-900 tracking-tight">
+          <h1 className="text-3xl font-black text-slate-900 tracking-tight break-words">
             {personalInfo.fullName || 'Ad Soyad'}
           </h1>
-          <p className="text-base font-bold text-purple-700 mt-0.5">
+          <p className="text-base font-bold text-purple-700 mt-0.5 break-words">
             {personalInfo.jobTitle || 'Vəzifə'}
           </p>
 
@@ -86,10 +86,10 @@ export const TemplateMetro: React.FC<TemplateProps> = ({ data, showPhoto = true 
         </div>
       )}
 
-      {/* Grid Content */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      {/* Grid Content: 2/3 Main, 1/3 Sidebar */}
+      <div className="grid grid-cols-3 gap-6">
         {/* Main 2 Cols */}
-        <div className="md:col-span-2 space-y-6">
+        <div className="col-span-2 space-y-6">
           {/* Experience */}
           {experiences && experiences.length > 0 && (
             <div>
@@ -99,16 +99,16 @@ export const TemplateMetro: React.FC<TemplateProps> = ({ data, showPhoto = true 
               <div className="space-y-4">
                 {experiences.map((exp) => (
                   <div key={exp.id} className="relative pl-3.5 border-l-2 border-purple-300">
-                    <div className="flex justify-between items-baseline flex-wrap gap-1">
-                      <h3 className="text-xs font-bold text-slate-900">{exp.position}</h3>
-                      <span className="text-[10px] font-bold text-purple-700 bg-purple-100 px-2 py-0.5 rounded-full">
+                    <div className="flex justify-between items-baseline gap-2 min-w-0">
+                      <h3 className="text-xs font-bold text-slate-900 flex-1 min-w-0 break-words">{exp.position}</h3>
+                      <span className="text-[10px] font-bold text-purple-700 bg-purple-100 px-2 py-0.5 rounded-full shrink-0 whitespace-nowrap">
                         {exp.startDate} – {exp.current ? terms.present : exp.endDate}
                       </span>
                     </div>
-                    <div className="text-[11px] font-semibold text-purple-800 mb-1">
+                    <div className="text-[11px] font-semibold text-purple-800 mb-1 break-words">
                       {exp.company} {exp.location ? `• ${exp.location}` : ''}
                     </div>
-                    <div className="text-[11px] text-slate-600 leading-relaxed whitespace-pre-line">
+                    <div className="text-[11px] text-slate-600 leading-relaxed whitespace-pre-line break-words">
                       {exp.description}
                     </div>
                   </div>

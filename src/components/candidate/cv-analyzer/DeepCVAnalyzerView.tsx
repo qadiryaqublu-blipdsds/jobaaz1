@@ -5,6 +5,7 @@ import { CVAnalyzerResult } from '../../../types/cvAnalyzer';
 import { AICVAnalyzerInput } from './AICVAnalyzerInput';
 import { AICVAnalyzerLoading } from './AICVAnalyzerLoading';
 import { AICVAnalyzerDashboard } from './AICVAnalyzerDashboard';
+import { SectionBottomLogo } from '../../common/SectionBottomLogo';
 
 interface DeepCVAnalyzerViewProps {
   initialCVText?: string;
@@ -133,6 +134,9 @@ export const DeepCVAnalyzerView: React.FC<DeepCVAnalyzerViewProps> = ({ initialC
         ) : (
           <AICVAnalyzerInput onAnalyze={handleAnalyze} isLoading={isLoading} initialCVText={initialCVText} />
         )}
+
+        {/* Section bottom logo */}
+        <SectionBottomLogo size="sm" />
       </div>
     </div>
   );

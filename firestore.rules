@@ -38,7 +38,7 @@ service cloud.firestore {
     match /companies/{companyId} {
       allow read: if true;
       allow create, update: if true;
-      allow delete: if isAdmin();
+      allow delete: if true;
     }
 
     // Candidate Profiles

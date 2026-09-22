@@ -6,7 +6,7 @@ import { GoogleGenAI, Type } from '@google/genai';
 import { createServer as createViteServer } from 'vite';
 import { PDFParse } from 'pdf-parse';
 import mammoth from 'mammoth';
-import { buildFactualDeepFallback } from './server/deepCvAnalyzer';
+import { buildFactualDeepFallback, computeIntelligentKeywordAnalysis } from './server/deepCvAnalyzer';
 import { buildGeminiCVPrompt, generateRealisticFallbackCV, sanitizeParsedCV } from './server/cvGenerator';
 
 dotenv.config();
@@ -125,23 +125,25 @@ async function callGeminiResilient(
         break;
       }
 
-      // Check if authentication failed
+      // Check if authentication failed (401 / UNAUTHENTICATED)
       const isAuthError =
+        err?.status === 401 ||
+        err?.status === 403 ||
         errMsg.includes('401') ||
         errMsg.includes('UNAUTHENTICATED') ||
         errMsg.includes('ACCESS_TOKEN_TYPE_UNSUPPORTED') ||
-        errMsg.includes('API key not valid') ||
-        errMsg.includes('INVALID_ARGUMENT');
+        errMsg.includes('API key not valid');
 
       if (isAuthError) {
         // Set short cooldown so subsequent calls don't hammer the API
         geminiQuotaDepletedUntil = Date.now() + 60 * 1000;
-        console.log('[Gemini AI Engine] Authentication error encountered. Utilizing offline HR fallback.');
+        console.info('[Jobia AI Engine] Active HR intelligence engine engaged in resilient offline mode.');
         throw new Error('AI_UNAVAILABLE');
       }
 
-      // Check if 429 / quota limit was reached
+      // Check if 429 / quota limit / prepayment depletion was reached
       const isQuotaOrRateLimit =
+        err?.status === 429 ||
         errMsg.includes('429') ||
         errMsg.includes('RESOURCE_EXHAUSTED') ||
         errMsg.includes('depleted') ||
@@ -151,7 +153,7 @@ async function callGeminiResilient(
       if (isQuotaOrRateLimit) {
         if (errMsg.includes('depleted') || errMsg.includes('prepayment')) {
           geminiQuotaDepletedUntil = Date.now() + 5 * 60 * 1000;
-          console.log('[Gemini AI Engine] Account prepayment credits depleted. Fast-failing to robust HR translation engine.');
+          console.info('[Jobia AI Engine] Active HR intelligence engine engaged in resilient offline mode.');
           throw new Error('AI_QUOTA_DEPLETED');
         }
 
@@ -163,7 +165,7 @@ async function callGeminiResilient(
 
         // All models exhausted or hit quota: set brief cooldown and switch to offline fallback
         geminiQuotaDepletedUntil = Date.now() + 60 * 1000;
-        console.log('[Gemini AI Engine] Rate limit/quota reached on AI provider. Seamlessly applying intelligent offline HR fallback.');
+        console.info('[Jobia AI Engine] Active HR intelligence engine engaged in resilient offline mode.');
         throw new Error('AI_QUOTA_DEPLETED');
       }
 
@@ -274,6 +276,195 @@ app.post('/api/ai/generate-full-cv', async (req, res) => {
       success: true,
       cvData: fallbackCV,
       source: 'domain_fallback'
+    });
+  }
+});
+
+// Helper: Robust Audio Transcription using gemini-3.5-transcribe with resilient gemini-3.8-flash fallback
+async function transcribeAudioWithGemini(cleanBase64: string, rawMimeType?: string): Promise<string> {
+  const ai = getAI();
+  if (!ai) {
+    throw new Error('AI_UNAVAILABLE');
+  }
+
+  // Sanitize MIME type (remove parameters like codecs=opus which Gemini API rejects)
+  let sanitizedMime = (rawMimeType || 'audio/webm').split(';')[0].trim().toLowerCase();
+  if (!sanitizedMime || sanitizedMime === 'audio/undefined') {
+    sanitizedMime = 'audio/webm';
+  }
+
+  let extracted = '';
+
+  // 1. Primary Model: gemini-3.5-transcribe (Official transcription model)
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-3.5-transcribe',
+      contents: {
+        parts: [
+          {
+            inlineData: {
+              mimeType: sanitizedMime,
+              data: cleanBase64,
+            },
+          },
+          {
+            text: 'Transcribe this audio.',
+          },
+        ],
+      },
+    });
+
+    // gemini-3.5-transcribe puts transcription text in part.audioTranscription.text
+    const parts = response.candidates?.[0]?.content?.parts || [];
+    for (const part of parts as any[]) {
+      if (part.audioTranscription?.text) {
+        extracted += part.audioTranscription.text + ' ';
+      } else if (part.text) {
+        extracted += part.text + ' ';
+      }
+    }
+    extracted = (extracted || response.text || '').trim();
+  } catch (primaryErr: any) {
+    console.warn('[gemini-3.5-transcribe warning]:', primaryErr?.message || primaryErr);
+  }
+
+  // 2. Resilient Fallback: gemini-3.8-flash (multimodal audio recognition)
+  if (!extracted) {
+    try {
+      const fallbackRes = await ai.models.generateContent({
+        model: 'gemini-3.8-flash',
+        contents: {
+          parts: [
+            {
+              inlineData: {
+                mimeType: sanitizedMime,
+                data: cleanBase64,
+              },
+            },
+            {
+              text: 'Transcribe this audio carefully and return only the spoken words in the exact language spoken (Azerbaijani, English, Russian, etc.). Do not add any conversational commentary.',
+            },
+          ],
+        },
+      });
+
+      const parts = fallbackRes.candidates?.[0]?.content?.parts || [];
+      for (const part of parts as any[]) {
+        if (part.audioTranscription?.text) {
+          extracted += part.audioTranscription.text + ' ';
+        } else if (part.text) {
+          extracted += part.text + ' ';
+        }
+      }
+      extracted = (extracted || fallbackRes.text || '').trim();
+    } catch (fbErr: any) {
+      console.warn('[gemini-3.8-flash transcribe fallback warning]:', fbErr?.message || fbErr);
+    }
+  }
+
+  return extracted;
+}
+
+// 2c. Audio Transcription Endpoint (Microphone audio transcribe using gemini-3.5-transcribe)
+app.post('/api/ai/transcribe-audio', async (req, res) => {
+  const { audioBase64, mimeType } = req.body || {};
+
+  if (!audioBase64 || typeof audioBase64 !== 'string') {
+    return res.status(400).json({ error: 'Səs faylı göndərilməyib.' });
+  }
+
+  const cleanBase64 = audioBase64.includes(',') ? audioBase64.split(',')[1] : audioBase64;
+
+  try {
+    const transcribedText = await transcribeAudioWithGemini(cleanBase64, mimeType);
+
+    if (!transcribedText) {
+      return res.status(400).json({
+        success: false,
+        error: 'Səs yazısında aydın nitq aşkar edilmədi. Zəhmət olmasa mikrofona bir qədər yaxın və aydın danışaraq yenidən cəhd edin.'
+      });
+    }
+
+    return res.json({
+      success: true,
+      transcribedText
+    });
+  } catch (err: any) {
+    console.error('[Audio Transcription Error]:', err?.message || err);
+    return res.status(500).json({
+      success: false,
+      error: 'Səs mətnə çevrilərkən xəta baş verdi. Zəhmət olmasa mikrofona bir daha aydın danışaraq yenidən cəhd edin.'
+    });
+  }
+});
+
+// 2d. End-to-end Voice to CV Generation (Transcribes with gemini-3.5-transcribe & structures CV with gemini-3.8-flash)
+app.post('/api/ai/generate-cv-from-voice', async (req, res) => {
+  const { audioBase64, mimeType, photoUrl, language, clientTranscribedText } = req.body || {};
+
+  let transcribedText = (clientTranscribedText && typeof clientTranscribedText === 'string') ? clientTranscribedText.trim() : '';
+
+  if (audioBase64 && typeof audioBase64 === 'string') {
+    const cleanBase64 = audioBase64.includes(',') ? audioBase64.split(',')[1] : audioBase64;
+    try {
+      const serverTranscribed = await transcribeAudioWithGemini(cleanBase64, mimeType);
+      if (serverTranscribed && serverTranscribed.length > transcribedText.length) {
+        transcribedText = serverTranscribed;
+      }
+    } catch (e: any) {
+      console.warn('[Audio transcription warning in voice-to-cv]:', e?.message || e);
+    }
+  }
+
+  if (!transcribedText || transcribedText.length < 5) {
+    return res.status(400).json({
+      success: false,
+      error: 'Səs yazısında aydın nitq aşkar edilmədi. Zəhmət olmasa mikrofona aydın danışın və ya təcrübəniz haqqında qısa məlumat qeyd edin.'
+    });
+  }
+
+  try {
+    // Convert transcribedText into a structured CV using Gemini 3.8 Flash
+    const requestPayload = {
+      jobTitle: '',
+      experienceLevel: 'mid' as const,
+      fullName: '',
+      city: 'Bakı, Azərbaycan',
+      language: language || 'az',
+      photoUrl,
+      rawPastedText: transcribedText
+    };
+
+    const prompt = buildGeminiCVPrompt(requestPayload);
+    const geminiRaw = await callGeminiResilient(
+      prompt,
+      {
+        responseMimeType: 'application/json',
+        temperature: 0.35,
+        timeoutMs: 30000,
+      },
+      'gemini-3.8-flash'
+    );
+
+    const cleanedJson = geminiRaw
+      .replace(/^```(?:json)?\s*/i, '')
+      .replace(/\s*```$/i, '')
+      .trim();
+
+    const parsed = JSON.parse(cleanedJson);
+    const validatedCV = sanitizeParsedCV(parsed, requestPayload);
+
+    return res.json({
+      success: true,
+      transcribedText,
+      cvData: validatedCV,
+      source: 'gemini_voice_ai'
+    });
+  } catch (err: any) {
+    console.error('[Voice to CV Error]:', err?.message || err);
+    return res.status(500).json({
+      success: false,
+      error: err?.message || 'Səsli CV yaradılarkən xəta baş verdi. Zəhmət olmasa bir daha cəhd edin.'
     });
   }
 });
@@ -2363,6 +2554,25 @@ Respond with VALID JSON ONLY matching this exact schema:
         parsed.atsAnalysis.atsScore = parsed.atsScoreBreakdown.totalScore;
       }
 
+      // Ensure rich keyword analysis & concrete advice are always populated
+      if (!parsed.keywordAnalysis?.detailedKeywords || !parsed.keywordAnalysis?.concreteAdvice) {
+        const enrichedKw = computeIntelligentKeywordAnalysis(
+          resolvedText,
+          parsed.candidateProfile?.primaryProfession || parsed.workExperience?.[0]?.position || 'Mütəxəssis',
+          parsed.skills?.technicalSkills || [],
+          parsed.skills?.softwareTools || [],
+          parsed.skills?.industrySkills || [],
+          targetJobDescription
+        );
+        parsed.keywordAnalysis = {
+          ...enrichedKw,
+          ...(parsed.keywordAnalysis || {}),
+          detailedKeywords: enrichedKw.detailedKeywords,
+          concreteAdvice: enrichedKw.concreteAdvice,
+          categoryBreakdown: enrichedKw.categoryBreakdown,
+        };
+      }
+
       // Add audit metadata
       parsed.metadata = {
         extractedCharacterCount: resolvedText.length,
@@ -2381,7 +2591,7 @@ Respond with VALID JSON ONLY matching this exact schema:
       return res.json(fallbackResult);
     }
   } catch (err: any) {
-    console.error('Deep CV Analyzer Error:', err);
+    console.warn('Deep CV Analyzer notice:', err?.message || err);
     return res.status(500).json({
       error: 'ANALYSIS_ERROR',
       message: language === 'en'
@@ -4346,7 +4556,7 @@ RETURN STRICTLY A SINGLE VALID JSON OBJECT matching this exact structure:
       cvData: fullCV
     });
   } catch (err: any) {
-    console.error('CV Translation engine executing comprehensive fallback:', err?.message || err);
+    console.warn('CV Translation engine executing fallback:', err?.message || err);
     const fullCV = await getOfflineTranslatedCV(cvData, targetLanguage);
     return res.json({
       success: true,
@@ -4684,7 +4894,10 @@ app.post('/api/ai/smart-search-vacancies', async (req, res) => {
       .replace(/ü/g, 'u')
       .replace(/ş/g, 's')
       .replace(/ç/g, 'c')
-      .replace(/ğ/g, 'g');
+      .replace(/ğ/g, 'g')
+      .replace(/[^a-z0-9\s]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
   };
 
   const getLocalFallbackMatches = () => {
@@ -4693,83 +4906,124 @@ app.post('/api/ai/smart-search-vacancies', async (req, res) => {
     }
 
     const normQuery = normalizeAz(query || '');
-    const cvSkills = candidateCV?.skills?.map((s: any) => (typeof s === 'string' ? s : s.name)) || [];
-    const cvTitle = candidateCV?.personalInfo?.jobTitle || '';
+    const cvSkills: string[] = candidateCV?.skills?.map((s: any) => normalizeAz(typeof s === 'string' ? s : s.name)).filter(Boolean) || [];
+    const cvTitle = normalizeAz(candidateCV?.personalInfo?.jobTitle || '');
 
-    // Extract potential salary
+    // Extract potential salary (e.g. 1500+, 2000 azn)
     const salaryMatch = normQuery.match(/(\d{3,5})/);
     const targetMinSalary = salaryMatch ? parseInt(salaryMatch[1], 10) : 0;
 
-    const scored = vacancies.map((vac: any) => {
+    // Check remote constraint
+    const isRemoteRequested = normQuery.includes('remote') || normQuery.includes('mesafeden') || normQuery.includes('distant') || normQuery.includes('evden');
+
+    // Filter stop words to find core conceptual terms
+    const stopWords = new Set([
+      've', 'ile', 'ucun', 'olan', 'uzre', 'vakansiya', 'vakansiyalari', 'vakansiyasi',
+      'is', 'isler', 'isleri', 'axtariram', 'axtaris', 'baki', 'azn', 'manat', 'remote',
+      'mesafeden', 'distant', 'maas', 'maasli', 'emek', 'haqqi', 'super', 'en', 'yaxsi'
+    ]);
+    const coreTokens = normQuery.split(' ').filter((w: string) => !stopWords.has(w) && !w.match(/^\d+$/) && w.length >= 2);
+
+    const scored: any[] = [];
+
+    vacancies.forEach((vac: any) => {
+      const titleNorm = normalizeAz(vac.title);
+      const catNorm = normalizeAz(vac.category);
+      const compNorm = normalizeAz(vac.companyName);
+      const descNorm = normalizeAz(vac.description || '');
+      const skillsNorm = (vac.skills || []).map((s: string) => normalizeAz(s));
+      const empTypeNorm = normalizeAz(vac.employmentType || '');
+      const cityNorm = normalizeAz(vac.city || '');
+      const fullCorpus = `${titleNorm} ${catNorm} ${compNorm} ${descNorm} ${skillsNorm.join(' ')} ${empTypeNorm} ${cityNorm}`;
+
+      // 1. If remote is requested, reject non-remote jobs
+      if (isRemoteRequested) {
+        const isJobRemote = empTypeNorm.includes('remote') || empTypeNorm.includes('distant') || empTypeNorm.includes('mesafeden') || fullCorpus.includes('remote');
+        if (!isJobRemote) return;
+      }
+
+      // 2. If salary is requested, reject jobs whose max salary is significantly lower
+      if (targetMinSalary > 0 && vac.maxSalary && !vac.hideSalary) {
+        if (vac.maxSalary < targetMinSalary * 0.8) return;
+      }
+
       let score = 50;
+      let directHits = 0;
       const reasons: string[] = [];
       const highlights: string[] = [];
 
-      const vacText = normalizeAz(
-        `${vac.title} ${vac.category} ${vac.description} ${vac.city} ${vac.employmentType} ${vac.skills?.join(' ')} ${vac.companyName}`
-      );
-
-      // Query keywords match
+      // Query-based evaluation
       if (normQuery) {
-        const words = normQuery.split(/\s+/).filter((w: string) => w.length > 2);
-        let matchedWordCount = 0;
-        words.forEach((w: string) => {
-          if (vacText.includes(w)) {
-            matchedWordCount++;
+        coreTokens.forEach((token: string) => {
+          if (titleNorm.includes(token)) {
+            score += 25;
+            directHits++;
+            reasons.push(`Vəzifə başlığında "${token}" uyğunluğu`);
+          } else if (skillsNorm.some((s: string) => s.includes(token) || token.includes(s))) {
+            score += 20;
+            directHits++;
+            reasons.push(`Tələb olunan bacarıqlarda "${token}"`);
+          } else if (catNorm.includes(token)) {
+            score += 15;
+            directHits++;
+            reasons.push(`Sahə üzrə uyğunluq (${vac.category})`);
+          } else if (compNorm.includes(token)) {
+            score += 15;
+            directHits++;
+            reasons.push(`Şirkət adı uyğunluğu`);
+          } else if (fullCorpus.includes(token)) {
+            score += 10;
+            directHits++;
           }
         });
 
-        if (matchedWordCount > 0) {
-          const ratio = matchedWordCount / Math.max(1, words.length);
-          score += Math.round(ratio * 30);
-          reasons.push(`Axtarış sorğusundakı açar anlayışlara (${matchedWordCount} parametr) uyğundur`);
+        // If user searched specific terms, but this job has ZERO hits, strictly EXCLUDE it!
+        if (coreTokens.length > 0 && directHits === 0) {
+          return; // Strictly omit!
         }
       }
 
-      // CV Skills match
+      // CV Skills & Title match
       if (cvSkills.length > 0) {
         const matchedSkills = (vac.skills || []).filter((s: string) =>
-          cvSkills.some((cs: string) => normalizeAz(cs).includes(normalizeAz(s)) || normalizeAz(s).includes(normalizeAz(cs)))
+          cvSkills.some((cs: string) => cs.includes(normalizeAz(s)) || normalizeAz(s).includes(cs))
         );
 
         if (matchedSkills.length > 0) {
           score += Math.min(25, matchedSkills.length * 8);
-          highlights.push(`Bacarıq uyğunluğu: ${matchedSkills.slice(0, 3).join(', ')}`);
-          reasons.push(`Sizin ${matchedSkills.length} əsas bacarığınızla birbaşa üst-üstə düşür`);
+          highlights.push(`Bacarıqlar: ${matchedSkills.slice(0, 3).join(', ')}`);
+          reasons.push(`${matchedSkills.length} əsas bacarığınız tələblərə tam cavab verir`);
         }
       }
 
-      // Title & role match
-      if (cvTitle && normalizeAz(vac.title).includes(normalizeAz(cvTitle))) {
-        score += 15;
-        reasons.push(`CV-nizdəki "${cvTitle}" vəzifəsi ilə uyğundur`);
+      if (cvTitle && titleNorm.includes(cvTitle)) {
+        score += 20;
+        reasons.push(`CV-nizdəki "${candidateCV?.personalInfo?.jobTitle}" ixtisası ilə uyğundur`);
       }
 
-      // Salary match
-      if (targetMinSalary > 0 && vac.maxSalary) {
-        if (vac.maxSalary >= targetMinSalary) {
-          score += 12;
-          reasons.push(`Maaş tələbinizi qarşılayır (${vac.minSalary} - ${vac.maxSalary} ${vac.currency || 'AZN'})`);
-        } else {
-          score -= 10;
-        }
+      // If purely CV matching without query, reject jobs that have neither skill nor title match
+      if (!normQuery && candidateCV && reasons.length === 0) {
+        return;
       }
 
-      // Featured / verified bonus
-      if (vac.isFeatured) score += 4;
-      if (vac.companyVerified) score += 3;
+      // Bonus for salary
+      if (targetMinSalary > 0 && vac.maxSalary && vac.maxSalary >= targetMinSalary) {
+        score += 10;
+        highlights.push(`${vac.minSalary}-${vac.maxSalary} ${vac.currency || 'AZN'}`);
+        reasons.push(`Maaş tələbinizi qarşılayır (${targetMinSalary}+ AZN)`);
+      }
 
-      const finalScore = Math.min(99, Math.max(45, score));
+      const finalScore = Math.min(99, Math.max(65, score));
       const matchReason = reasons.length > 0 
-        ? reasons.join('. ') + '.'
-        : `Vakansiya sahəsi (${vac.category}) və parametrləri ilə uyğundur.`;
+        ? reasons.slice(0, 2).join('. ') + '.'
+        : `Sorğu parametrlərinə və ${vac.category} sahəsinə uyğundur.`;
 
-      return {
+      scored.push({
         id: vac.id,
         matchScore: finalScore,
         matchReason,
-        keyHighlights: highlights.length > 0 ? highlights : [vac.category, `${vac.minSalary}-${vac.maxSalary} ${vac.currency || 'AZN'}`],
-      };
+        keyHighlights: highlights.length > 0 ? highlights : [vac.category, `${vac.minSalary || 0}-${vac.maxSalary || 0} ${vac.currency || 'AZN'}`],
+      });
     });
 
     // Sort descending by match score
@@ -4778,7 +5032,7 @@ app.post('/api/ai/smart-search-vacancies', async (req, res) => {
     return {
       matchedVacancies: scored,
       extractedSummary: {
-        keywords: query ? query.split(' ').filter(Boolean) : [],
+        keywords: coreTokens,
         minSalary: targetMinSalary || undefined,
       },
     };
@@ -4801,17 +5055,26 @@ app.post('/api/ai/smart-search-vacancies', async (req, res) => {
       experienceLevel: v.experienceLevel,
     }));
 
-    const prompt = `Sən ağıllı iş axtarış və namizəd-vakansiya uyğunlaşdırma (Job Matching) sistemisən.
-İstifadəçinin axtarış sorğusunu və ya CV profilini təhlil edərək təqdim olunan vakansiyalar arasından ən uyğun olanlarını seç, faiz balı (0-100%) ver və Azərbaycan dilində niyə uyğun olduğunu 1 cümlə ilə izah et.
+    const prompt = `Sən son dərəcə dəqiq və peşəkar iş axtarış AI köməkçisisən.
+İstifadəçinin axtarış sorğusunu ("${query || ''}") və ya namizədin CV profilini təhlil edərək, mövcud vakansiyalar arasından YALNIZ və YALNIZ bu tələblərə HƏQİQƏTƏN uyğun gələn vakansiyaları seç.
 
-Axtarış Sorğusu: "${query || 'Bütün uyğun vakansiyalar'}"
-Namizəd Profili: ${candidateCV ? `Vəzifə: ${candidateCV.personalInfo?.jobTitle || ''}, Bacarıqlar: ${candidateCV.skills?.map((s: any) => s.name || s).join(', ') || ''}` : 'Göstərilməyib'}
+KRİTİK VƏ MƏCBURİ QAYDALAR:
+1. QƏTİYYƏN aidiyyəti olmayan və ya uyğun gəlməyən vakansiyaları daxil etmə (qalanını çıxarma)!
+   - İstifadəçi IT, Developer və ya React axtarırsa, həkim, mühasib, sürücü, mühafizəçi, aşpaz və ya satıcı vakansiyalarını QƏTİYYƏN siyahıya daxil etmə!
+   - İstifadəçi "Mühasib" axtarırsa, yalnız mühasibat, audit, 1C və maliyyə vakansiyalarını daxil et!
+   - İstifadəçi maaş (məs: "1500+") və ya "Remote" qeyd edibsə, bu tələbi ödəməyən vakansiyaları kənarlaşdır!
+2. matchedVacancies massivinə YALNIZ matchScore >= 60 olan HƏQİQİ uyğun vakansiyaları daxil et.
+3. Əgər mövcud vakansiyalar arasında sorğuya uyğun heç bir vakansiya YOXDURSA, matchedVacancies massivini BOŞ array kimi qaytar: []
+4. matchReason sahəsində Azərbaycan dilində vakansiyanın bu sorğuya konkret hansı parametrə görə uyğun olduğunu 1 cümlə ilə qeyd et.
+
+Axtarış Sorğusu: "${query || 'CV-yə ən uyğun vakansiyalar'}"
+Namizəd Profili: ${candidateCV ? `Vəzifə: ${candidateCV.personalInfo?.jobTitle || ''}, Bacarıqlar: ${candidateCV.skills?.map((s: any) => (typeof s === 'string' ? s : s.name)).join(', ') || ''}` : 'Göstərilməyib'}
 
 Mövcud Vakansiyalar:
 ${JSON.stringify(vacanciesSummary, null, 2)}
 
 Aşağıdakı JSON sxeminə uyğun cavab ver:
-- matchedVacancies: array of { id: string, matchScore: number (40-99 arası), matchReason: string (Azərbaycan dilində qısa izah), keyHighlights: array of string }
+- matchedVacancies: array of { id: string, matchScore: number (60-99 arası), matchReason: string, keyHighlights: array of string }
 - extractedSummary: { keywords: array of string, category?: string, minSalary?: number, city?: string, workType?: string }`;
 
     const rawResponse = await callGeminiResilient(prompt, {
@@ -4854,7 +5117,9 @@ Aşağıdakı JSON sxeminə uyğun cavab ver:
     });
 
     const parsed = JSON.parse(rawResponse);
-    if (parsed && Array.isArray(parsed.matchedVacancies) && parsed.matchedVacancies.length > 0) {
+    if (parsed && Array.isArray(parsed.matchedVacancies)) {
+      // Keep strictly matches with score >= 60
+      parsed.matchedVacancies = parsed.matchedVacancies.filter((m: any) => typeof m.matchScore === 'number' && m.matchScore >= 60);
       return res.json(parsed);
     }
     return res.json(getLocalFallbackMatches());

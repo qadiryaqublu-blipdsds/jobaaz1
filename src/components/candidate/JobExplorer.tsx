@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useDeferredValue, useRef } from 'react';
-import { Vacancy, CVData } from '../../types';
+import { Vacancy, CVData, Company } from '../../types';
 import { JOB_CATEGORIES, CITIES, SAMPLE_COMPANIES } from '../../data/mockData';
 import { useLanguage } from '../../context/LanguageContext';
 import { safeFetchJson } from '../../utils/apiHelper';
@@ -8,6 +8,7 @@ import {
   MapPin, 
   DollarSign, 
   Sparkles, 
+  Crown,
   Bookmark, 
   Calendar, 
   ChevronRight, 
@@ -63,12 +64,14 @@ import {
   BellRing,
   PanelLeftClose,
   PanelLeftOpen,
-  GripVertical
+  GripVertical,
+  Loader2,
+  Target
 } from 'lucide-react';
 import { JobiaLogo } from '../JobiaLogo';
+import { SectionBottomLogo } from '../common/SectionBottomLogo';
 import { ModalBottomLogo } from '../ModalBottomLogo';
-import { JobiaSectionFooter } from '../JobiaSectionFooter';
-import { normalizeAzText, evaluateJobDomainMatch } from '../../utils/domainSearch';
+import { normalizeAzText, evaluateJobDomainMatch, evaluateSmartAiJobMatch } from '../../utils/domainSearch';
 import { JobAlertManagerModal } from './JobAlertManagerModal';
 import { JobAlertSubscription, User } from '../../types';
 import { getJobAlertSubscription, saveJobAlertSubscription } from '../../services/firestoreService';
@@ -87,6 +90,7 @@ import {
 
 interface JobExplorerProps {
   vacancies: Vacancy[];
+  companies?: Company[];
   onSelectVacancy: (vacancy: Vacancy) => void;
   savedJobIds: string[];
   onToggleBookmark: (jobId: string) => void;
@@ -102,6 +106,9 @@ interface JobExplorerProps {
   onSelectCompany?: (company: string) => void;
   currentUser?: User | null;
   onShowToast?: (message: string) => void;
+  onOpenAuthModal?: (mode?: 'login' | 'register', role?: 'candidate' | 'business' | 'admin') => void;
+  onOpenProfileModal?: () => void;
+  onNavigateToTab?: (tab: string) => void;
 }
 
 interface AIMatchResult {
@@ -193,7 +200,7 @@ const CitySearchSelect: React.FC<CitySearchSelectProps> = ({
       </button>
 
       {isOpen && (
-        <div className="absolute left-0 top-full mt-1.5 w-72 sm:w-80 bg-white rounded-2xl shadow-xl border border-slate-200 p-2.5 z-50 animate-fade-in">
+        <div className="absolute left-0 sm:left-auto sm:right-0 top-full mt-1.5 w-72 sm:w-80 max-w-[calc(100vw-2rem)] bg-white rounded-2xl shadow-xl border border-slate-200 p-2.5 z-50 animate-fade-in">
           {/* Search Input */}
           <div className="relative mb-2">
             <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
@@ -321,6 +328,113 @@ export const COMPANY_INDUSTRIES = [
   'İstehsalat və Sənaye',
 ];
 
+/**
+ * Accurately determines if a vacancy matches a target corporate industry (Sahə).
+ * Evaluates:
+ * 1. Direct match on vacancy's explicit industry field (if populated)
+ * 2. Company's registered industry (via companyId or companyName lookup)
+ * 3. Exact semantic category-to-industry mappings
+ * 4. Sector-specific corporate keywords in company name
+ * Guarded against empty-string substring matches that would cause over-counting.
+ */
+export const isVacancyInIndustry = (
+  v: Vacancy,
+  targetIndustry: string,
+  companyIndustryMap?: Map<string, string>
+): boolean => {
+  if (!targetIndustry || targetIndustry === 'Hamısı') return true;
+
+  const targetNorm = normalizeAzText(targetIndustry);
+  if (!targetNorm) return true;
+
+  // 1. Direct match on vacancy's explicit industry field if present
+  const jobInd = (v as any).industry ? normalizeAzText((v as any).industry) : '';
+  if (jobInd && jobInd.length >= 3) {
+    if (jobInd === targetNorm || targetNorm.includes(jobInd) || jobInd.includes(targetNorm)) {
+      return true;
+    }
+  }
+
+  // 2. Company's registered industry
+  const compNameLower = (v.companyName || '').toLowerCase().trim();
+  const compId = v.companyId || '';
+  const compIndRaw = companyIndustryMap
+    ? (companyIndustryMap.get(compId) || companyIndustryMap.get(compNameLower) || '')
+    : '';
+  const compInd = compIndRaw ? normalizeAzText(compIndRaw) : '';
+
+  if (compInd && compInd.length >= 3) {
+    if (compInd === targetNorm || targetNorm.includes(compInd) || compInd.includes(targetNorm)) {
+      return true;
+    }
+  }
+
+  // 3. Known Category to Industry exact mapping
+  const vCat = v.category ? normalizeAzText(v.category) : '';
+  
+  const industryCategoryMap: Record<string, string[]> = {
+    'bank ve maliyye texnologiyalari': ['maliyye ve muhasibat', 'bankciliq ve sigorta'],
+    'investisiya ve holdinqler': ['investisiya ve holdinqler', 'investisiya'],
+    'it ve telekommunikasiya': ['it ve proqramlasdirma'],
+    'perakende ticaret ve fmcg': ['satis ve musteri xidmetleri'],
+    'muhendislik ve tikinti': ['muhendislik ve tikinti'],
+    'sehiyye ve tibb': ['tibb eczaciliq ve sehiyye'],
+    'tehsil ve telim': ['tehsil elm ve telim', 'telebeler ve tecrubeciler'],
+    'otelcilik ve restoran horeca': ['restoran otel ve turizm horeca'],
+    'huquq ve konsaltinq': ['huquq ve komplayens'],
+    'logistika ve neqliyyat': ['logistika neqliyyat ve anbar'],
+    'istehsalat ve senaye': ['istehsalat senaye ve texnologiya', 'energetika neft qaz ve meden'],
+  };
+
+  const matchedCategories = industryCategoryMap[targetNorm];
+  if (matchedCategories && vCat && vCat.length >= 3) {
+    if (matchedCategories.some((mc) => vCat === mc || vCat.includes(mc) || mc.includes(vCat))) {
+      return true;
+    }
+  }
+
+  // 4. Sector-specific corporate keywords in company name
+  const compNorm = normalizeAzText(v.companyName || '');
+  if (compNorm && compNorm.length >= 2) {
+    if (targetNorm === 'bank ve maliyye texnologiyalari') {
+      const bankKeywords = ['bank', 'bokt', 'pay', 'kapital', 'pasha', 'abb', 'yelo', 'unibank', 'rabita', 'fintech', 'kredit'];
+      if (bankKeywords.some((kw) => compNorm.includes(kw))) return true;
+    } else if (targetNorm === 'investisiya ve holdinqler') {
+      const investKeywords = ['holdinq', 'holding', 'invest', 'investisiya'];
+      if (investKeywords.some((kw) => compNorm.includes(kw))) return true;
+    } else if (targetNorm === 'it ve telekommunikasiya') {
+      const itKeywords = ['telekom', 'telecom', 'cell', 'tech', 'software', 'soft', 'it', 'digital', 'cloud'];
+      if (itKeywords.some((kw) => compNorm.includes(kw))) return true;
+    } else if (targetNorm === 'perakende ticaret ve fmcg') {
+      const retailKeywords = ['supermarket', 'market', 'bazar', 'bravo', 'araz', 'rahat', 'retail', 'fmcg', 'irsad', 'irshad', 'kontakt', 'albali', 'veyseloglu'];
+      if (retailKeywords.some((kw) => compNorm.includes(kw))) return true;
+    } else if (targetNorm === 'muhendislik ve tikinti') {
+      const buildKeywords = ['tikinti', 'insaat', 'construction', 'pmd', 'proyekt', 'engineering', 'muhendislik'];
+      if (buildKeywords.some((kw) => compNorm.includes(kw))) return true;
+    } else if (targetNorm === 'sehiyye ve tibb') {
+      const medKeywords = ['hospital', 'klinik', 'medical', 'tibb', 'saglam', 'apteka', 'aptek', 'avromed', 'zeytun'];
+      if (medKeywords.some((kw) => compNorm.includes(kw))) return true;
+    } else if (targetNorm === 'tehsil ve telim') {
+      const eduKeywords = ['mekteb', 'tedris', 'universitet', 'kurs', 'telim', 'akademiya', 'academy', 'education', 'school'];
+      if (eduKeywords.some((kw) => compNorm.includes(kw))) return true;
+    } else if (targetNorm === 'otelcilik ve restoran horeca') {
+      const horecaKeywords = ['hotel', 'otel', 'restoran', 'restaurant', 'cafe', 'kafe', 'lounge', 'horeca', 'resort', 'turizm'];
+      if (horecaKeywords.some((kw) => compNorm.includes(kw))) return true;
+    } else if (targetNorm === 'huquq ve konsaltinq') {
+      const lawKeywords = ['huquq', 'law', 'legal', 'konsaltinq', 'consulting', 'audit', 'komplayens'];
+      if (lawKeywords.some((kw) => compNorm.includes(kw))) return true;
+    } else if (targetNorm === 'logistika ve neqliyyat') {
+      const logKeywords = ['logistika', 'logistics', 'karqo', 'cargo', 'express', 'kuryer', 'anbar', 'neqliyyat', 'transport', 'airlines', 'silk way'];
+      if (logKeywords.some((kw) => compNorm.includes(kw))) return true;
+    } else if (targetNorm === 'istehsalat ve senaye') {
+      const indKeywords = ['socar', 'neft', 'qaz', 'oil', 'gas', 'zavod', 'fabrik', 'istehsal', 'senaye', 'enerji', 'energy'];
+      if (indKeywords.some((kw) => compNorm.includes(kw))) return true;
+    }
+  }
+
+  return false;
+};
+
 export const FEATURED_COMPANIES = [
   { name: 'PAŞA Holdinq MMC', logo: 'https://images.unsplash.com/photo-1542744173-8e7e53415bb0?auto=format&fit=crop&w=120&q=80', isPartner: true },
   { name: 'Kapital Bank ASC', logo: 'https://images.unsplash.com/photo-1560179707-f14e90ef3623?auto=format&fit=crop&w=120&q=80', isHot: true },
@@ -352,6 +466,7 @@ export const LANDING_CATEGORIES = [
 
 export const JobExplorer: React.FC<JobExplorerProps> = ({
   vacancies,
+  companies = [],
   onSelectVacancy,
   savedJobIds,
   onToggleBookmark,
@@ -367,6 +482,9 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
   onSelectCompany,
   currentUser,
   onShowToast,
+  onOpenAuthModal,
+  onOpenProfileModal,
+  onNavigateToTab,
 }) => {
   const { dict, language, brandAcronym, brandSlogan, t } = useLanguage();
 
@@ -619,6 +737,7 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
   const [selectedExperience, setSelectedExperience] = useState<string>('Hamısı');
   const [minSalaryFilter, setMinSalaryFilter] = useState<number>(0);
   const [onlyFeatured, setOnlyFeatured] = useState(false);
+  const [onlyEasyApply, setOnlyEasyApply] = useState(false);
   const [onlySaved, setOnlySaved] = useState(false);
   const [sortBy, setSortBy] = useState<'newest' | 'salary-desc' | 'views-desc' | 'title-asc' | 'company-asc' | 'ai-match'>('newest');
 
@@ -651,6 +770,7 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
   const [isAiSearching, setIsAiSearching] = useState(false);
   const [aiMatchesMap, setAiMatchesMap] = useState<Record<string, AIMatchResult>>({});
   const [aiSearchSummary, setAiSearchSummary] = useState<string | null>(null);
+  const [hasActiveAiFilter, setHasActiveAiFilter] = useState(false);
 
   // Mobile dedicated filter modal state ('none' | 'categories' | 'industries' | 'companies' | 'filters' | 'ai')
   const [mobileFilterModal, setMobileFilterModal] = useState<'none' | 'categories' | 'industries' | 'companies' | 'filters' | 'ai'>('none');
@@ -672,7 +792,7 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
   // Helper to format date in clean friendly local text (Bu gün, Dünən, etc.)
   const formatJobDate = (dateStr: string) => {
     try {
-      const today = new Date('2026-08-28');
+      const today = new Date();
       const postDate = new Date(dateStr);
       const diffTime = today.getTime() - postDate.getTime();
       const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
@@ -733,39 +853,45 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
   const companyListWithStats = useMemo(() => {
     const map: Record<string, { count: number; logo: string; verified: boolean; industry?: string }> = {};
     
-    // Seed with known companies
-    for (let i = 0; i < SAMPLE_COMPANIES.length; i++) {
-      const c = SAMPLE_COMPANIES[i];
-      if (c.verified) {
-        map[c.name] = {
-          count: 0,
-          logo: c.logo,
-          verified: c.verified,
-          industry: c.industry,
-        };
+    // Seed with real verified registered companies
+    if (companies && Array.isArray(companies)) {
+      for (let i = 0; i < companies.length; i++) {
+        const c = companies[i];
+        if (c.name && (c.verified || c.verificationStatus === 'verified')) {
+          map[c.name] = {
+            count: 0,
+            logo: c.logo || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(c.name)}&backgroundColor=0284c7,16a34a,d97706,4f46e5`,
+            verified: true,
+            industry: c.industry,
+          };
+        }
       }
     }
 
-    // Count from actual vacancies
+    // Count and merge from actual approved published vacancies
     for (let i = 0; i < vacancies.length; i++) {
       const v = vacancies[i];
-      if (v.isApproved !== true || v.status !== 'published') continue;
-      if (!map[v.companyName]) {
-        map[v.companyName] = {
+      if (v.isApproved !== true || v.status !== 'published' || !v.companyName) continue;
+      const cName = v.companyName.trim();
+      if (!map[cName]) {
+        map[cName] = {
           count: 0,
-          logo: v.companyLogo || 'https://images.unsplash.com/photo-1542744173-8e7e53415bb0?w=150&auto=format&fit=crop&q=80',
-          verified: v.companyVerified === true,
-          industry: v.category,
+          logo: v.companyLogo || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(cName)}&backgroundColor=0284c7,16a34a,d97706,4f46e5`,
+          verified: true,
+          industry: (v as any).industry || v.category,
         };
       }
-      map[v.companyName].count += 1;
+      map[cName].count += 1;
     }
 
-    return Object.entries(map).map(([name, data]) => ({
-      name,
-      ...data,
-    })).sort((a, b) => b.count - a.count);
-  }, [vacancies]);
+    return Object.entries(map)
+      .map(([name, data]) => ({
+        name,
+        ...data,
+      }))
+      .filter((c) => c.count > 0 || (companies && companies.some((comp) => comp.name === c.name)))
+      .sort((a, b) => b.count - a.count);
+  }, [vacancies, companies]);
 
   // Filtered Company List for Sidebar search
   const filteredCompaniesForSidebar = useMemo(() => {
@@ -777,12 +903,24 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
   // Company industry fast lookup cache
   const companyIndustryLookup = useMemo(() => {
     const map = new Map<string, string>();
+    if (companies && Array.isArray(companies)) {
+      for (let i = 0; i < companies.length; i++) {
+        const c = companies[i];
+        if (c.industry) {
+          if (c.id) map.set(c.id, c.industry.trim());
+          if (c.name) map.set(c.name.toLowerCase().trim(), c.industry.trim());
+        }
+      }
+    }
     for (let i = 0; i < SAMPLE_COMPANIES.length; i++) {
       const c = SAMPLE_COMPANIES[i];
-      if (c.industry) map.set(c.name.toLowerCase(), c.industry.toLowerCase());
+      if (c.industry) {
+        if (c.id) map.set(c.id, c.industry.trim());
+        if (c.name) map.set(c.name.toLowerCase().trim(), c.industry.trim());
+      }
     }
     return map;
-  }, []);
+  }, [companies]);
 
   // Pre-calculate count of vacancies per Industry - single pass O(N)
   const industryStats = useMemo(() => {
@@ -791,21 +929,14 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
       counts[COMPANY_INDUSTRIES[k]] = 0;
     }
 
-    for (let i = 0; i < vacancies.length; i++) {
-      const v = vacancies[i];
-      if (v.isApproved !== true || v.status !== 'published') continue;
-      counts['Hamısı'] = (counts['Hamısı'] || 0) + 1;
-      const compInd = companyIndustryLookup.get(v.companyName.toLowerCase()) || '';
-      const vCat = v.category.toLowerCase();
+    const activeList = vacancies.filter((v) => v.isApproved !== false && (v.status === 'published' || !v.status));
+    counts['Hamısı'] = activeList.length;
+
+    for (let i = 0; i < activeList.length; i++) {
+      const v = activeList[i];
       for (let j = 0; j < COMPANY_INDUSTRIES.length; j++) {
         const ind = COMPANY_INDUSTRIES[j];
-        const indLower = ind.toLowerCase();
-        if (
-          compInd.includes(indLower) ||
-          indLower.includes(compInd) ||
-          vCat.includes(indLower) ||
-          indLower.includes(vCat)
-        ) {
+        if (isVacancyInIndustry(v, ind, companyIndustryLookup)) {
           counts[ind] = (counts[ind] || 0) + 1;
         }
       }
@@ -866,6 +997,7 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
     const queryToUse = customPrompt !== undefined ? customPrompt : aiPrompt;
     setIsAiSearching(true);
     setIsAiModeActive(true);
+    setHasActiveAiFilter(true);
 
     try {
       const response = await safeFetchJson<any>('/api/ai/smart-search-vacancies', {
@@ -874,7 +1006,7 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
         body: JSON.stringify({
           query: queryToUse,
           candidateCV: useCVProfile ? userCV : undefined,
-          vacancies: vacancies.filter((v) => v.isApproved !== false),
+          vacancies: vacancies.filter((v) => v.isApproved !== false && v.status === 'published'),
         }),
       });
 
@@ -886,34 +1018,85 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
       if (data && Array.isArray(data.matchedVacancies)) {
         const mapping: Record<string, AIMatchResult> = {};
         data.matchedVacancies.forEach((m: AIMatchResult) => {
-          mapping[m.id] = m;
+          if (m && m.id && typeof m.matchScore === 'number' && m.matchScore >= 60) {
+            mapping[m.id] = m;
+          }
         });
         setAiMatchesMap(mapping);
         setSortBy('ai-match');
 
+        const matchCount = Object.keys(mapping).length;
         if (useCVProfile) {
           setAiSearchSummary(
             language === 'en'
-              ? `Matched optimal vacancies based on your CV skills (${userCV.personalInfo.jobTitle || 'Profile'}).`
+              ? `AI identified ${matchCount} precise matches for your profile (${userCV.personalInfo.jobTitle || 'CV'}).`
               : language === 'ru'
-              ? `Подобраны вакансии, соответствующие навыкам из резюме (${userCV.personalInfo.jobTitle || 'Специальность'}).`
-              : `CV-nizdəki (${userCV.personalInfo.jobTitle || 'İxtisas'}) bacarıqlarınıza uyğun ən optimal vakansiyalar tapıldı.`
+              ? `ИИ подобрал ${matchCount} точных вакансий по вашему резюме (${userCV.personalInfo.jobTitle || 'Резюме'}).`
+              : `CV profilinizə (${userCV.personalInfo.jobTitle || 'İxtisas'}) uyğun ${matchCount} dəqiq vakansiya tapıldı.`
           );
         } else if (queryToUse.trim()) {
           setAiSearchSummary(
             language === 'en'
-              ? `AI ranked best vacancies according to "${queryToUse}".`
+              ? `AI found ${matchCount} relevant matches for "${queryToUse}" (non-matching jobs filtered out).`
               : language === 'ru'
-              ? `ИИ подобрал наиболее подходящие вакансии по запросу "${queryToUse}".`
-              : `"${queryToUse}" sorğusuna əsasən AI tərəfindən ən uyğun vakansiyalar reytinqləndi.`
+              ? `ИИ нашел ${matchCount} точных вакансий по запросу "${queryToUse}" (нерелевантные скрыты).`
+              : `"${queryToUse}" sorğusuna dəqiq cavab verən ${matchCount} vakansiya tapıldı (uyğunsuz elanlar gizlədildi).`
           );
+        } else {
+          setAiSearchSummary(`${matchCount} uyğun vakansiya tapıldı.`);
         }
       }
     } catch (err) {
-      console.warn('AI Smart Search fallback:', err);
+      console.warn('AI Smart Search local fallback matching:', err);
+      const mapping: Record<string, AIMatchResult> = {};
+      vacancies.forEach((job) => {
+        if (job.isApproved !== true || job.status !== 'published') return;
+        const res = evaluateSmartAiJobMatch(job, {
+          query: useCVProfile ? '' : queryToUse,
+          candidateCV: useCVProfile ? userCV : undefined,
+          minAcceptableScore: 60,
+        });
+        if (res.isMatch && res.matchScore >= 60) {
+          mapping[job.id] = {
+            id: job.id,
+            matchScore: res.matchScore,
+            matchReason: res.matchReason,
+            keyHighlights: res.keyHighlights,
+          };
+        }
+      });
+      setAiMatchesMap(mapping);
+      setSortBy('ai-match');
+      const matchCount = Object.keys(mapping).length;
+      if (useCVProfile) {
+        setAiSearchSummary(
+          language === 'en'
+            ? `AI identified ${matchCount} precise matches for your profile.`
+            : language === 'ru'
+            ? `ИИ подобрал ${matchCount} точных вакансий по вашему резюме.`
+            : `CV profilinizə (${userCV.personalInfo.jobTitle || 'İxtisas'}) uyğun ${matchCount} dəqiq vakansiya tapıldı.`
+        );
+      } else {
+        setAiSearchSummary(
+          language === 'en'
+            ? `AI found ${matchCount} relevant matches for "${queryToUse}".`
+            : language === 'ru'
+            ? `ИИ нашел ${matchCount} точных вакансий по запросу "${queryToUse}".`
+            : `"${queryToUse}" sorğusuna dəqiq cavab verən ${matchCount} vakansiya tapıldı (uyğunsuz elanlar gizlədildi).`
+        );
+      }
     } finally {
       setIsAiSearching(false);
     }
+  };
+
+  // Clear only AI search filter
+  const handleClearAiSearch = () => {
+    setHasActiveAiFilter(false);
+    setAiMatchesMap({});
+    setAiSearchSummary(null);
+    setAiPrompt('');
+    setSortBy('newest');
   };
 
   // Reset all filters
@@ -928,11 +1111,13 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
     setSelectedExperience('Hamısı');
     setMinSalaryFilter(0);
     setOnlyFeatured(false);
+    setOnlyEasyApply(false);
     setOnlySaved(false);
     setSortBy('newest');
     setQuickProfessionFilter('all');
     setPostedDateFilter('all');
     setIsAiModeActive(false);
+    setHasActiveAiFilter(false);
     setAiPrompt('');
     setAiMatchesMap({});
     setAiSearchSummary(null);
@@ -979,7 +1164,7 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
   // Precomputed job search metadata cache for O(1) instant text queries and sorting
   const jobSearchMetadata = useMemo(() => {
     const map = new Map<string, { corpus: string; postedTime: number; companyLower: string; titleLower: string }>();
-    const now = new Date('2026-08-28').getTime();
+    const now = Date.now();
     for (let i = 0; i < vacancies.length; i++) {
       const v = vacancies[i];
       const corpus = normalizeAzText(
@@ -1013,7 +1198,7 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
     const isTypeFiltered = selectedType !== 'Hamısı';
     const isExpFiltered = selectedExperience !== 'Hamısı';
     const isDateFiltered = postedDateFilter !== 'all';
-    const currentRefTime = new Date('2026-08-28').getTime();
+    const currentRefTime = Date.now();
 
     const selectedProf = quickProfessionFilter !== 'all' 
       ? quickProfessions.find((p) => p.id === quickProfessionFilter) 
@@ -1025,6 +1210,16 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
     for (let i = 0; i < vacancies.length; i++) {
       const job = vacancies[i];
       if (job.isApproved !== true || job.status !== 'published') continue;
+
+      // STRICT AI SEARCH FILTERING:
+      // If AI search is active, ONLY output vacancies that matched the AI criteria (matchScore >= 60)!
+      // Non-matching vacancies MUST BE EXCLUDED ("qalanını çıxarmasın")!
+      if (hasActiveAiFilter) {
+        const aiMatch = aiMatchesMap[job.id];
+        if (!aiMatch || aiMatch.matchScore < 60) {
+          continue; // EXCLUDE non-matching jobs!
+        }
+      }
 
       const meta = jobSearchMetadata.get(job.id);
       const corpus = meta ? meta.corpus : '';
@@ -1073,14 +1268,7 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
 
       // Company Industry filter
       if (isIndFiltered) {
-        const compInd = normalizeAzText(companyIndustryLookup.get(meta?.companyLower || '') || '');
-        const vCat = normalizeAzText(job.category);
-        if (
-          !compInd.includes(indLower) &&
-          !indLower.includes(compInd) &&
-          !vCat.includes(indLower) &&
-          !indLower.includes(vCat)
-        ) {
+        if (!isVacancyInIndustry(job, selectedIndustry, companyIndustryLookup)) {
           continue;
         }
       }
@@ -1110,6 +1298,11 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
         continue;
       }
 
+      // Easy Apply only (LinkedIn model)
+      if (onlyEasyApply && job.isEasyApply === false) {
+        continue;
+      }
+
       // Saved only
       if (onlySaved && !savedJobIds.includes(job.id)) {
         continue;
@@ -1135,9 +1328,9 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
 
     // Fast Sorting
     result.sort((a, b) => {
-      if (sortBy === 'ai-match') {
-        const scoreA = aiMatchesMap[a.id]?.matchScore || (q ? evaluateJobDomainMatch(a, q).score : 0);
-        const scoreB = aiMatchesMap[b.id]?.matchScore || (q ? evaluateJobDomainMatch(b, q).score : 0);
+      if (hasActiveAiFilter || sortBy === 'ai-match') {
+        const scoreA = aiMatchesMap[a.id]?.matchScore || 0;
+        const scoreB = aiMatchesMap[b.id]?.matchScore || 0;
         if (scoreB !== scoreA) return scoreB - scoreA;
       }
 
@@ -1191,10 +1384,12 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
     minSalaryFilter,
     postedDateFilter,
     onlyFeatured,
+    onlyEasyApply,
     onlySaved,
     sortBy,
     savedJobIds,
     aiMatchesMap,
+    hasActiveAiFilter,
   ]);
 
   // High performance pagination & DOM windowing (prevents browser freezing & lagging)
@@ -1214,8 +1409,10 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
     selectedExperience,
     minSalaryFilter,
     onlyFeatured,
+    onlyEasyApply,
     onlySaved,
     sortBy,
+    hasActiveAiFilter,
   ]);
 
   const visibleVacancies = useMemo(() => {
@@ -1234,8 +1431,9 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
     selectedExperience !== 'Hamısı',
     minSalaryFilter > 0,
     onlyFeatured,
+    onlyEasyApply,
     onlySaved,
-    isAiModeActive,
+    hasActiveAiFilter,
   ].filter(Boolean).length;
 
   // Handle Quick Direct WhatsApp Message
@@ -1268,175 +1466,218 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
       {/* 1. TOP BAR: INTEGRATED SEARCH & VIEW MODE BAR                             */}
       {/* ========================================================================= */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-2xs p-3 sm:p-4 space-y-3">
-        {/* Integrated Quick Search & View Switcher */}
-        <div className="flex flex-col xl:flex-row items-stretch xl:items-center justify-between gap-2.5">
-          {/* Main search and City selector */}
-          <div className="flex flex-col sm:flex-row items-stretch gap-2 flex-1 min-w-0">
-            {/* Main search */}
-            <div className="relative flex-1 min-w-0">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-              <input
-                id="top-quick-search-input"
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Escape') setSearchQuery('');
-                }}
-                placeholder={language === 'en' ? 'Search by title, company or keyword...' : language === 'ru' ? 'Поиск по должности, компании или ключевым словам...' : 'Vəzifə, şirkət və ya açar sözlə axtarın...'}
-                className="w-full pl-10 pr-9 py-2.5 bg-slate-50 hover:bg-slate-100/70 border border-slate-200 focus:border-blue-600 focus:bg-white rounded-xl text-xs sm:text-sm font-semibold text-slate-900 placeholder:text-slate-400 outline-none transition-all shadow-2xs"
-              />
-              {searchQuery && (
-                <button
-                  type="button"
-                  id="top-quick-search-clear-btn"
-                  onClick={() => setSearchQuery('')}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 hover:bg-slate-200/80 p-1 rounded-lg cursor-pointer transition-colors"
-                  title={language === 'en' ? 'Clear search' : language === 'ru' ? 'Очистить' : 'Təmizlə'}
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              )}
-            </div>
-
-            {/* City selector with manual search */}
-            <div className="w-full sm:w-52 md:w-56 shrink-0">
-              <CitySearchSelect
-                selectedCity={selectedCity}
-                onSelectCity={setSelectedCity}
-              />
-            </div>
+        {/* Row 1: Search input and City selector */}
+        <div className="flex flex-col sm:flex-row items-stretch gap-2.5">
+          {/* Main search */}
+          <div className="relative flex-1 min-w-0">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <input
+              id="top-quick-search-input"
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Escape') setSearchQuery('');
+              }}
+              placeholder={language === 'en' ? 'Search by title, company or keyword...' : language === 'ru' ? 'Поиск по должности, компании или ключевым словам...' : 'Vəzifə, şirkət və ya açar sözlə axtarın...'}
+              className="w-full pl-10 pr-9 py-2.5 bg-slate-50 hover:bg-slate-100/70 border border-slate-200 focus:border-blue-600 focus:bg-white rounded-xl text-xs sm:text-sm font-semibold text-slate-900 placeholder:text-slate-400 outline-none transition-all shadow-2xs"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                id="top-quick-search-clear-btn"
+                onClick={() => setSearchQuery('')}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 hover:bg-slate-200/80 p-1 rounded-lg cursor-pointer transition-colors"
+                title={language === 'en' ? 'Clear search' : language === 'ru' ? 'Очистить' : 'Təmizlə'}
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
           </div>
 
-          {/* Rejim Switch & AI / Salary Trends / Map / Alerts / Filters */}
-          <div className="flex items-center gap-1.5 flex-wrap shrink-0">
-            {/* Filter Toggle Button (Desktop & Mobile) */}
-            <button
-              type="button"
-              id="btn-toggle-filters-top"
-              onClick={() => {
-                if (window.innerWidth < 1024) {
-                  setMobileFilterModal('filters');
-                } else {
-                  handleToggleFiltersCollapse();
-                }
-              }}
-              className={`px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shrink-0 shadow-2xs whitespace-nowrap ${
-                (!isFiltersCollapsed && window.innerWidth >= 1024) || activeFiltersCount > 0
-                  ? 'bg-blue-600 text-white shadow-xs'
-                  : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200'
-              }`}
-              title="Filtrlər Paneli"
-            >
-              <SlidersHorizontal className="w-3.5 h-3.5 shrink-0" />
-              <span>{dict.filters?.title || 'Filtrlər'}</span>
-              {activeFiltersCount > 0 && (
-                <span className="px-1.5 py-0.2 rounded-full bg-white text-blue-700 text-[10px] font-black">
-                  {activeFiltersCount}
-                </span>
-              )}
-            </button>
-
-            {/* Job Alert & Notifications Quick Launch */}
-            <button
-              type="button"
-              id="btn-candidate-job-alert-modal"
-              onClick={() => setIsJobAlertModalOpen(true)}
-              className="px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shrink-0 shadow-2xs whitespace-nowrap bg-blue-50 hover:bg-blue-100 text-blue-800 border border-blue-200/90"
-              title="Vakansiya və Şirkət İzləmə Sistemi (Job Alerts)"
-            >
-              <BellRing className="w-3.5 h-3.5 text-blue-600 shrink-0" />
-              <span>İzləmə & Bildirişlər</span>
-              {activeAlertsCount > 0 && (
-                <span className="px-1.5 py-0.2 rounded-full bg-blue-600 text-white text-[10px] font-black">
-                  {activeAlertsCount}
-                </span>
-              )}
-            </button>
-
-            {onOpenNearbyMap && (
-              <button
-                type="button"
-                id="btn-open-nearby-map-top"
-                onClick={onOpenNearbyMap}
-                className="px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shrink-0 shadow-2xs whitespace-nowrap bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200/90"
-                title={language === 'en' ? 'Jobs on Map' : language === 'ru' ? 'Вакансии на карте' : 'Xəritədə Vakansiyalar'}
-              >
-                <Compass className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                <span>{language === 'en' ? '🗺️ View on Map' : language === 'ru' ? '🗺️ На карте' : '🗺️ Xəritədə Bax'}</span>
-              </button>
-            )}
-
-            <button
-              type="button"
-              onClick={() => setIsAiModeActive(!isAiModeActive)}
-              className={`px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shrink-0 shadow-2xs whitespace-nowrap ${
-                isAiModeActive
-                  ? 'bg-indigo-600 text-white shadow-xs'
-                  : 'bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200/90'
-              }`}
-              title="AI Ağıllı Axtarış"
-            >
-              <Sparkles className={`w-3.5 h-3.5 shrink-0 ${isAiModeActive ? 'text-indigo-200' : 'text-indigo-600'}`} />
-              <span>AI Axtarış</span>
-            </button>
-
-            <div className="inline-flex p-0.5 bg-slate-100/90 rounded-xl border border-slate-200 shadow-2xs shrink-0">
-              <button
-                type="button"
-                onClick={() => handleSetViewMode('simple')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1 whitespace-nowrap ${
-                  viewMode === 'simple'
-                    ? 'bg-white text-slate-900 shadow-2xs'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-                title="Sadə görünüş"
-              >
-                <Zap className="w-3 h-3 text-amber-500 shrink-0" />
-                <span>Sadə</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleSetViewMode('detailed')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1 whitespace-nowrap ${
-                  viewMode === 'detailed'
-                    ? 'bg-white text-slate-900 shadow-2xs'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-                title="Ətraflı görünüş"
-              >
-                <SlidersHorizontal className="w-3 h-3 text-slate-600 shrink-0" />
-                <span>Ətraflı</span>
-              </button>
-            </div>
-
-            {onOpenIntroTour && (
-              <button
-                type="button"
-                onClick={onOpenIntroTour}
-                title={language === 'en' ? 'Platform Guide' : language === 'ru' ? 'Гид' : 'Platforma Bələdçisi'}
-                className="p-2 bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-xl text-xs font-bold flex items-center justify-center transition-all cursor-pointer shadow-2xs shrink-0"
-              >
-                <Compass className="w-4 h-4 text-slate-600 shrink-0" />
-              </button>
-            )}
+          {/* City selector with manual search */}
+          <div className="w-full sm:w-52 md:w-56 shrink-0 relative z-20">
+            <CitySearchSelect
+              selectedCity={selectedCity}
+              onSelectCity={setSelectedCity}
+            />
           </div>
         </div>
 
+        {/* Row 2: Action Toolbar (Bütün Filtrlər, ⚡ Tez Müraciət, AI ilə Axtarış, Xəritədə Axtarış) */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-2.5 pt-1 border-t border-slate-100/90">
+          {/* Button 1: Consolidated Filters Button */}
+          <button
+            type="button"
+            id="btn-all-filters-consolidated"
+            onClick={() => {
+              setMobileFilterModal('filters');
+              if (isFiltersCollapsed && window.innerWidth >= 1024) {
+                handleToggleFiltersCollapse();
+              }
+            }}
+            className={`h-10 px-2 sm:px-3 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 shadow-2xs whitespace-nowrap ${
+              activeFiltersCount > 0
+                ? 'bg-blue-600 text-white shadow-xs ring-2 ring-blue-400/40'
+                : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200'
+            }`}
+            title={dict.filters?.title || (language === 'en' ? 'All Filters' : language === 'ru' ? 'Все фильтры' : 'Bütün Filtrlər')}
+          >
+            <div className="flex items-center gap-1 shrink-0">
+              <SlidersHorizontal className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+              <Filter className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0 -ml-0.5 opacity-80" />
+            </div>
+            <span className="truncate">
+              {dict.filters?.title || (language === 'en' ? 'Filters' : language === 'ru' ? 'Фильтры' : 'Filtrlər')}
+            </span>
+            {activeFiltersCount > 0 && (
+              <span className="px-1.5 py-0.2 rounded-full bg-white text-blue-700 text-[10px] sm:text-xs font-black shrink-0">
+                {activeFiltersCount}
+              </span>
+            )}
+          </button>
+
+          {/* Button 2: LinkedIn Model Tez Müraciət (Easy Apply) */}
+          <button
+            type="button"
+            id="btn-easy-apply-toggle"
+            onClick={() => setOnlyEasyApply((prev) => !prev)}
+            className={`h-10 px-2 sm:px-3 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 shadow-2xs whitespace-nowrap ${
+              onlyEasyApply
+                ? 'bg-blue-700 text-white shadow-xs ring-2 ring-blue-400/40'
+                : 'bg-blue-50/90 hover:bg-blue-100/90 text-blue-800 border border-blue-200/90'
+            }`}
+            title="LinkedIn modeli: 1 kliklə asan müraciət olunan vakansiyalar"
+          >
+            <Zap className={`w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 ${onlyEasyApply ? 'fill-white text-white' : 'fill-blue-600 text-blue-600'}`} />
+            <span className="truncate">Tez Müraciət</span>
+          </button>
+
+          {/* Button 3: AI Search Button (AI ilə axtarış) */}
+          <button
+            type="button"
+            id="btn-ai-search"
+            onClick={() => {
+              if (window.innerWidth < 1024) {
+                setMobileFilterModal('ai');
+              } else {
+                setIsAiModeActive(!isAiModeActive);
+              }
+            }}
+            className={`h-10 px-2 sm:px-3 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 shadow-2xs whitespace-nowrap ${
+              isAiModeActive || hasActiveAiFilter
+                ? 'bg-blue-600 text-white shadow-xs'
+                : 'bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200/80'
+            }`}
+            title={dict.jobExplorer?.aiSearch || (language === 'en' ? 'AI Search' : language === 'ru' ? 'AI Поиск' : 'AI Axtarış')}
+          >
+            <Sparkles className={`w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 ${isAiModeActive || hasActiveAiFilter ? 'text-white' : 'text-blue-600'}`} />
+            <span className="truncate">
+              {language === 'en' ? 'AI Search' : language === 'ru' ? 'AI Поиск' : 'AI Axtarış'}
+            </span>
+          </button>
+
+          {/* Button 4: Nearby Map Search */}
+          {onOpenNearbyMap && (
+            <button
+              type="button"
+              id="btn-nearby-map-search"
+              onClick={onOpenNearbyMap}
+              className="h-10 px-2 sm:px-3 rounded-xl text-xs sm:text-sm font-semibold bg-slate-100 hover:bg-slate-200/80 text-slate-700 border border-slate-200/80 transition-all cursor-pointer flex items-center justify-center gap-1.5 shadow-2xs whitespace-nowrap"
+              title={language === 'en' ? 'Map Search' : language === 'ru' ? 'Поиск на карте' : 'Xəritədə Axtarış'}
+            >
+              <MapPin className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-500 shrink-0" />
+              <span className="truncate">
+                {language === 'en' ? 'Map' : language === 'ru' ? 'Карта' : 'Xəritədə'}
+              </span>
+            </button>
+          )}
+        </div>
+
+        {/* Active Filter Chips Bar (Instant visibility & 1-click reset) */}
+        {activeFiltersCount > 0 && (
+          <div className="pt-2 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2">
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="text-[11px] font-bold text-slate-400 mr-1 flex items-center gap-1">
+                <SlidersHorizontal className="w-3 h-3 text-blue-600" />
+                {dict.filters?.activeFilters || 'Filtrlər'}:
+              </span>
+
+              {quickProfessionFilter !== 'all' && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-blue-50 text-blue-800 text-[11px] font-bold border border-blue-200">
+                  {quickProfessions.find((p) => p.id === quickProfessionFilter)?.label}
+                  <button type="button" onClick={() => setQuickProfessionFilter('all')} className="hover:text-rose-600 cursor-pointer">✕</button>
+                </span>
+              )}
+
+              {selectedCategory !== 'Hamısı' && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-blue-50 text-blue-800 text-[11px] font-bold border border-blue-200">
+                  📁 {getLocalizedCategory(selectedCategory, language)}
+                  <button type="button" onClick={() => setSelectedCategory('Hamısı')} className="hover:text-rose-600 cursor-pointer">✕</button>
+                </span>
+              )}
+
+              {selectedCity !== 'Hamısı' && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-blue-50 text-blue-800 text-[11px] font-bold border border-blue-200">
+                  📍 {getLocalizedCity(selectedCity, language)}
+                  <button type="button" onClick={() => setSelectedCity('Hamısı')} className="hover:text-rose-600 cursor-pointer">✕</button>
+                </span>
+              )}
+
+              {minSalaryFilter > 0 && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-emerald-50 text-emerald-800 text-[11px] font-bold border border-emerald-200">
+                  💰 {minSalaryFilter}+ AZN
+                  <button type="button" onClick={() => setMinSalaryFilter(0)} className="hover:text-rose-600 cursor-pointer">✕</button>
+                </span>
+              )}
+
+              {onlyFeatured && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-amber-50 text-amber-900 text-[11px] font-bold border border-amber-300">
+                  👑 VIP Premium
+                  <button type="button" onClick={() => setOnlyFeatured(false)} className="hover:text-rose-600 cursor-pointer">✕</button>
+                </span>
+              )}
+
+              {onlyEasyApply && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-blue-50 text-blue-900 text-[11px] font-bold border border-blue-300">
+                  ⚡ Tez Müraciət (Easy Apply)
+                  <button type="button" onClick={() => setOnlyEasyApply(false)} className="hover:text-rose-600 cursor-pointer">✕</button>
+                </span>
+              )}
+
+              {searchQuery.trim() !== '' && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-slate-100 text-slate-800 text-[11px] font-bold border border-slate-200">
+                  🔍 "{searchQuery}"
+                  <button type="button" onClick={() => setSearchQuery('')} className="hover:text-rose-600 cursor-pointer">✕</button>
+                </span>
+              )}
+            </div>
+
+            <button
+              type="button"
+              id="top-reset-all-filters-btn"
+              onClick={handleResetFilters}
+              className="text-[11px] font-bold text-rose-600 hover:text-rose-800 flex items-center gap-1 cursor-pointer hover:underline shrink-0"
+            >
+              <RotateCcw className="w-3 h-3" />
+              <span>{dict.filters?.reset || 'Bütün filtrləri sıfırla'}</span>
+            </button>
+          </div>
+        )}
+
         {/* AI SMART SEARCH BAR (Accessible directly from top) */}
         {isAiModeActive && (
-          <div className="bg-gradient-to-r from-blue-50/90 via-indigo-50/80 to-slate-50 p-3.5 rounded-xl border border-indigo-200/90 space-y-2.5 animate-fade-in relative">
-            <div className="flex items-center justify-between pb-1 border-b border-indigo-100">
-              <div className="flex items-center gap-1.5 text-xs font-extrabold text-indigo-950">
-                <Sparkles className="w-4 h-4 text-indigo-600" />
+          <div className="bg-slate-50/90 p-3.5 rounded-xl border border-slate-200/90 space-y-2.5 animate-fade-in relative">
+            <div className="flex items-center justify-between pb-1 border-b border-slate-200/80">
+              <div className="flex items-center gap-1.5 text-xs font-bold text-slate-900">
+                <Sparkles className="w-4 h-4 text-blue-600" />
                 <span>{language === 'en' ? 'AI Smart Search Assistant' : language === 'ru' ? 'AI Умный поиск' : 'AI Ağıllı Axtarış Köməkçisi'}</span>
               </div>
               <button
                 type="button"
                 id="btn-close-ai-search-panel"
                 onClick={() => setIsAiModeActive(false)}
-                className="px-2 py-0.5 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-indigo-100 text-xs font-bold transition-colors flex items-center gap-1 cursor-pointer"
+                className="px-2 py-0.5 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-200/70 text-xs font-bold transition-colors flex items-center gap-1 cursor-pointer"
                 title={language === 'en' ? 'Close AI Search' : language === 'ru' ? 'Закрыть AI поиск' : 'AI Axtarış panelini bağla'}
               >
                 <X className="w-3.5 h-3.5" />
@@ -1445,7 +1686,7 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
             </div>
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
               <div className="relative flex-1">
-                <Sparkles className="w-4 h-4 text-indigo-600 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <Sparkles className="w-4 h-4 text-blue-600 absolute left-3.5 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
                   value={aiPrompt}
@@ -1454,7 +1695,7 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
                     if (e.key === 'Enter') handleRunAiSearch();
                   }}
                   placeholder={dict.jobExplorer.aiSearchPromptPlaceholder || 'Tələblərinizi yazın (Məs: Bakıda 1500+ remote backend developer)...'}
-                  className="w-full pl-10 pr-4 py-2 bg-white border border-indigo-200 rounded-xl text-xs sm:text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent shadow-xs font-medium"
+                  className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-xs font-medium"
                 />
               </div>
 
@@ -1463,7 +1704,7 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
                   type="button"
                   onClick={() => handleRunAiSearch()}
                   disabled={isAiSearching}
-                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-xs transition-all cursor-pointer"
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-xs transition-all cursor-pointer"
                 >
                   {isAiSearching ? (
                     <>
@@ -1482,9 +1723,9 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
                   type="button"
                   onClick={() => handleRunAiSearch(undefined, true)}
                   disabled={isAiSearching}
-                  className="px-3 py-2 bg-white hover:bg-indigo-50 text-indigo-700 border border-indigo-300 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-2xs transition-all cursor-pointer"
+                  className="px-3 py-2 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-2xs transition-all cursor-pointer"
                 >
-                  <Bot className="w-3.5 h-3.5 text-indigo-600" />
+                  <Bot className="w-3.5 h-3.5 text-blue-600" />
                   <span>🎯 CV-yə görə</span>
                 </button>
               </div>
@@ -1492,7 +1733,7 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
 
             {/* Quick AI Presets */}
             <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
-              <span className="text-[11px] font-bold text-indigo-900 mr-1 flex items-center gap-1">
+              <span className="text-[11px] font-bold text-slate-700 mr-1 flex items-center gap-1">
                 Hazır Şablonlar:
               </span>
               {quickAiPrompts.map((p, idx) => (
@@ -1515,87 +1756,6 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
             </div>
           </div>
         )}
-
-        {/* MOBILE QUICK FILTER PILLS BAR (Shown only on mobile for instant 1-tap filtering) */}
-        <div className="lg:hidden flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none pt-1 border-t border-slate-100">
-          <button
-            type="button"
-            onClick={() => {
-              setSelectedCategory('Hamısı');
-              setSelectedIndustry('Hamısı');
-              setSelectedCompany('Hamısı');
-              setSelectedCity('Hamısı');
-              setMinSalaryFilter(0);
-              setSearchQuery('');
-            }}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold shrink-0 transition-all cursor-pointer flex items-center gap-1 ${
-              activeFiltersCount === 0
-                ? 'bg-blue-600 text-white shadow-2xs'
-                : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-            }`}
-          >
-            <Zap className="w-3 h-3 text-amber-300" />
-            <span>Hamısı</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setMobileFilterModal('categories')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold shrink-0 transition-all cursor-pointer flex items-center gap-1 ${
-              selectedCategory !== 'Hamısı'
-                ? 'bg-blue-600 text-white shadow-2xs'
-                : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-            }`}
-          >
-            <span>📁 Kateqoriyalar</span>
-            {selectedCategory !== 'Hamısı' && (
-              <span className="w-1.5 h-1.5 rounded-full bg-amber-300" />
-            )}
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setMobileFilterModal('companies')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold shrink-0 transition-all cursor-pointer flex items-center gap-1 ${
-              selectedCompany !== 'Hamısı'
-                ? 'bg-blue-600 text-white shadow-2xs'
-                : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-            }`}
-          >
-            <span>🏛️ Şirkətlər</span>
-            {selectedCompany !== 'Hamısı' && (
-              <span className="w-1.5 h-1.5 rounded-full bg-amber-300" />
-            )}
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setMobileFilterModal('industries')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold shrink-0 transition-all cursor-pointer flex items-center gap-1 ${
-              selectedIndustry !== 'Hamısı'
-                ? 'bg-emerald-600 text-white shadow-2xs'
-                : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-            }`}
-          >
-            <span>🏢 Sahələr</span>
-            {selectedIndustry !== 'Hamısı' && (
-              <span className="w-1.5 h-1.5 rounded-full bg-amber-300" />
-            )}
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setMobileFilterModal('filters')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold shrink-0 transition-all cursor-pointer flex items-center gap-1 ${
-              activeFiltersCount > 0
-                ? 'bg-indigo-600 text-white shadow-2xs'
-                : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-            }`}
-          >
-            <Filter className="w-3 h-3" />
-            <span>Filtrlər {activeFiltersCount > 0 && `(${activeFiltersCount})`}</span>
-          </button>
-        </div>
       </div>
 
       {/* ========================================================================= */}
@@ -1724,6 +1884,12 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
                         <button type="button" onClick={() => setMinSalaryFilter(0)} className="text-blue-400 hover:text-blue-700">✕</button>
                       </span>
                     )}
+                    {onlyFeatured && (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-50 text-amber-900 text-[11px] font-bold border border-amber-200 shadow-2xs">
+                        <Crown className="w-3 h-3 fill-current text-amber-600" /> VIP Premium
+                        <button type="button" onClick={() => setOnlyFeatured(false)} className="text-amber-700 hover:text-amber-950">✕</button>
+                      </span>
+                    )}
                     {searchQuery && (
                       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-white text-blue-800 text-[11px] font-bold border border-blue-200 shadow-2xs">
                         🔍 {searchQuery}
@@ -1738,10 +1904,10 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
               <div className="bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-hidden">
                 <div className="p-3.5 bg-slate-50/80 border-b border-slate-100 flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <div className="w-6 h-6 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center font-black text-xs">
+                    <div className="w-6 h-6 rounded-lg bg-slate-100 text-slate-700 flex items-center justify-center font-bold text-xs">
                       📁
                     </div>
-                    <h3 className="text-xs font-black uppercase tracking-wider text-slate-800">
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800">
                       {dict.filters?.categories || 'Vəzifə Kateqoriyaları'}
                     </h3>
                   </div>
@@ -1834,10 +2000,10 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
               <div className="bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-hidden">
                 <div className="p-3.5 bg-slate-50/80 border-b border-slate-100 flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <div className="w-6 h-6 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center font-black text-xs">
+                    <div className="w-6 h-6 rounded-lg bg-slate-100 text-slate-700 flex items-center justify-center font-bold text-xs">
                       🏢
                     </div>
-                    <h3 className="text-xs font-black uppercase tracking-wider text-slate-800">
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800">
                       {dict.filters?.industries || 'Şirkətlərin Kateqoriyası'}
                     </h3>
                   </div>
@@ -1852,7 +2018,7 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
                     onClick={() => setSelectedIndustry('Hamısı')}
                     className={`w-full px-2.5 py-1.5 rounded-xl text-left text-xs font-semibold flex items-center justify-between transition-colors cursor-pointer ${
                       selectedIndustry === 'Hamısı'
-                        ? 'bg-emerald-600 text-white font-bold shadow-xs'
+                        ? 'bg-blue-600 text-white font-bold shadow-xs'
                         : 'text-slate-700 hover:bg-slate-100'
                     }`}
                   >
@@ -1860,7 +2026,7 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
                     <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
                       selectedIndustry === 'Hamısı' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'
                     }`}>
-                      {vacancies.filter((v) => v.isApproved !== false).length}
+                      {industryStats['Hamısı'] || vacancies.filter((v) => v.isApproved !== false && (v.status === 'published' || !v.status)).length}
                     </span>
                   </button>
 
@@ -1874,7 +2040,7 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
                         onClick={() => setSelectedIndustry(isSelected ? 'Hamısı' : ind)}
                         className={`w-full px-2.5 py-1.5 rounded-xl text-left text-xs flex items-center justify-between transition-colors cursor-pointer ${
                           isSelected
-                            ? 'bg-emerald-600 text-white font-bold shadow-xs'
+                            ? 'bg-blue-600 text-white font-bold shadow-xs'
                             : 'text-slate-700 hover:bg-slate-100 font-medium'
                         }`}
                       >
@@ -1895,10 +2061,10 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
                 <div className="p-3.5 bg-slate-50/80 border-b border-slate-100 space-y-2">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <div className="w-6 h-6 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center font-black text-xs">
+                      <div className="w-6 h-6 rounded-lg bg-slate-100 text-slate-700 flex items-center justify-center font-bold text-xs">
                         🏛️
                       </div>
-                      <h3 className="text-xs font-black uppercase tracking-wider text-slate-800">
+                      <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800">
                         {dict.filters?.companies || 'Şirkətlərin Adı'}
                       </h3>
                     </div>
@@ -1915,7 +2081,7 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
                       value={companySearchQuery}
                       onChange={(e) => setCompanySearchQuery(e.target.value)}
                       placeholder={dict.filters?.searchCompanyPlaceholder || 'Şirkət axtar...'}
-                      className="w-full pl-7 pr-6 py-1.5 bg-white border border-slate-200 rounded-lg text-xs text-slate-800 placeholder:text-slate-400 outline-none focus:border-indigo-500"
+                      className="w-full pl-7 pr-6 py-1.5 bg-white border border-slate-200 rounded-lg text-xs text-slate-800 placeholder:text-slate-400 outline-none focus:border-blue-500"
                     />
                     {companySearchQuery && (
                       <button
@@ -1935,7 +2101,7 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
                     onClick={() => setSelectedCompany('Hamısı')}
                     className={`w-full px-2.5 py-1.5 rounded-xl text-left text-xs font-semibold flex items-center justify-between transition-colors cursor-pointer ${
                       selectedCompany === 'Hamısı'
-                        ? 'bg-indigo-600 text-white font-bold shadow-xs'
+                        ? 'bg-blue-600 text-white font-bold shadow-xs'
                         : 'text-slate-700 hover:bg-slate-100'
                     }`}
                   >
@@ -1962,7 +2128,7 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
                           onClick={() => setSelectedCompany(isSelected ? 'Hamısı' : comp.name)}
                           className={`flex-1 px-2.5 py-1.5 rounded-xl text-left text-xs flex items-center justify-between transition-colors cursor-pointer min-w-0 ${
                             isSelected
-                              ? 'bg-indigo-600 text-white font-bold shadow-xs'
+                              ? 'bg-blue-600 text-white font-bold shadow-xs'
                               : 'text-slate-700 hover:bg-slate-100 font-medium'
                           }`}
                         >
@@ -2046,6 +2212,23 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
                       <option value={3000}>3,000+ AZN</option>
                     </select>
                   </div>
+
+                  <div className="pt-2 border-t border-slate-100">
+                    <label className="flex items-center justify-between p-2 rounded-xl bg-amber-50/70 border border-amber-200/80 hover:bg-amber-100/60 transition-colors cursor-pointer">
+                      <div className="flex items-center gap-1.5">
+                        <Crown className={`w-3.5 h-3.5 ${onlyFeatured ? 'text-amber-600 fill-amber-600' : 'text-amber-500'}`} />
+                        <span className="text-[11px] font-black text-amber-950">
+                          {language === 'en' ? 'VIP Premium Only' : language === 'ru' ? 'Только VIP Премиум' : 'Yalnız VIP Premium'}
+                        </span>
+                      </div>
+                      <input
+                        type="checkbox"
+                        checked={onlyFeatured}
+                        onChange={(e) => setOnlyFeatured(e.target.checked)}
+                        className="w-4 h-4 rounded text-amber-600 focus:ring-amber-500 border-slate-300 cursor-pointer"
+                      />
+                    </label>
+                  </div>
                 </div>
               </div>
             </div>
@@ -2093,9 +2276,38 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
               </span>
             </div>
 
-            {/* Sort & Order */}
+            {/* View Mode & Sort Controls */}
             <div className="flex items-center gap-2">
-              <span className="text-xs text-slate-500 font-bold hidden sm:inline">{dict.filters?.sort || 'Sıralama'}:</span>
+              <div className="h-8 inline-flex p-0.5 bg-slate-100/90 rounded-xl border border-slate-200 shadow-2xs items-center">
+                <button
+                  type="button"
+                  onClick={() => handleSetViewMode('simple')}
+                  className={`h-full px-2.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1 ${
+                    viewMode === 'simple'
+                      ? 'bg-white text-slate-900 shadow-2xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                  title={dict.jobExplorer?.simple || (language === 'en' ? 'Simple' : language === 'ru' ? 'Простой' : 'Sadə')}
+                >
+                  <Zap className="w-3 h-3 text-amber-500 shrink-0" />
+                  <span className="hidden sm:inline">{dict.jobExplorer?.simple || (language === 'en' ? 'Simple' : language === 'ru' ? 'Простой' : 'Sadə')}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSetViewMode('detailed')}
+                  className={`h-full px-2.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1 ${
+                    viewMode === 'detailed'
+                      ? 'bg-white text-slate-900 shadow-2xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                  title={dict.jobExplorer?.detailed || (language === 'en' ? 'Detailed' : language === 'ru' ? 'Подробный' : 'Ətraflı')}
+                >
+                  <SlidersHorizontal className="w-3 h-3 text-slate-600 shrink-0" />
+                  <span className="hidden sm:inline">{dict.jobExplorer?.detailed || (language === 'en' ? 'Detailed' : language === 'ru' ? 'Подробный' : 'Ətraflı')}</span>
+                </button>
+              </div>
+
+              <span className="text-xs text-slate-500 font-bold hidden md:inline">{dict.filters?.sort || 'Sıralama'}:</span>
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as any)}
@@ -2110,27 +2322,77 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
             </div>
           </div>
 
-          {/* Quick 1-Tap Profession Buttons */}
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-thin">
-            {quickProfessions.map((prof) => {
-              const isSelected = quickProfessionFilter === prof.id;
-              return (
+          {/* Active AI Search Filter Info Banner */}
+          {hasActiveAiFilter && (
+            <div className="bg-blue-50/80 border border-blue-200/80 rounded-2xl p-3.5 sm:p-4 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-fade-in">
+              <div className="flex items-start gap-3 min-w-0">
+                <div className="w-9 h-9 rounded-xl bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+                  <Sparkles className="w-5 h-5" />
+                </div>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-xs font-bold text-blue-950 uppercase tracking-wider">
+                      {language === 'en' ? 'AI Smart Filter Active' : language === 'ru' ? 'Активен умный ИИ-фильтр' : 'Ağıllı AI Filtri Aktivdir'}
+                    </span>
+                    <span className="px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 text-[11px] font-bold">
+                      {filteredAndSortedVacancies.length} {language === 'en' ? 'matching jobs' : language === 'ru' ? 'подходящих вакансий' : 'uyğun vakansiya'}
+                    </span>
+                  </div>
+                  <p className="text-xs text-blue-900/80 mt-1 font-medium">
+                    {aiSearchSummary || (language === 'en' ? 'Only vacancies strictly matching your criteria are shown. Non-matching jobs are excluded.' : language === 'ru' ? 'Отображаются только подходящие вакансии. Нерелевантные исключены.' : 'Yalnız sorğunuza tam uyğun gələn vakansiyalar göstərilir. Uyğunsuz elanlar gizlədildi.')}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
                 <button
-                  key={prof.id}
                   type="button"
-                  onClick={() => setQuickProfessionFilter(prof.id)}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer shrink-0 flex items-center gap-1.5 border ${
-                    isSelected
-                      ? 'bg-slate-900 text-white border-slate-900 shadow-xs'
-                      : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-200 shadow-2xs'
-                  }`}
+                  onClick={handleClearAiSearch}
+                  className="px-3.5 py-1.5 rounded-xl bg-white hover:bg-blue-100/50 text-blue-700 border border-blue-200 text-xs font-bold transition-all shadow-2xs cursor-pointer flex items-center gap-1.5"
                 >
-                  <span>{prof.icon}</span>
-                  <span>{prof.label}</span>
+                  <X className="w-3.5 h-3.5" />
+                  <span>{language === 'en' ? 'Clear AI Filter' : language === 'ru' ? 'Сбросить ИИ' : 'AI Filtrini Sıfırla'}</span>
                 </button>
-              );
-            })}
-          </div>
+              </div>
+            </div>
+          )}
+
+          {/* Active VIP Premium Filter Notification Bar */}
+          {onlyFeatured && (
+            <div className="bg-amber-50/80 p-3.5 rounded-2xl border border-amber-200/90 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs animate-fade-in">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-xs">
+                  <Crown className="w-5 h-5 fill-white" />
+                </div>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-xs font-bold text-amber-950 uppercase tracking-wider">
+                      {language === 'en' ? 'VIP Premium Filter Active' : language === 'ru' ? 'Активен VIP фильтр' : 'VIP Premium Filtri Aktivdir'}
+                    </span>
+                    <span className="px-2 py-0.5 rounded-full bg-amber-200/80 text-amber-950 text-[11px] font-bold">
+                      {filteredAndSortedVacancies.length} {language === 'en' ? 'featured vacancies' : language === 'ru' ? 'премиум вакансий' : 'seçilmiş vakansiya'}
+                    </span>
+                  </div>
+                  <p className="text-xs text-amber-900/80 mt-0.5 font-medium">
+                    {language === 'en' 
+                      ? 'Displaying high-priority vacancies from verified and premium employers.' 
+                      : language === 'ru' 
+                      ? 'Показаны приоритетные вакансии от верифицированных работодателей.' 
+                      : 'Yalnız təsdiqlənmiş işəgötürənlərin ən yüksək prioritetli VIP premium elanları göstərilir.'}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setOnlyFeatured(false)}
+                  className="px-3.5 py-1.5 rounded-xl bg-white hover:bg-amber-100/70 text-amber-900 border border-amber-300 text-xs font-bold transition-all shadow-2xs cursor-pointer flex items-center gap-1.5"
+                >
+                  <X className="w-3.5 h-3.5" />
+                  <span>{language === 'en' ? 'Show All Jobs' : language === 'ru' ? 'Все вакансии' : 'Bütün Elanları Göstər'}</span>
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* ========================================================================= */}
           {/* 2. MODE A: SIMPLE & ACCESSIBLE VIEW (JOBSEARCH STYLE ROWS)                */}
@@ -2139,28 +2401,37 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
             <div className="space-y-2.5 animate-fade-in">
               {filteredAndSortedVacancies.length === 0 ? (
                 <div className="bg-white rounded-2xl border border-slate-200 p-10 text-center space-y-3 shadow-sm">
-                  <div className="w-14 h-14 rounded-full bg-emerald-50 text-emerald-600 mx-auto flex items-center justify-center">
-                    <Search className="w-7 h-7" />
+                  <div className={`w-14 h-14 rounded-full mx-auto flex items-center justify-center ${hasActiveAiFilter ? 'bg-blue-50 text-blue-600' : 'bg-slate-100 text-slate-600'}`}>
+                    {hasActiveAiFilter ? <Sparkles className="w-7 h-7" /> : <Search className="w-7 h-7" />}
                   </div>
-                  <h3 className="text-base font-bold text-slate-800">{dict.jobExplorer.noJobsFound}</h3>
+                  <h3 className="text-base font-bold text-slate-800">
+                    {hasActiveAiFilter
+                      ? (language === 'en' ? 'No Matching Vacancies Found for this AI Query' : language === 'ru' ? 'Нет вакансий, соответствующих ИИ-запросу' : 'Bu AI Sorğusuna Uyğun Vakansiya Tapılmadı')
+                      : dict.jobExplorer.noJobsFound}
+                  </h3>
                   <p className="text-xs text-slate-500 max-w-md mx-auto">
-                    {dict.jobExplorer.noJobsFoundDesc}
+                    {hasActiveAiFilter
+                      ? (language === 'en' ? 'AI excluded non-matching vacancies to ensure precision. Try a different query or show all vacancies.' : language === 'ru' ? 'ИИ исключил неподходящие вакансии для обеспечения точности. Попробуйте другой запрос или покажите все вакансии.' : 'Dəqiqliyi təmin etmək üçün tələblərə cavab verməyən elanlar gizlədildi. Sorğunu dəyişə və ya bütün vakansiyaları bərpa edə bilərsiniz.')
+                      : dict.jobExplorer.noJobsFoundDesc}
                   </p>
                   <button
                     type="button"
-                    onClick={handleResetFilters}
-                    className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition-all cursor-pointer shadow-xs"
+                    onClick={hasActiveAiFilter ? handleClearAiSearch : handleResetFilters}
+                    className="px-4 py-2 text-white text-xs font-bold rounded-xl transition-all cursor-pointer shadow-xs bg-blue-600 hover:bg-blue-700"
                   >
-                    {dict.jobExplorer.resetFilters}
+                    {hasActiveAiFilter 
+                      ? (language === 'en' ? 'Show All Vacancies' : language === 'ru' ? 'Показать все вакансии' : 'Bütün Vakansiyaları Göstər')
+                      : dict.jobExplorer.resetFilters}
                   </button>
                 </div>
               ) : (
                 <div className="space-y-2.5">
                   {visibleVacancies.map((job) => {
                     const isSaved = savedJobIds.includes(job.id);
+                    const aiMatch = aiMatchesMap[job.id];
                     const isRecentlyPosted = (() => {
                       try {
-                        const today = new Date('2026-08-28').getTime();
+                        const today = Date.now();
                         const pDate = new Date(job.postedDate).getTime();
                         return (today - pDate) / (1000 * 60 * 60 * 24) <= 2;
                       } catch {
@@ -2173,8 +2444,17 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
                         key={job.id}
                         id={`simple-job-row-${job.id}`}
                         onClick={() => onSelectVacancy(job)}
-                        className="group relative bg-white hover:bg-slate-50/70 border border-slate-200/90 hover:border-blue-500 rounded-2xl p-3.5 sm:p-4 transition-all duration-150 cursor-pointer shadow-2xs hover:shadow-xs flex flex-col 2xl:flex-row 2xl:items-center justify-between gap-3"
+                        className={`group relative rounded-2xl p-3.5 sm:p-4 transition-all duration-150 cursor-pointer flex flex-col 2xl:flex-row 2xl:items-center justify-between gap-3 overflow-hidden ${
+                          job.isFeatured
+                            ? 'bg-white hover:bg-amber-50/20 border border-amber-300/90 hover:border-amber-400 shadow-2xs hover:shadow-xs'
+                            : 'bg-white hover:bg-slate-50/70 border border-slate-200/90 hover:border-blue-400 shadow-2xs hover:shadow-xs'
+                        }`}
                       >
+                        {/* Clean indicator bar for VIP featured vacancies */}
+                        {job.isFeatured && (
+                          <div className="absolute left-0 top-0 bottom-0 w-1 bg-amber-400" />
+                        )}
+
                         {/* Left & Middle Info Block */}
                         <div className="flex items-start sm:items-center gap-3 sm:gap-3.5 min-w-0 flex-1">
                           {/* Company Logo with chic border & fallback */}
@@ -2183,12 +2463,16 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
                               src={job.companyLogo}
                               alt={job.companyName}
                               loading="lazy"
-                              className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl object-cover border border-slate-200 bg-white p-0.5 shadow-2xs group-hover:scale-105 transition-transform"
+                              className={`w-11 h-11 sm:w-12 sm:h-12 rounded-xl object-cover bg-white p-0.5 group-hover:scale-105 transition-transform ${
+                                job.isFeatured
+                                  ? 'border border-amber-300 ring-1 ring-amber-200 shadow-2xs'
+                                  : 'border border-slate-200 shadow-2xs'
+                              }`}
                               referrerPolicy="no-referrer"
                             />
                             {job.companyVerified && (
                               <span 
-                                className="absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full bg-emerald-600 text-white flex items-center justify-center text-[8px] font-bold border-2 border-white shadow-2xs"
+                                className="absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full bg-blue-600 text-white flex items-center justify-center text-[8px] font-bold border-2 border-white shadow-2xs"
                                 title="Təsdiqlənmiş Şirkət"
                               >
                                 ✓
@@ -2200,19 +2484,38 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
                           <div className="min-w-0 flex-1">
                             {/* Title Row + Badges */}
                             <div className="flex flex-wrap items-center gap-1.5">
-                              <h3 className="text-[15px] sm:text-base font-bold text-slate-900 group-hover:text-blue-600 transition-colors truncate">
+                              <h3 className={`text-[15px] sm:text-base font-bold transition-colors truncate ${
+                                job.isFeatured 
+                                  ? 'text-slate-950 font-bold group-hover:text-amber-800' 
+                                  : 'text-slate-900 group-hover:text-blue-600'
+                              }`}>
                                 {job.title}
                               </h3>
 
                               {job.isFeatured && (
-                                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-50 text-amber-900 border border-amber-200 shrink-0">
-                                  ⭐ PREMİUM
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-50 text-amber-900 border border-amber-200/90 shadow-2xs uppercase tracking-wider shrink-0">
+                                  <Crown className="w-3 h-3 text-amber-600 shrink-0" />
+                                  <span>VIP</span>
                                 </span>
                               )}
 
                               {isRecentlyPosted && (
-                                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 shrink-0">
-                                  ⚡ YENİ
+                                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 shrink-0">
+                                  <span>Yeni</span>
+                                </span>
+                              )}
+
+                              {job.isEasyApply !== false && (
+                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-blue-50 text-blue-800 border border-blue-200/90 shrink-0" title="1 kliklə sürətli müraciət">
+                                  <Zap className="w-2.5 h-2.5 text-blue-600 fill-blue-600 shrink-0" />
+                                  <span>Tez Müraciət</span>
+                                </span>
+                              )}
+
+                              {aiMatch && (
+                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] sm:text-[11px] font-bold bg-indigo-50 text-indigo-800 border border-indigo-200/90 shadow-2xs shrink-0" title={aiMatch.matchReason}>
+                                  <Sparkles className="w-3 h-3 text-indigo-600" />
+                                  <span>{aiMatch.matchScore}%</span>
                                 </span>
                               )}
                             </div>
@@ -2256,9 +2559,14 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
                               <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 font-semibold text-xs border border-slate-200/80 whitespace-nowrap">
                                 💰 {dict.jobExplorer.negotiableSalary}
                               </span>
+                            ) : job.isFeatured ? (
+                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-50 text-amber-950 border border-amber-200/90 font-bold text-xs sm:text-[13px] shadow-2xs whitespace-nowrap">
+                                <Crown className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                                <span>{job.minSalary} - {job.maxSalary} {job.currency}</span>
+                              </span>
                             ) : (
-                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-50/80 text-emerald-800 border border-emerald-200/80 font-bold text-xs sm:text-[13px] shadow-2xs whitespace-nowrap">
-                                <DollarSign className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-100 text-slate-800 border border-slate-200 font-bold text-xs sm:text-[13px] shadow-2xs whitespace-nowrap">
+                                <DollarSign className="w-3.5 h-3.5 text-slate-600 shrink-0" />
                                 <span>{job.minSalary} - {job.maxSalary} {job.currency}</span>
                               </span>
                             )}
@@ -2284,10 +2592,10 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
                                 e.stopPropagation();
                                 setQuickApplyJob(job);
                               }}
-                              className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold text-xs flex items-center gap-1.5 transition-all shadow-2xs hover:shadow-xs cursor-pointer whitespace-nowrap shrink-0"
+                              className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold text-xs flex items-center gap-1.5 transition-all shadow-2xs hover:shadow-xs cursor-pointer whitespace-nowrap shrink-0"
                               title={language === 'en' ? '1-Click Quick Apply' : language === 'ru' ? 'Быстрый отклик в 1 клик' : '1 Kliklə Müraciət Et'}
                             >
-                              <Send className="w-3 h-3 text-emerald-100 shrink-0" />
+                              <Send className="w-3 h-3 text-white shrink-0" />
                               <span>{language === 'en' ? '1-Click' : language === 'ru' ? '1 Клик' : '1 Klik'}</span>
                             </button>
 
@@ -2371,130 +2679,30 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
           {/* ========================================================================= */}
           {viewMode === 'detailed' && (
             <div className="space-y-4 animate-fade-in">
-              {/* TOP VACANCY DISCOVERY & AI SEARCH STATION */}
-              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 sm:p-5 space-y-4">
-                {/* Search Mode Selector: Quick vs AI Smart */}
-                <div className="flex items-center gap-2 p-1 bg-slate-100/90 rounded-xl border border-slate-200/80 w-fit">
-                  <button
-                    type="button"
-                    onClick={() => setIsAiModeActive(false)}
-                    className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
-                      !isAiModeActive
-                        ? 'bg-white text-slate-900 shadow-2xs'
-                        : 'text-slate-600 hover:text-slate-900'
-                    }`}
-                  >
-                    <Zap className="w-3.5 h-3.5 text-blue-600" />
-                    <span>{dict.jobExplorer.quickSearch}</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setIsAiModeActive(true)}
-                    className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
-                      isAiModeActive
-                        ? 'bg-indigo-600 text-white shadow-xs'
-                        : 'text-slate-600 hover:text-slate-900'
-                    }`}
-                  >
-                    <Sparkles className={`w-3.5 h-3.5 ${isAiModeActive ? 'text-indigo-200' : 'text-indigo-600'}`} />
-                    <span>{dict.jobExplorer.aiSearch}</span>
-                  </button>
-                </div>
-
-                {/* AI SMART SEARCH BOX */}
-                {isAiModeActive && (
-                  <div className="bg-gradient-to-r from-blue-50/80 via-indigo-50/70 to-slate-50 p-4 rounded-xl border border-indigo-200/90 space-y-3 animate-fade-in">
-                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-                      <div className="relative flex-1">
-                        <Sparkles className="w-4 h-4 text-indigo-600 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                        <input
-                          type="text"
-                          value={aiPrompt}
-                          onChange={(e) => setAiPrompt(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') handleRunAiSearch();
-                          }}
-                          placeholder={dict.jobExplorer.aiSearchPromptPlaceholder}
-                          className="w-full pl-10 pr-4 py-2.5 bg-white border border-indigo-200 rounded-xl text-xs sm:text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent shadow-xs"
-                        />
-                      </div>
-
-                      <div className="flex items-center gap-2 shrink-0">
-                        <button
-                          type="button"
-                          onClick={() => handleRunAiSearch()}
-                          disabled={isAiSearching}
-                          className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 shadow-xs transition-all cursor-pointer"
-                        >
-                          {isAiSearching ? (
-                            <>
-                              <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                              <span>{dict.jobExplorer.searching}</span>
-                            </>
-                          ) : (
-                            <>
-                              <Sparkles className="w-3.5 h-3.5" />
-                              <span>{dict.jobExplorer.runAiSearch}</span>
-                            </>
-                          )}
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => handleRunAiSearch(undefined, true)}
-                          disabled={isAiSearching}
-                          className="px-3.5 py-2.5 bg-white hover:bg-indigo-50 text-indigo-700 border border-indigo-300 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-2xs transition-all cursor-pointer"
-                        >
-                          <Bot className="w-4 h-4 text-indigo-600" />
-                          <span>🎯 {dict.jobExplorer.analyzeMyCV}</span>
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Quick AI Presets */}
-                    <div className="flex flex-wrap items-center gap-1.5 pt-1">
-                      <span className="text-[11px] font-bold text-indigo-900 mr-1 flex items-center gap-1">
-                        {language === 'en' ? 'Templates:' : language === 'ru' ? 'Шаблоны:' : 'Hazır Şablonlar:'}
-                      </span>
-                      {quickAiPrompts.map((p, idx) => (
-                        <button
-                          key={idx}
-                          type="button"
-                          onClick={() => {
-                            if (p.isCV) {
-                              handleRunAiSearch(undefined, true);
-                            } else if (p.prompt) {
-                              setAiPrompt(p.prompt);
-                              handleRunAiSearch(p.prompt);
-                            }
-                          }}
-                          className="px-2.5 py-1 bg-white hover:bg-indigo-100 text-indigo-800 border border-indigo-200 rounded-lg text-xs font-medium transition-colors cursor-pointer shadow-2xs"
-                        >
-                          {p.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-
               {/* Detailed Cards Grid */}
               {filteredAndSortedVacancies.length === 0 ? (
                 <div className="bg-white rounded-2xl border border-slate-200 p-10 text-center space-y-3 shadow-sm">
-                  <div className="w-14 h-14 rounded-full bg-blue-50 text-blue-600 mx-auto flex items-center justify-center">
-                    <Search className="w-7 h-7" />
+                  <div className={`w-14 h-14 rounded-full mx-auto flex items-center justify-center ${hasActiveAiFilter ? 'bg-indigo-50 text-indigo-600' : 'bg-blue-50 text-blue-600'}`}>
+                    {hasActiveAiFilter ? <Sparkles className="w-7 h-7" /> : <Search className="w-7 h-7" />}
                   </div>
-                  <h3 className="text-base font-bold text-slate-800">{dict.jobExplorer.noJobsFound}</h3>
+                  <h3 className="text-base font-bold text-slate-800">
+                    {hasActiveAiFilter
+                      ? (language === 'en' ? 'No Matching Vacancies Found for this AI Query' : language === 'ru' ? 'Нет вакансий, соответствующих ИИ-запросу' : 'Bu AI Sorğusuna Uyğun Vakansiya Tapılmadı')
+                      : dict.jobExplorer.noJobsFound}
+                  </h3>
                   <p className="text-xs text-slate-500 max-w-md mx-auto">
-                    {dict.jobExplorer.noJobsFoundDesc}
+                    {hasActiveAiFilter
+                      ? (language === 'en' ? 'AI excluded non-matching vacancies to ensure precision. Try a different query or show all vacancies.' : language === 'ru' ? 'ИИ исключил неподходящие вакансии для обеспечения точности. Попробуйте другой запрос или покажите все вакансии.' : 'Dəqiqliyi təmin etmək üçün tələblərə cavab verməyən elanlar gizlədildi. Sorğunu dəyişə və ya bütün vakansiyaları bərpa edə bilərsiniz.')
+                      : dict.jobExplorer.noJobsFoundDesc}
                   </p>
                   <button
                     type="button"
-                    onClick={handleResetFilters}
-                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition-all cursor-pointer shadow-xs"
+                    onClick={hasActiveAiFilter ? handleClearAiSearch : handleResetFilters}
+                    className={`px-4 py-2 text-white text-xs font-bold rounded-xl transition-all cursor-pointer shadow-xs ${hasActiveAiFilter ? 'bg-indigo-600 hover:bg-indigo-700' : 'bg-blue-600 hover:bg-blue-700'}`}
                   >
-                    {dict.jobExplorer.resetFilters}
+                    {hasActiveAiFilter 
+                      ? (language === 'en' ? 'Show All Vacancies' : language === 'ru' ? 'Показать все вакансии' : 'Bütün Vakansiyaları Göstər')
+                      : dict.jobExplorer.resetFilters}
                   </button>
                 </div>
               ) : (
@@ -2506,24 +2714,43 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
                       <div
                         key={job.id}
                         onClick={() => onSelectVacancy(job)}
-                        className={`group bg-white rounded-2xl border p-4 sm:p-5 transition-all duration-200 hover:shadow-md cursor-pointer flex flex-col justify-between relative ${
+                        className={`group rounded-2xl border p-4 sm:p-5 transition-all duration-150 hover:shadow-sm cursor-pointer flex flex-col justify-between relative overflow-hidden ${
                           job.isFeatured
-                            ? 'border-amber-300/80 bg-gradient-to-b from-amber-50/20 via-white to-white'
-                            : 'border-slate-200 hover:border-blue-300'
+                            ? 'border border-amber-300 bg-white hover:bg-amber-50/20 shadow-2xs hover:shadow-xs'
+                            : 'bg-white border-slate-200/90 hover:border-blue-400 shadow-2xs hover:shadow-xs'
                         }`}
                       >
                         <div className="space-y-3">
+                          {/* VIP Premium Header Banner */}
+                          {job.isFeatured && (
+                            <div className="flex items-center justify-between gap-2 pb-2.5 mb-1 border-b border-amber-200/80 -mt-1">
+                              <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-amber-50 text-amber-900 border border-amber-200/80 text-[11px] font-bold shadow-2xs tracking-wide uppercase">
+                                <Crown className="w-3.5 h-3.5 fill-amber-600 text-amber-600 shrink-0" />
+                                <span>VIP PREMİUM VAKANSİYA</span>
+                              </div>
+                              <span className="text-[10px] font-bold text-amber-900 bg-amber-100/70 px-2 py-0.5 rounded-md border border-amber-200/80">
+                                ⭐ TOP SEÇİM
+                              </span>
+                            </div>
+                          )}
+
                           <div className="flex items-start justify-between gap-3">
                             <div className="flex items-start gap-3">
                               <img
                                 src={job.companyLogo}
                                 alt={job.companyName}
                                 loading="lazy"
-                                className="w-12 h-12 rounded-xl object-cover border border-slate-200 bg-white p-0.5 shadow-2xs group-hover:scale-105 transition-transform"
+                                className={`w-12 h-12 rounded-xl object-cover bg-white p-0.5 shadow-2xs group-hover:scale-105 transition-transform ${
+                                  job.isFeatured
+                                    ? 'border border-amber-300 ring-1 ring-amber-200'
+                                    : 'border border-slate-200'
+                                }`}
                                 referrerPolicy="no-referrer"
                               />
                               <div>
-                                <h3 className="font-black text-slate-900 group-hover:text-blue-600 transition-colors text-sm line-clamp-1">
+                                <h3 className={`font-bold transition-colors text-sm line-clamp-1 ${
+                                  job.isFeatured ? 'text-slate-950 group-hover:text-amber-800' : 'text-slate-900 group-hover:text-blue-600'
+                                }`}>
                                   {getLocalizedJobTitle(job.title, language)}
                                 </h3>
                                 <p className="text-xs text-slate-600 font-semibold">{job.companyName}</p>
@@ -2535,7 +2762,7 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
                                 e.stopPropagation();
                                 onToggleBookmark(job.id);
                               }}
-                              className="text-slate-400 hover:text-amber-500 p-1"
+                              className="text-slate-400 hover:text-amber-500 p-1 cursor-pointer"
                               title={isSaved ? dict.jobExplorer.saved : dict.jobExplorer.saveJob}
                             >
                               <Bookmark className="w-4 h-4" fill={isSaved ? 'currentColor' : 'none'} />
@@ -2544,23 +2771,30 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
 
                           <div className="flex flex-wrap gap-1.5 text-xs text-slate-500">
                             <span className="flex items-center gap-1 bg-slate-50 px-2 py-1 rounded-md">
-                              <MapPin className="w-3 h-3" /> {getLocalizedCity(job.city, language)}
+                              <MapPin className="w-3 h-3 text-slate-400" /> {getLocalizedCity(job.city, language)}
                             </span>
                             <span className="flex items-center gap-1 bg-slate-50 px-2 py-1 rounded-md">
-                              <Clock className="w-3 h-3" /> {getLocalizedEmploymentType(job.employmentType, language)}
+                              <Clock className="w-3 h-3 text-slate-400" /> {getLocalizedEmploymentType(job.employmentType, language)}
                             </span>
                           </div>
 
-                          {/* AI Match percentage badge if calculated */}
+                          {/* AI Match percentage badge and reasoning */}
                           {aiMatch && (
-                            <div className="p-2 bg-indigo-50 border border-indigo-200 rounded-xl flex items-center justify-between text-xs font-bold text-indigo-900">
-                              <span className="flex items-center gap-1">
-                                <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
-                                <span>{language === 'en' ? 'AI Match:' : language === 'ru' ? 'AI Совпадение:' : 'AI Uyğunluq:'}</span>
-                              </span>
-                              <span className="text-indigo-700 font-black">
-                                {aiMatch.matchScore}%
-                              </span>
+                            <div className="p-2.5 bg-blue-50/80 border border-blue-200/80 rounded-xl flex flex-col gap-1 text-xs">
+                              <div className="flex items-center justify-between font-bold text-blue-950">
+                                <span className="flex items-center gap-1.5">
+                                  <Sparkles className="w-3.5 h-3.5 text-blue-600" />
+                                  <span>{language === 'en' ? 'AI Match Analysis:' : language === 'ru' ? 'AI Анализ совпадения:' : 'AI Uyğunluq Analizi:'}</span>
+                                </span>
+                                <span className="px-2 py-0.5 rounded-full bg-blue-600 text-white font-bold text-xs shadow-2xs">
+                                  {aiMatch.matchScore}%
+                                </span>
+                              </div>
+                              {aiMatch.matchReason && (
+                                <p className="text-[11px] text-blue-900/80 font-medium line-clamp-2 mt-0.5">
+                                  {aiMatch.matchReason}
+                                </p>
+                              )}
                             </div>
                           )}
 
@@ -2570,8 +2804,13 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
                               <span className="text-xs font-semibold text-slate-500">
                                 {language === 'en' ? 'Salary negotiable' : language === 'ru' ? 'По договоренности' : 'Maaş razılaşma ilə'}
                               </span>
+                            ) : job.isFeatured ? (
+                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs sm:text-sm font-bold bg-amber-50 text-amber-950 border border-amber-200/90 shadow-2xs">
+                                <Crown className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                                <span>{job.minSalary} - {job.maxSalary} {job.currency}</span>
+                              </span>
                             ) : (
-                              <span className="text-xs sm:text-sm font-black text-emerald-700">
+                              <span className="text-xs sm:text-sm font-bold text-slate-800">
                                 {job.minSalary} - {job.maxSalary} {job.currency}
                               </span>
                             )}
@@ -2614,6 +2853,10 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
                   </button>
                 </div>
               )}
+              {/* Jobia Logo at bottom of vacancy listing */}
+              <SectionBottomLogo
+                tagline={language === 'en' ? 'Azerbaijan\'s Smartest Job & Career Platform' : language === 'ru' ? 'Самая умная платформа вакансий в Азербайджане' : 'Azərbaycanın Ən Ağıllı Vakansiya və Karyera Platforması'}
+              />
             </div>
           )}
         </main>
@@ -2694,13 +2937,10 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
             </p>
           </div>
         </div>
-      </div>
 
-      {/* Dynamic Animated Section Footer with Job Intelligence & Automation */}
-      <JobiaSectionFooter 
-        extraTagline={language === 'en' ? 'Digital platform connecting leading companies with thousands of professionals' : language === 'ru' ? 'Цифровая платформа, объединяющая ведущие компании с тысячами специалистов' : 'Azərbaycanın aparıcı şirkətləri ilə minlərlə peşəkarı birləşdirən rəqəmsal platforma'}
-        showBackToTop={true}
-      />
+        {/* Section bottom logo */}
+        <SectionBottomLogo size="xs" />
+      </div>
 
       {/* ========================================================================= */}
       {/* 5. FAST 1-CLICK QUICK APPLY MODAL FOR SIMPLE VIEW                          */}
@@ -2815,20 +3055,20 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
       )}
 
       {/* ========================================================================= */}
-      {/* 6. MOBILE DEDICATED SLIDE-OVER / BOTTOM SHEET FILTER MODAL               */}
+      {/* 6. COMPREHENSIVE FILTER MODAL                                             */}
       {/* ========================================================================= */}
       {mobileFilterModal !== 'none' && (
-        <div className="fixed inset-0 z-50 lg:hidden bg-slate-900/60 backdrop-blur-xs flex flex-col justify-end sm:justify-center p-0 sm:p-4 animate-fade-in">
-          <div className="bg-white w-full sm:max-w-lg rounded-t-3xl sm:rounded-3xl shadow-2xl border border-slate-200 max-h-[85vh] flex flex-col overflow-hidden">
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex flex-col justify-end sm:justify-center items-center p-0 sm:p-4 animate-fade-in">
+          <div className="bg-white w-full sm:max-w-xl md:max-w-2xl rounded-t-3xl sm:rounded-3xl shadow-2xl border border-slate-200 max-h-[90vh] flex flex-col overflow-hidden">
             {/* Modal Header with Tabs */}
             <div className="p-4 bg-slate-900 text-white flex items-center justify-between shrink-0">
               <div className="flex items-center gap-2">
-                <Filter className="w-4 h-4 text-blue-400" />
+                <SlidersHorizontal className="w-4 h-4 text-blue-400" />
                 <h3 className="text-sm font-black">
                   {mobileFilterModal === 'categories' && (language === 'en' ? '📁 Job Categories' : language === 'ru' ? '📁 Категории вакансий' : '📁 Vəzifə Kateqoriyaları')}
                   {mobileFilterModal === 'companies' && (language === 'en' ? '🏛️ Companies' : language === 'ru' ? '🏛️ Компании' : '🏛️ Şirkətlər')}
                   {mobileFilterModal === 'industries' && (language === 'en' ? '🏢 Industries' : language === 'ru' ? '🏢 Сферы деятельности' : '🏢 Şirkət Sahələri')}
-                  {mobileFilterModal === 'filters' && (language === 'en' ? '⚙️ All Filters' : language === 'ru' ? '⚙️ Все фильтры' : '⚙️ Bütün Filtrlər')}
+                  {mobileFilterModal === 'filters' && (language === 'en' ? '⚙️ All Filters' : language === 'ru' ? '⚙️ Bütün Filtrlər' : '⚙️ Bütün Filtrlər')}
                   {mobileFilterModal === 'ai' && (language === 'en' ? '🤖 AI Smart Search' : language === 'ru' ? '🤖 Умный ИИ-поиск' : '🤖 AI Ağıllı Axtarış')}
                 </h3>
               </div>
@@ -2878,6 +3118,15 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
                 }`}
               >
                 ⚙️ {language === 'en' ? 'Parameters' : language === 'ru' ? 'Параметры' : 'Parametrlər'}
+              </button>
+              <button
+                type="button"
+                onClick={() => setMobileFilterModal('ai')}
+                className={`px-3 py-1.5 rounded-lg whitespace-nowrap transition-colors ${
+                  mobileFilterModal === 'ai' ? 'bg-purple-600 text-white shadow-2xs' : 'text-slate-600 hover:bg-slate-200'
+                }`}
+              >
+                🤖 {language === 'en' ? 'AI Search' : language === 'ru' ? 'ИИ Поиск' : 'AI Axtarış'}
               </button>
             </div>
 
@@ -3038,7 +3287,7 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
                     <span className={`text-[10px] px-2 py-0.5 rounded-full ${
                       selectedIndustry === 'Hamısı' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-600'
                     }`}>
-                      {vacancies.length}
+                      {industryStats['Hamısı'] || vacancies.filter((v) => v.isApproved !== false && (v.status === 'published' || !v.status)).length}
                     </span>
                   </button>
 
@@ -3059,7 +3308,7 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
                             : 'bg-slate-50 text-slate-800 hover:bg-slate-100 border border-slate-200 font-medium'
                         }`}
                       >
-                        <span className="truncate pr-2">{getLocalizedCategory(ind, language)}</span>
+                        <span className="truncate pr-2">{getLocalizedIndustry(ind, language)}</span>
                         <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold shrink-0 ${
                           isSelected ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-600'
                         }`}>
@@ -3073,10 +3322,11 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
 
               {/* VIEW 4: ALL ADVANCED FILTERS */}
               {mobileFilterModal === 'filters' && (
-                <div className="space-y-3.5 text-xs">
+                <div className="space-y-4 text-xs">
+                  {/* City Selection */}
                   <div>
                     <label className="block text-xs font-bold text-slate-700 mb-1">
-                      {language === 'en' ? '📍 City:' : language === 'ru' ? '📍 Город:' : '📍 Şəhər:'}
+                      {language === 'en' ? '📍 City / Region:' : language === 'ru' ? '📍 Город / Регион:' : '📍 Şəhər / Region:'}
                     </label>
                     <CitySearchSelect
                       selectedCity={selectedCity}
@@ -3084,10 +3334,61 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
                     />
                   </div>
 
+                  {/* Quick Profession / Role Filter */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                      💼 {language === 'en' ? 'Quick Profession / Role:' : language === 'ru' ? 'Специальность / Профессия:' : 'Peşə / İxtisas:'}
+                    </label>
+                    <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto p-1 bg-slate-50 rounded-xl border border-slate-200">
+                      {quickProfessions.map((prof) => {
+                        const isSelected = quickProfessionFilter === prof.id;
+                        return (
+                          <button
+                            key={prof.id}
+                            type="button"
+                            onClick={() => setQuickProfessionFilter(isSelected ? 'all' : prof.id)}
+                            className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-1 border ${
+                              isSelected
+                                ? 'bg-blue-600 text-white border-blue-600 shadow-2xs'
+                                : 'bg-white hover:bg-slate-100 text-slate-700 border-slate-200'
+                            }`}
+                          >
+                            <span>{prof.icon}</span>
+                            <span>{prof.label}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Salary Filter with Quick Pills */}
                   <div>
                     <label className="block text-xs font-bold text-slate-700 mb-1">
                       {language === 'en' ? '💰 Minimum Salary:' : language === 'ru' ? '💰 Минимальная зарплата:' : '💰 Minimum Əməkhaqqı:'}
                     </label>
+                    <div className="flex flex-wrap gap-1.5 mb-2">
+                      {[
+                        { label: language === 'en' ? 'All' : language === 'ru' ? 'Все' : 'Hamısı', value: 0 },
+                        { label: '500+ AZN', value: 500 },
+                        { label: '800+ AZN', value: 800 },
+                        { label: '1000+ AZN', value: 1000 },
+                        { label: '1500+ AZN', value: 1500 },
+                        { label: '2000+ AZN', value: 2000 },
+                      ].map((sal) => (
+                        <button
+                          key={sal.value}
+                          type="button"
+                          onClick={() => setMinSalaryFilter(sal.value)}
+                          className={`px-2.5 py-1 rounded-lg font-bold text-[11px] transition-all cursor-pointer whitespace-nowrap border ${
+                            minSalaryFilter === sal.value
+                              ? 'bg-emerald-600 text-white border-emerald-600 shadow-2xs'
+                              : 'bg-slate-50 hover:bg-slate-100 text-slate-600 border-slate-200'
+                          }`}
+                        >
+                          {sal.label}
+                        </button>
+                      ))}
+                    </div>
                     <select
                       value={minSalaryFilter}
                       onChange={(e) => setMinSalaryFilter(Number(e.target.value))}
@@ -3103,6 +3404,45 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
                     </select>
                   </div>
 
+                  {/* Job Type & Experience */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">
+                        {language === 'en' ? '💼 Job Type:' : language === 'ru' ? '💼 Тип занятости:' : '💼 İş Rejimi:'}
+                      </label>
+                      <select
+                        value={selectedType}
+                        onChange={(e) => setSelectedType(e.target.value)}
+                        className="w-full px-2.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold text-slate-900 outline-none"
+                      >
+                        <option value="Hamısı">{language === 'en' ? 'All Types' : language === 'ru' ? 'Все типы' : 'Bütün Rejimlər'}</option>
+                        <option value="Tam ştat">{getLocalizedEmploymentType('Tam ştat', language)}</option>
+                        <option value="Yarım ştat">{getLocalizedEmploymentType('Yarım ştat', language)}</option>
+                        <option value="Uzaqdan (Remote)">{getLocalizedEmploymentType('Uzaqdan (Remote)', language)}</option>
+                        <option value="Hibrid">{getLocalizedEmploymentType('Hibrid', language)}</option>
+                        <option value="Təcrübəçi">{getLocalizedEmploymentType('Təcrübəçi', language)}</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">
+                        {language === 'en' ? '🎓 Experience:' : language === 'ru' ? '🎓 Опыт работы:' : '🎓 Təcrübə:'}
+                      </label>
+                      <select
+                        value={selectedExperience}
+                        onChange={(e) => setSelectedExperience(e.target.value)}
+                        className="w-full px-2.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold text-slate-900 outline-none"
+                      >
+                        <option value="Hamısı">{language === 'en' ? 'All' : language === 'ru' ? 'Все' : 'Hamısı'}</option>
+                        <option value="Tələb olunmur">{getLocalizedExperience('Tələb olunmur', language)}</option>
+                        <option value="1 ildən az">{getLocalizedExperience('1 ildən az', language)}</option>
+                        <option value="1-3 il">{getLocalizedExperience('1-3 il', language)}</option>
+                        <option value="3-5 il">{getLocalizedExperience('3-5 il', language)}</option>
+                        <option value="5 ildən çox">{getLocalizedExperience('5 ildən çox', language)}</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Posted Time */}
                   <div>
                     <label className="block text-xs font-bold text-slate-700 mb-1">
                       {language === 'en' ? '🕒 Posted Time:' : language === 'ru' ? '🕒 Время публикации:' : '🕒 Dərc Olunma Vaxtı:'}
@@ -3120,21 +3460,163 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
                     </select>
                   </div>
 
+                  {/* VIP Premium Vacancies Filter */}
+                  <div>
+                    <label className="flex items-center justify-between p-2.5 rounded-xl bg-amber-50/90 border border-amber-200 hover:bg-amber-100 transition-colors cursor-pointer">
+                      <div className="flex items-center gap-2">
+                        <Crown className="w-4 h-4 text-amber-600 fill-amber-600" />
+                        <span className="text-xs font-black text-amber-950">
+                          {language === 'en' ? 'VIP Premium Vacancies Only' : language === 'ru' ? 'Только VIP Премиум' : 'Yalnız VIP Premium Vakansiyalar'}
+                        </span>
+                      </div>
+                      <input
+                        type="checkbox"
+                        checked={onlyFeatured}
+                        onChange={(e) => setOnlyFeatured(e.target.checked)}
+                        className="w-4 h-4 rounded text-amber-600 focus:ring-amber-500 border-slate-300 cursor-pointer"
+                      />
+                    </label>
+                  </div>
+
                   <div className="pt-2 flex items-center justify-between border-t border-slate-200">
                     <button
                       type="button"
                       onClick={handleResetFilters}
-                      className="text-xs font-bold text-rose-600 hover:underline"
+                      className="text-xs font-bold text-rose-600 hover:underline cursor-pointer"
                     >
                       {dict.filters?.reset || (language === 'en' ? 'Reset Filters' : language === 'ru' ? 'Сбросить фильтры' : 'Filtrləri Sıfırla')}
                     </button>
                     <button
                       type="button"
                       onClick={() => setMobileFilterModal('none')}
-                      className="px-5 py-2 bg-blue-600 text-white rounded-xl text-xs font-black shadow-xs"
+                      className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-black shadow-xs cursor-pointer"
                     >
                       {language === 'en' ? `Apply (${filteredAndSortedVacancies.length} jobs)` : language === 'ru' ? `Применить (${filteredAndSortedVacancies.length} вак.)` : `Tətbiq et (${filteredAndSortedVacancies.length} elan)`}
                     </button>
+                  </div>
+                </div>
+              )}
+
+              {/* VIEW 5: MOBILE AI SMART SEARCH */}
+              {mobileFilterModal === 'ai' && (
+                <div className="space-y-4 text-xs">
+                  <div className="p-3 bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-200 rounded-2xl space-y-1.5">
+                    <div className="flex items-center gap-1.5 text-indigo-900 font-black">
+                      <Sparkles className="w-4 h-4 text-indigo-600" />
+                      <span>{language === 'en' ? 'AI Smart Vacancy Search' : language === 'ru' ? 'Умный ИИ подбор вакансий' : 'AI Ağıllı Vakansiya Axtarışı'}</span>
+                    </div>
+                    <p className="text-[11px] text-indigo-800/90 font-medium">
+                      {language === 'en'
+                        ? 'Search jobs using natural language (e.g. Remote React 1500+ AZN). AI strictly matches relevant jobs and filters out the rest.'
+                        : language === 'ru'
+                        ? 'Ищите вакансии свободным языком. ИИ отбирает только точные совпадения и скрывает нерелевантные.'
+                        : 'İstədiyiniz vəzifəni, şəhəri və ya maaşı sərbəst yazın. AI yalnız tələblərə cavab verən vakansiyaları saxlayır və digərlərini gizlədir.'}
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={aiPrompt}
+                        onChange={(e) => setAiPrompt(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            handleRunAiSearch();
+                            setMobileFilterModal('none');
+                          }
+                        }}
+                        placeholder={language === 'en' ? 'e.g. Remote Frontend Developer 1500+ AZN' : language === 'ru' ? 'напр. Удаленный Frontend 1500+ AZN' : 'Məs: Remote Frontend Developer 1500+ AZN'}
+                        className="w-full pl-3 pr-9 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold text-slate-900 outline-none focus:border-indigo-500 focus:bg-white"
+                      />
+                      {aiPrompt && (
+                        <button
+                          type="button"
+                          onClick={() => setAiPrompt('')}
+                          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        disabled={isAiSearching || !aiPrompt.trim()}
+                        onClick={() => {
+                          handleRunAiSearch();
+                          setMobileFilterModal('none');
+                        }}
+                        className="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-xl font-bold flex items-center justify-center gap-1.5 shadow-xs"
+                      >
+                        {isAiSearching ? (
+                          <>
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            <span>{language === 'en' ? 'Searching...' : language === 'ru' ? 'Поиск...' : 'Axtarılır...'}</span>
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles className="w-3.5 h-3.5" />
+                            <span>{language === 'en' ? 'Search with AI' : language === 'ru' ? 'Найти через ИИ' : 'AI ilə Axtar'}</span>
+                          </>
+                        )}
+                      </button>
+
+                      {hasActiveAiFilter && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            handleClearAiSearch();
+                            setMobileFilterModal('none');
+                          }}
+                          className="px-3.5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold"
+                        >
+                          {language === 'en' ? 'Reset' : language === 'ru' ? 'Сбросить' : 'Sıfırla'}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {userCV && (
+                    <button
+                      type="button"
+                      disabled={isAiSearching}
+                      onClick={() => {
+                        handleRunAiSearch(undefined, true);
+                        setMobileFilterModal('none');
+                      }}
+                      className="w-full p-2.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-900 border border-indigo-200 rounded-xl font-bold flex items-center justify-center gap-2"
+                    >
+                      <Sparkles className="w-4 h-4 text-indigo-600" />
+                      <span>{language === 'en' ? '📄 Find Jobs Matching My CV' : language === 'ru' ? '📄 Подобрать по моему резюме' : '📄 CV-yə ən uyğun vakansiyalar'}</span>
+                    </button>
+                  )}
+
+                  <div>
+                    <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-2">
+                      {language === 'en' ? 'Sample Prompts:' : language === 'ru' ? 'Примеры запросов:' : 'Hazır Nümunələr:'}
+                    </span>
+                    <div className="flex flex-wrap gap-1.5">
+                      {quickAiPrompts.map((p, idx) => (
+                        <button
+                          key={idx}
+                          type="button"
+                          onClick={() => {
+                            if (p.isCV) {
+                              handleRunAiSearch(undefined, true);
+                            } else if (p.prompt) {
+                              setAiPrompt(p.prompt);
+                              handleRunAiSearch(p.prompt);
+                            }
+                            setMobileFilterModal('none');
+                          }}
+                          className="px-2.5 py-1.5 bg-slate-100 hover:bg-indigo-50 hover:text-indigo-700 border border-slate-200 rounded-lg text-[11px] font-semibold text-slate-700 transition-colors"
+                        >
+                          {p.label}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 </div>
               )}

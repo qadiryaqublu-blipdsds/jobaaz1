@@ -21,15 +21,15 @@ export const TemplateCambridgeScholar: React.FC<TemplateProps> = ({ data, showPh
             <img
               src={personalInfo.photoUrl}
               alt={personalInfo.fullName || 'Namizəd'}
-              className={`${getPhotoClasses(personalInfo.photoSize, personalInfo.photoShape)} border border-slate-800 shadow-xs`}
+              className={`${getPhotoClasses(personalInfo.photoSize, personalInfo.photoShape)} border border-slate-800 shadow-xs shrink-0`}
               referrerPolicy="no-referrer"
             />
           </div>
         )}
-        <h1 className="text-3xl sm:text-4xl font-normal tracking-wide text-slate-950 uppercase">
+        <h1 className="text-3xl sm:text-4xl font-normal tracking-wide text-slate-950 uppercase break-words">
           {personalInfo.fullName || 'Ad Soyad'}
         </h1>
-        <p className="text-sm font-semibold italic text-slate-700 mt-1">
+        <p className="text-sm font-semibold italic text-slate-700 mt-1 break-words">
           {personalInfo.jobTitle || 'Researcher & Academic Fellow'}
         </p>
 
@@ -53,7 +53,7 @@ export const TemplateCambridgeScholar: React.FC<TemplateProps> = ({ data, showPh
           <h2 className="text-xs font-bold uppercase tracking-widest text-slate-900 border-b border-slate-300 pb-1 mb-2">
             {terms.summary}
           </h2>
-          <p className="text-xs sm:text-sm text-slate-800 leading-relaxed text-justify">
+          <p className="text-xs sm:text-sm text-slate-800 leading-relaxed text-justify whitespace-pre-line break-words">
             {personalInfo.summary}
           </p>
         </div>
@@ -67,14 +67,14 @@ export const TemplateCambridgeScholar: React.FC<TemplateProps> = ({ data, showPh
           </h2>
           <div className="space-y-3">
             {education.map((edu) => (
-              <div key={edu.id} className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-1">
-                <div>
-                  <div className="text-sm font-bold text-slate-950">{edu.degree}</div>
-                  <div className="text-xs text-slate-700 italic">
+              <div key={edu.id} className="flex flex-row items-baseline justify-between gap-2 min-w-0">
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-bold text-slate-950 break-words">{edu.degree}</div>
+                  <div className="text-xs text-slate-700 italic break-words">
                     {edu.institution} {edu.fieldOfStudy ? `— ${edu.fieldOfStudy}` : ''}
                   </div>
                 </div>
-                <div className="text-xs text-slate-600 font-sans">
+                <div className="text-xs text-slate-600 font-sans shrink-0 whitespace-nowrap">
                   {edu.startDate} – {edu.endDate} {edu.gpa ? `(GPA: ${edu.gpa})` : ''}
                 </div>
               </div>
@@ -92,17 +92,17 @@ export const TemplateCambridgeScholar: React.FC<TemplateProps> = ({ data, showPh
           <div className="space-y-4">
             {experiences.map((exp) => (
               <div key={exp.id}>
-                <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-1">
-                  <div className="text-sm font-bold text-slate-950">
+                <div className="flex flex-row items-baseline justify-between gap-2 min-w-0">
+                  <div className="text-sm font-bold text-slate-950 flex-1 min-w-0 break-words">
                     {exp.position} <span className="font-normal italic text-slate-700">— {exp.company}</span>
                   </div>
-                  <div className="text-xs text-slate-600 font-sans">
+                  <div className="text-xs text-slate-600 font-sans shrink-0 whitespace-nowrap">
                     {exp.startDate} – {exp.current ? terms.present : exp.endDate}
                   </div>
                 </div>
-                {exp.location && <div className="text-xs text-slate-500 font-sans italic">{exp.location}</div>}
+                {exp.location && <div className="text-xs text-slate-500 font-sans italic break-words">{exp.location}</div>}
                 {exp.description && (
-                  <p className="text-xs text-slate-800 leading-relaxed whitespace-pre-line mt-1.5 pl-3 border-l border-slate-400">
+                  <p className="text-xs text-slate-800 leading-relaxed whitespace-pre-line mt-1.5 pl-3 border-l border-slate-400 break-words">
                     {exp.description}
                   </p>
                 )}

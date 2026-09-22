@@ -1,5 +1,6 @@
 import { User, AuthSession, UserRole } from '../types';
 import { db } from './firebase';
+import { sanitizeForFirestore } from './firestoreService';
 import { doc, getDoc, setDoc, updateDoc, getDocs, collection, query, where } from 'firebase/firestore';
 
 const USERS_STORAGE_KEY = 'jobia_users_db';
@@ -38,48 +39,6 @@ const DEFAULT_PRELOADED_USERS: StoredUserRecord[] = [
     status: 'active',
     emailVerified: true,
     passwordHash: '8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918',
-    createdAt: '2026-01-01T00:00:00.000Z',
-    lastLoginAt: '2026-01-01T00:00:00.000Z',
-  },
-  {
-    id: 'user-biz-1',
-    email: 'hr@kapitalbank.az',
-    role: 'business',
-    fullName: 'Kapital Bank HR',
-    companyName: 'Kapital Bank ASC',
-    companyId: 'comp-kapital',
-    phone: '+994 12 196',
-    status: 'active',
-    emailVerified: true,
-    passwordHash: '',
-    createdAt: '2026-01-01T00:00:00.000Z',
-    lastLoginAt: '2026-01-01T00:00:00.000Z',
-  },
-  {
-    id: 'user-biz-2',
-    email: 'hr@pashabank.az',
-    role: 'business',
-    fullName: 'PAŞA Bank HR',
-    companyName: 'PAŞA Bank ASC',
-    companyId: 'comp-pasha',
-    phone: '+994 12 496 50 00',
-    status: 'active',
-    emailVerified: true,
-    passwordHash: '',
-    createdAt: '2026-01-01T00:00:00.000Z',
-    lastLoginAt: '2026-01-01T00:00:00.000Z',
-  },
-  {
-    id: 'user-cand-1',
-    email: 'samir.aliyev@mail.az',
-    role: 'candidate',
-    fullName: 'Samir Əliyev',
-    firstName: 'Samir',
-    lastName: 'Əliyev',
-    phone: '+994 50 123 45 67',
-    status: 'active',
-    emailVerified: true,
-    passwordHash: '',
     createdAt: '2026-01-01T00:00:00.000Z',
     lastLoginAt: '2026-01-01T00:00:00.000Z',
   }
@@ -184,7 +143,7 @@ export async function registerCandidate(data: {
 
   // Save to Firestore
   try {
-    await setDoc(doc(db, 'users', userId), {
+    await setDoc(doc(db, 'users', userId), sanitizeForFirestore({
       id: newUser.id,
       email: newUser.email,
       role: newUser.role,
@@ -197,7 +156,7 @@ export async function registerCandidate(data: {
       passwordHash: newUser.passwordHash,
       createdAt: newUser.createdAt,
       lastLoginAt: newUser.lastLoginAt,
-    });
+    }));
   } catch (e) {
     console.warn('Firestore user save warning:', e);
   }
@@ -279,7 +238,7 @@ export async function registerEmployer(data: {
 
   // Save company & user to Firestore
   try {
-    await setDoc(doc(db, 'users', userId), {
+    await setDoc(doc(db, 'users', userId), sanitizeForFirestore({
       id: newUser.id,
       email: newUser.email,
       role: newUser.role,
@@ -293,9 +252,9 @@ export async function registerEmployer(data: {
       passwordHash: newUser.passwordHash,
       createdAt: newUser.createdAt,
       lastLoginAt: newUser.lastLoginAt,
-    });
+    }));
 
-    await setDoc(doc(db, 'companies', companyId), {
+    await setDoc(doc(db, 'companies', companyId), sanitizeForFirestore({
       id: companyId,
       name: data.companyName.trim(),
       logo: `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(data.companyName)}`,
@@ -310,7 +269,7 @@ export async function registerEmployer(data: {
       ownerId: userId,
       createdAt: now,
       updatedAt: now,
-    });
+    }));
   } catch (e) {
     console.warn('Firestore employer save warning:', e);
   }
@@ -384,7 +343,7 @@ export async function loginUser(email: string, password: string): Promise<{ user
     users.push(user);
     saveStoredUsers(users);
     try {
-      await setDoc(doc(db, 'users', user.id), user);
+      await setDoc(doc(db, 'users', user.id), sanitizeForFirestore(user), { merge: true });
     } catch {}
   }
 

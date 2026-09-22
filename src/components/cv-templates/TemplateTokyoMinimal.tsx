@@ -15,15 +15,15 @@ export const TemplateTokyoMinimal: React.FC<TemplateProps> = ({ data, showPhoto 
   return (
     <div id="cv-preview-tokyo-minimal" className="bg-[#fafafa] text-slate-800 p-8 sm:p-12 font-sans max-w-[800px] w-full mx-auto min-h-[1100px] text-left border border-slate-200 shadow-sm">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 pb-6 border-b border-slate-200">
-        <div className="space-y-1.5 flex-1">
+      <div className="flex flex-row items-center justify-between gap-6 pb-6 border-b border-slate-200">
+        <div className="space-y-1.5 flex-1 min-w-0">
           <div className="text-[10px] tracking-[0.25em] uppercase text-slate-400 font-bold">
             CURRICULUM VITAE
           </div>
-          <h1 className="text-3xl sm:text-4xl font-light tracking-tight text-slate-900">
+          <h1 className="text-3xl sm:text-4xl font-light tracking-tight text-slate-900 break-words">
             {personalInfo.fullName || 'Ad Soyad'}
           </h1>
-          <p className="text-sm font-medium text-slate-600 tracking-wide">
+          <p className="text-sm font-medium text-slate-600 tracking-wide break-words">
             {personalInfo.jobTitle || 'Product Strategist'}
           </p>
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500 pt-2 font-light">
@@ -43,7 +43,7 @@ export const TemplateTokyoMinimal: React.FC<TemplateProps> = ({ data, showPhoto 
           <img
             src={personalInfo.photoUrl}
             alt={personalInfo.fullName || 'Namizəd'}
-            className={`${getPhotoClasses(personalInfo.photoSize, personalInfo.photoShape)} border border-slate-300 shadow-xs filter grayscale hover:grayscale-0 transition-all`}
+            className={`${getPhotoClasses(personalInfo.photoSize, personalInfo.photoShape)} border border-slate-300 shadow-xs filter grayscale hover:grayscale-0 transition-all shrink-0`}
             referrerPolicy="no-referrer"
           />
         )}
@@ -71,17 +71,17 @@ export const TemplateTokyoMinimal: React.FC<TemplateProps> = ({ data, showPhoto 
             <div className="space-y-4">
               {experiences.map((exp) => (
                 <div key={exp.id} className="group">
-                  <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-1">
-                    <div className="text-sm font-medium text-slate-900">
+                  <div className="flex flex-row items-baseline justify-between gap-2 min-w-0">
+                    <div className="text-sm font-medium text-slate-900 flex-1 min-w-0 break-words">
                       {exp.position} <span className="text-slate-400 font-light">|</span> <span className="text-slate-600 font-normal">{exp.company}</span>
                     </div>
-                    <div className="text-xs text-slate-400 font-light">
+                    <div className="text-xs text-slate-400 font-light shrink-0 whitespace-nowrap">
                       {exp.startDate} – {exp.current ? terms.present : exp.endDate}
                     </div>
                   </div>
-                  {exp.location && <div className="text-[11px] text-slate-400 font-light">{exp.location}</div>}
+                  {exp.location && <div className="text-[11px] text-slate-400 font-light break-words">{exp.location}</div>}
                   {exp.description && (
-                    <p className="text-xs text-slate-600 font-light leading-relaxed whitespace-pre-line mt-1.5">
+                    <p className="text-xs text-slate-600 font-light leading-relaxed whitespace-pre-line mt-1.5 break-words">
                       {exp.description}
                     </p>
                   )}
@@ -99,12 +99,12 @@ export const TemplateTokyoMinimal: React.FC<TemplateProps> = ({ data, showPhoto 
             </div>
             <div className="space-y-2.5">
               {education.map((edu) => (
-                <div key={edu.id} className="flex justify-between items-baseline text-xs">
-                  <div>
+                <div key={edu.id} className="flex justify-between items-baseline gap-2 min-w-0 text-xs">
+                  <div className="flex-1 min-w-0 break-words">
                     <span className="font-medium text-slate-900">{edu.degree}</span>
                     <span className="text-slate-500 font-light"> — {edu.institution} {edu.fieldOfStudy ? `(${edu.fieldOfStudy})` : ''}</span>
                   </div>
-                  <span className="text-slate-400 font-light">{edu.startDate} – {edu.endDate}</span>
+                  <span className="text-slate-400 font-light shrink-0 whitespace-nowrap">{edu.startDate} – {edu.endDate}</span>
                 </div>
               ))}
             </div>
@@ -112,7 +112,7 @@ export const TemplateTokyoMinimal: React.FC<TemplateProps> = ({ data, showPhoto 
         )}
 
         {/* Skills & Languages */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-2 border-t border-slate-200">
+        <div className="grid grid-cols-2 gap-6 pt-2 border-t border-slate-200">
           {skills && skills.length > 0 && (
             <div>
               <div className="text-[10px] tracking-[0.2em] uppercase text-slate-400 font-semibold mb-2">

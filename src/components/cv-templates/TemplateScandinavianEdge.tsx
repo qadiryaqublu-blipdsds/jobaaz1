@@ -16,15 +16,15 @@ export const TemplateScandinavianEdge: React.FC<TemplateProps> = ({ data, showPh
     <div id="cv-preview-scandinavian-edge" className="bg-white text-slate-900 font-sans max-w-[800px] w-full mx-auto min-h-[1100px] text-left border border-slate-200 shadow-sm overflow-hidden">
       {/* Soft Nordic Green Header Banner */}
       <div className="bg-[#1b4332] text-white p-7 sm:p-9">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
-          <div className="space-y-1 flex-1">
+        <div className="flex flex-row items-center justify-between gap-6">
+          <div className="space-y-1 flex-1 min-w-0">
             <span className="text-[10px] tracking-widest uppercase text-emerald-300 font-bold">
               Nordic Professional Format
             </span>
-            <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-white">
+            <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-white break-words">
               {personalInfo.fullName || 'Ad Soyad'}
             </h1>
-            <p className="text-sm sm:text-base font-semibold text-emerald-100">
+            <p className="text-sm sm:text-base font-semibold text-emerald-100 break-words">
               {personalInfo.jobTitle || 'Vəzifə'}
             </p>
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-emerald-200/90 pt-2 font-medium">
@@ -40,7 +40,7 @@ export const TemplateScandinavianEdge: React.FC<TemplateProps> = ({ data, showPh
             <img
               src={personalInfo.photoUrl}
               alt={personalInfo.fullName || 'Namizəd'}
-              className={`${getPhotoClasses(personalInfo.photoSize, personalInfo.photoShape)} border-2 border-emerald-400/80 shadow-md`}
+              className={`${getPhotoClasses(personalInfo.photoSize, personalInfo.photoShape)} border-2 border-emerald-400/80 shadow-md shrink-0`}
               referrerPolicy="no-referrer"
             />
           )}
@@ -55,7 +55,7 @@ export const TemplateScandinavianEdge: React.FC<TemplateProps> = ({ data, showPh
               <span className="w-2 h-2 rounded-full bg-emerald-600 inline-block" />
               <span>{terms.summary}</span>
             </h2>
-            <p className="text-xs sm:text-sm text-slate-700 leading-relaxed bg-emerald-50/30 p-3.5 rounded-xl border border-emerald-100">
+            <p className="text-xs sm:text-sm text-slate-700 leading-relaxed bg-emerald-50/30 p-3.5 rounded-xl border border-emerald-100 whitespace-pre-line break-words">
               {personalInfo.summary}
             </p>
           </div>
@@ -71,17 +71,17 @@ export const TemplateScandinavianEdge: React.FC<TemplateProps> = ({ data, showPh
             <div className="space-y-4">
               {experiences.map((exp) => (
                 <div key={exp.id} className="pl-3 border-l-2 border-emerald-600/30">
-                  <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-1">
-                    <div className="text-sm font-bold text-slate-900">
+                  <div className="flex flex-row items-baseline justify-between gap-2 min-w-0">
+                    <div className="text-sm font-bold text-slate-900 flex-1 min-w-0 break-words">
                       {exp.position} <span className="font-semibold text-emerald-800">— {exp.company}</span>
                     </div>
-                    <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 self-start sm:self-auto">
+                    <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 shrink-0 whitespace-nowrap">
                       {exp.startDate} – {exp.current ? terms.present : exp.endDate}
                     </span>
                   </div>
-                  {exp.location && <div className="text-xs text-slate-400 mt-0.5">{exp.location}</div>}
+                  {exp.location && <div className="text-xs text-slate-400 mt-0.5 break-words">{exp.location}</div>}
                   {exp.description && (
-                    <p className="text-xs text-slate-700 leading-relaxed whitespace-pre-line mt-1.5">
+                    <p className="text-xs text-slate-700 leading-relaxed whitespace-pre-line mt-1.5 break-words">
                       {exp.description}
                     </p>
                   )}
@@ -92,7 +92,7 @@ export const TemplateScandinavianEdge: React.FC<TemplateProps> = ({ data, showPh
         )}
 
         {/* Education & Skills */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+        <div className="grid grid-cols-2 gap-6">
           {/* Education */}
           {education && education.length > 0 && (
             <div>
@@ -102,10 +102,10 @@ export const TemplateScandinavianEdge: React.FC<TemplateProps> = ({ data, showPh
               </h2>
               <div className="space-y-3">
                 {education.map((edu) => (
-                  <div key={edu.id} className="text-xs">
-                    <div className="font-bold text-slate-900">{edu.degree}</div>
-                    <div className="text-slate-600">{edu.institution} {edu.fieldOfStudy ? `• ${edu.fieldOfStudy}` : ''}</div>
-                    <div className="text-slate-400 text-[11px]">{edu.startDate} – {edu.endDate} {edu.gpa ? `(GPA: ${edu.gpa})` : ''}</div>
+                  <div key={edu.id} className="text-xs min-w-0">
+                    <div className="font-bold text-slate-900 break-words">{edu.degree}</div>
+                    <div className="text-slate-600 break-words">{edu.institution} {edu.fieldOfStudy ? `• ${edu.fieldOfStudy}` : ''}</div>
+                    <div className="text-slate-400 text-[11px] shrink-0">{edu.startDate} – {edu.endDate} {edu.gpa ? `(GPA: ${edu.gpa})` : ''}</div>
                   </div>
                 ))}
               </div>
@@ -134,7 +134,7 @@ export const TemplateScandinavianEdge: React.FC<TemplateProps> = ({ data, showPh
         </div>
 
         {/* Projects, Languages & Certificates */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-3 border-t border-slate-200">
+        <div className="grid grid-cols-3 gap-4 pt-3 border-t border-slate-200">
           {projects && projects.length > 0 && (
             <div className="sm:col-span-1">
               <div className="text-xs font-bold uppercase text-[#1b4332] mb-2">{terms.projects}</div>

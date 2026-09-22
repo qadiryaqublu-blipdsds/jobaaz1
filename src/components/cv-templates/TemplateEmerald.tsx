@@ -12,22 +12,22 @@ export const TemplateEmerald: React.FC<TemplateProps> = ({ data }) => {
   const terms = getCVTerms(language);
 
   return (
-    <div id="cv-preview-emerald" className="bg-white text-slate-800 p-8 rounded-lg shadow-sm border border-slate-200 font-sans max-w-[850px] mx-auto min-h-[1050px]">
+    <div id="cv-preview-emerald" className="bg-white text-slate-800 p-8 rounded-lg shadow-sm border border-slate-200 font-sans w-full max-w-[800px] mx-auto min-h-[1050px]">
       {/* Header */}
       <div className="border-b-2 border-emerald-600 pb-6 mb-6">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div className="flex items-center gap-4">
+        <div className="flex flex-row justify-between items-center gap-4">
+          <div className="flex items-center gap-4 min-w-0 flex-1">
             {personalInfo.photoUrl && (
               <img
                 src={personalInfo.photoUrl}
                 alt={personalInfo.fullName || 'Namizəd'}
-                className={`${getPhotoClasses(personalInfo.photoSize, personalInfo.photoShape)} border-2 border-emerald-500 shadow-sm bg-slate-50`}
+                className={`${getPhotoClasses(personalInfo.photoSize, personalInfo.photoShape)} border-2 border-emerald-500 shadow-sm bg-slate-50 shrink-0`}
                 referrerPolicy="no-referrer"
               />
             )}
-            <div>
-              <h1 className="text-3xl font-bold text-slate-900 tracking-tight">{personalInfo.fullName || 'Ad Soyad'}</h1>
-              <p className="text-lg font-semibold text-emerald-700 mt-1">{personalInfo.jobTitle || 'Vəzifə / İxtisas'}</p>
+            <div className="min-w-0 flex-1">
+              <h1 className="text-3xl font-bold text-slate-900 tracking-tight break-words">{personalInfo.fullName || 'Ad Soyad'}</h1>
+              <p className="text-lg font-semibold text-emerald-700 mt-1 break-words">{personalInfo.jobTitle || 'Vəzifə / İxtisas'}</p>
             </div>
           </div>
         </div>
@@ -35,38 +35,38 @@ export const TemplateEmerald: React.FC<TemplateProps> = ({ data }) => {
         {/* Contact info */}
         <div className="flex flex-wrap gap-y-2 gap-x-5 mt-4 text-xs text-slate-600">
           {personalInfo.email && (
-            <div className="flex items-center gap-1.5">
-              <Mail className="w-3.5 h-3.5 text-emerald-600" />
-              <span>{personalInfo.email}</span>
+            <div className="flex items-center gap-1.5 min-w-0">
+              <Mail className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+              <span className="truncate">{personalInfo.email}</span>
             </div>
           )}
           {personalInfo.phone && (
-            <div className="flex items-center gap-1.5">
-              <Phone className="w-3.5 h-3.5 text-emerald-600" />
-              <span>{personalInfo.phone}</span>
+            <div className="flex items-center gap-1.5 min-w-0">
+              <Phone className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+              <span className="truncate">{personalInfo.phone}</span>
             </div>
           )}
           {personalInfo.address && (
-            <div className="flex items-center gap-1.5">
-              <MapPin className="w-3.5 h-3.5 text-emerald-600" />
-              <span>{personalInfo.address}</span>
+            <div className="flex items-center gap-1.5 min-w-0">
+              <MapPin className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+              <span className="truncate">{personalInfo.address}</span>
             </div>
           )}
           {personalInfo.linkedin && (
-            <div className="flex items-center gap-1.5">
-              <Linkedin className="w-3.5 h-3.5 text-emerald-600" />
+            <div className="flex items-center gap-1.5 min-w-0">
+              <Linkedin className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
               <span className="truncate max-w-[180px]">{personalInfo.linkedin.replace(/^https?:\/\//, '')}</span>
             </div>
           )}
           {personalInfo.github && (
-            <div className="flex items-center gap-1.5">
-              <Github className="w-3.5 h-3.5 text-emerald-600" />
+            <div className="flex items-center gap-1.5 min-w-0">
+              <Github className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
               <span className="truncate max-w-[180px]">{personalInfo.github.replace(/^https?:\/\//, '')}</span>
             </div>
           )}
           {personalInfo.portfolio && (
-            <div className="flex items-center gap-1.5">
-              <Globe className="w-3.5 h-3.5 text-emerald-600" />
+            <div className="flex items-center gap-1.5 min-w-0">
+              <Globe className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
               <span className="truncate max-w-[180px]">{personalInfo.portfolio.replace(/^https?:\/\//, '')}</span>
             </div>
           )}
@@ -79,14 +79,14 @@ export const TemplateEmerald: React.FC<TemplateProps> = ({ data }) => {
           <h2 className="text-sm font-bold uppercase tracking-wider text-emerald-800 border-b border-slate-200 pb-1 mb-2">
             {terms.summary}
           </h2>
-          <p className="text-xs text-slate-700 leading-relaxed whitespace-pre-line">{personalInfo.summary}</p>
+          <p className="text-xs text-slate-700 leading-relaxed whitespace-pre-line break-words">{personalInfo.summary}</p>
         </div>
       )}
 
-      {/* 2-column layout */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      {/* 2-column document layout (2/3 Main, 1/3 Sidebar) */}
+      <div className="grid grid-cols-3 gap-6">
         {/* Left column (Main: Experience, Projects) */}
-        <div className="md:col-span-2 space-y-6">
+        <div className="col-span-2 space-y-6">
           {/* Experience */}
           {experiences && experiences.length > 0 && (
             <div>
@@ -96,17 +96,17 @@ export const TemplateEmerald: React.FC<TemplateProps> = ({ data }) => {
               <div className="space-y-4">
                 {experiences.map((exp) => (
                   <div key={exp.id} className="relative pl-3 border-l-2 border-emerald-200">
-                    <div className="flex justify-between items-baseline">
-                      <h3 className="text-xs font-bold text-slate-900">{exp.position}</h3>
-                      <span className="text-[11px] font-medium text-emerald-700 whitespace-nowrap">
+                    <div className="flex justify-between items-baseline gap-2 min-w-0">
+                      <h3 className="text-xs font-bold text-slate-900 flex-1 min-w-0 break-words">{exp.position}</h3>
+                      <span className="text-[11px] font-medium text-emerald-700 whitespace-nowrap shrink-0">
                         {exp.startDate} - {exp.current ? terms.present : exp.endDate}
                       </span>
                     </div>
-                    <div className="text-xs font-medium text-slate-600 mb-1">
+                    <div className="text-xs font-medium text-slate-600 mb-1 break-words">
                       {exp.company} {exp.location ? `• ${exp.location}` : ''}
                     </div>
                     {exp.description && (
-                      <p className="text-[11px] text-slate-700 leading-relaxed whitespace-pre-line mt-1">
+                      <p className="text-[11px] text-slate-700 leading-relaxed whitespace-pre-line mt-1 break-words">
                         {exp.description}
                       </p>
                     )}

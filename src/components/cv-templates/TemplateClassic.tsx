@@ -11,7 +11,7 @@ export const TemplateClassic: React.FC<TemplateProps> = ({ data }) => {
   const terms = getCVTerms(language);
 
   return (
-    <div id="cv-preview-classic" className="bg-white text-slate-900 p-8 rounded-lg shadow-sm border border-slate-300 font-serif max-w-[850px] mx-auto min-h-[1050px]">
+    <div id="cv-preview-classic" className="bg-white text-slate-900 p-8 rounded-lg shadow-sm border border-slate-300 font-serif w-full max-w-[800px] mx-auto min-h-[1050px]">
       {/* Centered Classic Header */}
       <div className="text-center border-b border-slate-400 pb-4 mb-6">
         {personalInfo.photoUrl && (
@@ -24,11 +24,11 @@ export const TemplateClassic: React.FC<TemplateProps> = ({ data }) => {
             />
           </div>
         )}
-        <h1 className="text-3xl font-bold tracking-normal uppercase text-slate-900">{personalInfo.fullName || 'Ad Soyad'}</h1>
-        <p className="text-base italic text-slate-700 mt-1 font-sans">{personalInfo.jobTitle || 'Vəzifə'}</p>
+        <h1 className="text-3xl font-bold tracking-normal uppercase text-slate-900 break-words">{personalInfo.fullName || 'Ad Soyad'}</h1>
+        <p className="text-base italic text-slate-700 mt-1 font-sans break-words">{personalInfo.jobTitle || 'Vəzifə'}</p>
 
         {/* Contact line */}
-        <div className="flex flex-wrap justify-center items-center gap-x-3 gap-y-1 text-xs text-slate-700 mt-3 font-sans">
+        <div className="flex flex-wrap justify-center items-center gap-x-3 gap-y-1 text-xs text-slate-700 mt-3 font-sans break-all">
           {personalInfo.address && <span>{personalInfo.address}</span>}
           {personalInfo.phone && (
             <>
@@ -63,7 +63,7 @@ export const TemplateClassic: React.FC<TemplateProps> = ({ data }) => {
           <h2 className="text-xs font-bold uppercase tracking-widest text-slate-900 border-b border-slate-300 pb-1 mb-2 font-serif">
             {terms.summary}
           </h2>
-          <p className="text-xs text-slate-700 leading-relaxed whitespace-pre-line text-justify">
+          <p className="text-xs text-slate-700 leading-relaxed whitespace-pre-line text-justify break-words">
             {personalInfo.summary}
           </p>
         </div>
@@ -78,17 +78,17 @@ export const TemplateClassic: React.FC<TemplateProps> = ({ data }) => {
           <div className="space-y-4">
             {experiences.map((exp) => (
               <div key={exp.id}>
-                <div className="flex justify-between items-baseline font-serif">
-                  <h3 className="text-sm font-bold text-slate-900">{exp.position}</h3>
-                  <span className="text-xs italic text-slate-600">
+                <div className="flex justify-between items-baseline font-serif gap-2 min-w-0">
+                  <h3 className="text-sm font-bold text-slate-900 flex-1 min-w-0 break-words">{exp.position}</h3>
+                  <span className="text-xs italic text-slate-600 shrink-0 whitespace-nowrap">
                     {exp.startDate} – {exp.current ? terms.present : exp.endDate}
                   </span>
                 </div>
-                <div className="text-xs font-semibold text-slate-700 italic mb-1">
+                <div className="text-xs font-semibold text-slate-700 italic mb-1 break-words">
                   {exp.company} {exp.location ? `, ${exp.location}` : ''}
                 </div>
                 {exp.description && (
-                  <p className="text-xs text-slate-700 leading-relaxed whitespace-pre-line">
+                  <p className="text-xs text-slate-700 leading-relaxed whitespace-pre-line break-words">
                     {exp.description}
                   </p>
                 )}
@@ -107,13 +107,13 @@ export const TemplateClassic: React.FC<TemplateProps> = ({ data }) => {
           <div className="space-y-3">
             {education.map((edu) => (
               <div key={edu.id}>
-                <div className="flex justify-between items-baseline font-serif">
-                  <h3 className="text-sm font-bold text-slate-900">{edu.degree} {edu.fieldOfStudy ? `in ${edu.fieldOfStudy}` : ''}</h3>
-                  <span className="text-xs italic text-slate-600">
+                <div className="flex justify-between items-baseline font-serif gap-2 min-w-0">
+                  <h3 className="text-sm font-bold text-slate-900 flex-1 min-w-0 break-words">{edu.degree} {edu.fieldOfStudy ? `in ${edu.fieldOfStudy}` : ''}</h3>
+                  <span className="text-xs italic text-slate-600 shrink-0 whitespace-nowrap">
                     {edu.startDate} – {edu.endDate}
                   </span>
                 </div>
-                <div className="text-xs text-slate-700">
+                <div className="text-xs text-slate-700 break-words">
                   <span className="font-semibold">{edu.institution}</span>
                   {edu.gpa && <span className="ml-2 text-slate-500">GPA: {edu.gpa}</span>}
                 </div>
@@ -130,7 +130,7 @@ export const TemplateClassic: React.FC<TemplateProps> = ({ data }) => {
             <h2 className="text-xs font-bold uppercase tracking-widest text-slate-900 border-b border-slate-300 pb-1 mb-2 font-serif">
               {terms.skills}
             </h2>
-            <p className="text-xs text-slate-800 leading-relaxed">
+            <p className="text-xs text-slate-800 leading-relaxed break-words">
               {skills.map((s) => s.name).join(' • ')}
             </p>
           </div>
@@ -155,7 +155,7 @@ export const TemplateClassic: React.FC<TemplateProps> = ({ data }) => {
 
       {/* Projects & Certificates */}
       {(projects?.length > 0 || certificates?.length > 0) && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 font-sans">
+        <div className="grid grid-cols-2 gap-6 font-sans">
           {projects && projects.length > 0 && (
             <div>
               <h2 className="text-xs font-bold uppercase tracking-widest text-slate-900 border-b border-slate-300 pb-1 mb-2 font-serif">

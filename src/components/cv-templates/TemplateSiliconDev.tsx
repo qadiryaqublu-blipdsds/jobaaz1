@@ -16,15 +16,15 @@ export const TemplateSiliconDev: React.FC<TemplateProps> = ({ data, showPhoto = 
     <div id="cv-preview-silicon-dev" className="bg-white text-slate-900 font-sans max-w-[800px] w-full mx-auto min-h-[1100px] text-left border border-slate-200 shadow-sm overflow-hidden">
       {/* Dark Tech Header */}
       <div className="bg-[#0f172a] text-white p-6 sm:p-8">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5">
-          <div className="flex-1 space-y-1">
+        <div className="flex flex-row items-center justify-between gap-5">
+          <div className="flex-1 min-w-0 space-y-1">
             <div className="text-[10px] font-mono tracking-widest text-cyan-400 uppercase">
               // Tech Stack & Engineering Profile
             </div>
-            <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-white">
+            <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-white break-words">
               {personalInfo.fullName || 'Ad Soyad'}
             </h1>
-            <p className="text-sm sm:text-base font-semibold text-slate-300">
+            <p className="text-sm sm:text-base font-semibold text-slate-300 break-words">
               {personalInfo.jobTitle || 'Senior Software Engineer'}
             </p>
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-400 pt-2 font-mono">
@@ -48,7 +48,7 @@ export const TemplateSiliconDev: React.FC<TemplateProps> = ({ data, showPhoto = 
             <img
               src={personalInfo.photoUrl}
               alt={personalInfo.fullName || 'Namizəd'}
-              className={`${getPhotoClasses(personalInfo.photoSize, personalInfo.photoShape)} border-2 border-cyan-400 shadow-lg`}
+              className={`${getPhotoClasses(personalInfo.photoSize, personalInfo.photoShape)} border-2 border-cyan-400 shadow-lg shrink-0`}
               referrerPolicy="no-referrer"
             />
           )}
@@ -62,7 +62,7 @@ export const TemplateSiliconDev: React.FC<TemplateProps> = ({ data, showPhoto = 
             <h2 className="text-xs font-mono font-bold uppercase tracking-wider text-cyan-700 mb-1.5 flex items-center gap-1.5">
               <span>$</span> <span>{terms.summary}</span>
             </h2>
-            <p className="text-xs sm:text-sm text-slate-700 leading-relaxed bg-slate-50 p-3 rounded-lg border border-slate-200/80">
+            <p className="text-xs sm:text-sm text-slate-700 leading-relaxed bg-slate-50 p-3 rounded-lg border border-slate-200/80 whitespace-pre-line break-words">
               {personalInfo.summary}
             </p>
           </div>
@@ -77,17 +77,17 @@ export const TemplateSiliconDev: React.FC<TemplateProps> = ({ data, showPhoto = 
             <div className="space-y-4">
               {experiences.map((exp) => (
                 <div key={exp.id} className="relative pl-3 border-l-2 border-slate-200 hover:border-cyan-500 transition-colors">
-                  <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-1">
-                    <div className="text-sm font-bold text-slate-900">
+                  <div className="flex flex-row items-baseline justify-between gap-2 min-w-0">
+                    <div className="text-sm font-bold text-slate-900 flex-1 min-w-0 break-words">
                       {exp.position} <span className="font-semibold text-cyan-700">@{exp.company}</span>
                     </div>
-                    <div className="text-xs font-mono text-slate-500">
+                    <div className="text-xs font-mono text-slate-500 shrink-0 whitespace-nowrap">
                       {exp.startDate} → {exp.current ? terms.present : exp.endDate}
                     </div>
                   </div>
-                  {exp.location && <div className="text-[11px] text-slate-400">{exp.location}</div>}
+                  {exp.location && <div className="text-[11px] text-slate-400 break-words">{exp.location}</div>}
                   {exp.description && (
-                    <p className="text-xs text-slate-700 leading-relaxed whitespace-pre-line mt-1.5">
+                    <p className="text-xs text-slate-700 leading-relaxed whitespace-pre-line mt-1.5 break-words">
                       {exp.description}
                     </p>
                   )}
@@ -103,7 +103,7 @@ export const TemplateSiliconDev: React.FC<TemplateProps> = ({ data, showPhoto = 
             <h2 className="text-xs font-mono font-bold uppercase tracking-wider text-cyan-700 mb-3 flex items-center gap-1.5 border-b border-slate-200 pb-1">
               <span>$</span> <span>{terms.projects}</span>
             </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-3">
               {projects.map((proj) => (
                 <div key={proj.id} className="p-3 bg-slate-50 rounded-lg border border-slate-200/80">
                   <div className="flex items-center justify-between">
@@ -131,7 +131,7 @@ export const TemplateSiliconDev: React.FC<TemplateProps> = ({ data, showPhoto = 
         )}
 
         {/* Skills & Education */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+        <div className="grid grid-cols-2 gap-6">
           {/* Skills */}
           {skills && skills.length > 0 && (
             <div>
@@ -142,7 +142,7 @@ export const TemplateSiliconDev: React.FC<TemplateProps> = ({ data, showPhoto = 
                 {skills.map((sk) => (
                   <span
                     key={sk.id}
-                    className="px-2 py-1 bg-cyan-50 text-cyan-950 border border-cyan-200/70 text-xs font-mono font-medium rounded-md"
+                    className="px-2 py-1 bg-cyan-50 text-cyan-950 border border-cyan-200/70 text-xs font-mono font-medium rounded-md break-words"
                   >
                     {sk.name}
                   </span>
@@ -159,10 +159,10 @@ export const TemplateSiliconDev: React.FC<TemplateProps> = ({ data, showPhoto = 
               </h2>
               <div className="space-y-2 pt-1 text-xs">
                 {education.map((edu) => (
-                  <div key={edu.id}>
-                    <div className="font-bold text-slate-900">{edu.degree}</div>
-                    <div className="text-slate-600">{edu.institution} {edu.fieldOfStudy ? `— ${edu.fieldOfStudy}` : ''}</div>
-                    <div className="text-slate-400 font-mono text-[11px]">{edu.startDate} – {edu.endDate}</div>
+                  <div key={edu.id} className="min-w-0">
+                    <div className="font-bold text-slate-900 break-words">{edu.degree}</div>
+                    <div className="text-slate-600 break-words">{edu.institution} {edu.fieldOfStudy ? `— ${edu.fieldOfStudy}` : ''}</div>
+                    <div className="text-slate-400 font-mono text-[11px] shrink-0">{edu.startDate} – {edu.endDate}</div>
                   </div>
                 ))}
               </div>
@@ -171,7 +171,7 @@ export const TemplateSiliconDev: React.FC<TemplateProps> = ({ data, showPhoto = 
         </div>
 
         {/* Languages & Certificates */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-2 border-t border-slate-100">
+        <div className="grid grid-cols-2 gap-6 pt-2 border-t border-slate-100">
           {languages && languages.length > 0 && (
             <div>
               <div className="text-xs font-mono font-bold text-slate-500 uppercase mb-1">{terms.languages}</div>

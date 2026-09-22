@@ -88,17 +88,6 @@ export const MobileFrozenBottomBar: React.FC<MobileFrozenBottomBarProps> = ({
             </button>
 
             <div className="flex items-center gap-0.5 shrink-0">
-              {onOpenProfileModal && (
-                <button
-                  id="mobile-freeze-settings-btn"
-                  type="button"
-                  onClick={() => onOpenProfileModal('settings')}
-                  className="p-1.5 rounded-lg text-slate-500 hover:text-blue-600 hover:bg-blue-50 active:scale-95 transition-all cursor-pointer"
-                  title={settingsLabel}
-                >
-                  <Settings className="w-4 h-4" />
-                </button>
-              )}
               {onLogout && (
                 <button
                   id="mobile-freeze-logout-btn"
@@ -118,12 +107,13 @@ export const MobileFrozenBottomBar: React.FC<MobileFrozenBottomBarProps> = ({
               id="mobile-freeze-auth-btn"
               type="button"
               onClick={() => onOpenAuthModal('login', currentRole)}
-              className="flex-1 min-h-[42px] flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-blue-600 active:bg-blue-700 text-white shadow-xs transition-transform active:scale-98 cursor-pointer shrink-0"
+              className="flex-1 min-h-[42px] flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-xl text-xs font-bold bg-blue-600 active:bg-blue-700 text-white shadow-xs transition-transform active:scale-98 cursor-pointer shrink-0"
               title={`${dict.nav.login}${registerSuffix}`}
             >
-              <Sparkles className="w-3.5 h-3.5 text-blue-200 shrink-0" />
+              <LogIn className="w-4 h-4 text-blue-100 shrink-0" />
               <span className="tracking-tight whitespace-nowrap font-bold">
-                {dict.nav.login}{registerSuffix}
+                {dict.nav.login}
+                <span className="hidden xs:inline">{registerSuffix}</span>
               </span>
             </button>
           )

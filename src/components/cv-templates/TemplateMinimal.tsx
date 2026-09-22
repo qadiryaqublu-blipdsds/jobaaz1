@@ -11,26 +11,26 @@ export const TemplateMinimal: React.FC<TemplateProps> = ({ data }) => {
   const terms = getCVTerms(language);
 
   return (
-    <div id="cv-preview-minimal" className="bg-white text-slate-800 p-8 rounded-lg shadow-sm border border-slate-100 font-sans max-w-[850px] mx-auto min-h-[1050px]">
+    <div id="cv-preview-minimal" className="bg-white text-slate-800 p-8 rounded-lg shadow-sm border border-slate-100 font-sans w-full max-w-[800px] mx-auto min-h-[1050px]">
       {/* Top minimal header */}
       <div className="mb-6 flex items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-light tracking-tight text-slate-900">
+        <div className="min-w-0 flex-1">
+          <h1 className="text-2xl font-light tracking-tight text-slate-900 break-words">
             <span className="font-semibold">{personalInfo.fullName?.split(' ')[0] || 'Name'}</span>{' '}
             {personalInfo.fullName?.split(' ').slice(1).join(' ') || 'Surname'}
           </h1>
           <div className="flex flex-wrap items-center gap-3 text-xs text-indigo-600 font-medium mt-1">
-            <span>{personalInfo.jobTitle || ''}</span>
-            {personalInfo.address && <span className="text-slate-400">/ {personalInfo.address}</span>}
-            {personalInfo.email && <span className="text-slate-600">/ {personalInfo.email}</span>}
-            {personalInfo.phone && <span className="text-slate-600">/ {personalInfo.phone}</span>}
+            <span className="break-words">{personalInfo.jobTitle || ''}</span>
+            {personalInfo.address && <span className="text-slate-400 truncate">/ {personalInfo.address}</span>}
+            {personalInfo.email && <span className="text-slate-600 truncate">/ {personalInfo.email}</span>}
+            {personalInfo.phone && <span className="text-slate-600 truncate">/ {personalInfo.phone}</span>}
           </div>
         </div>
         {personalInfo.photoUrl && (
           <img
             src={personalInfo.photoUrl}
             alt={personalInfo.fullName || 'Candidate'}
-            className={`${getPhotoClasses(personalInfo.photoSize, personalInfo.photoShape)} border border-slate-200 shadow-2xs bg-slate-50`}
+            className={`${getPhotoClasses(personalInfo.photoSize, personalInfo.photoShape)} border border-slate-200 shadow-2xs bg-slate-50 shrink-0`}
             referrerPolicy="no-referrer"
           />
         )}
@@ -41,7 +41,7 @@ export const TemplateMinimal: React.FC<TemplateProps> = ({ data }) => {
       {/* Summary */}
       {personalInfo.summary && (
         <div className="mb-6">
-          <p className="text-xs text-slate-600 leading-relaxed max-w-2xl">{personalInfo.summary}</p>
+          <p className="text-xs text-slate-600 leading-relaxed max-w-2xl whitespace-pre-line break-words">{personalInfo.summary}</p>
         </div>
       )}
 
@@ -51,14 +51,14 @@ export const TemplateMinimal: React.FC<TemplateProps> = ({ data }) => {
           <h2 className="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-3">{terms.experience}</h2>
           <div className="space-y-4">
             {experiences.map((exp) => (
-              <div key={exp.id} className="grid grid-cols-1 md:grid-cols-4 gap-2 text-xs">
-                <div className="text-slate-400 text-[11px]">
+              <div key={exp.id} className="grid grid-cols-4 gap-2 text-xs">
+                <div className="text-slate-400 text-[11px] shrink-0">
                   {exp.startDate} — {exp.current ? terms.present : exp.endDate}
                 </div>
-                <div className="md:col-span-3">
-                  <div className="font-semibold text-slate-900">{exp.position}</div>
-                  <div className="text-slate-500 mb-1">{exp.company} {exp.location ? `, ${exp.location}` : ''}</div>
-                  <p className="text-slate-600 leading-relaxed whitespace-pre-line text-[11px]">{exp.description}</p>
+                <div className="col-span-3 min-w-0">
+                  <div className="font-semibold text-slate-900 break-words">{exp.position}</div>
+                  <div className="text-slate-500 mb-1 break-words">{exp.company} {exp.location ? `, ${exp.location}` : ''}</div>
+                  <p className="text-slate-600 leading-relaxed whitespace-pre-line text-[11px] break-words">{exp.description}</p>
                 </div>
               </div>
             ))}
@@ -72,13 +72,13 @@ export const TemplateMinimal: React.FC<TemplateProps> = ({ data }) => {
           <h2 className="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-3">{terms.education}</h2>
           <div className="space-y-3">
             {education.map((edu) => (
-              <div key={edu.id} className="grid grid-cols-1 md:grid-cols-4 gap-2 text-xs">
-                <div className="text-slate-400 text-[11px]">
+              <div key={edu.id} className="grid grid-cols-4 gap-2 text-xs">
+                <div className="text-slate-400 text-[11px] shrink-0">
                   {edu.startDate} — {edu.current ? terms.ongoing : edu.endDate}
                 </div>
-                <div className="md:col-span-3">
-                  <div className="font-semibold text-slate-900">{edu.institution}</div>
-                  <div className="text-slate-500">{edu.degree} {edu.fieldOfStudy ? `• ${edu.fieldOfStudy}` : ''}</div>
+                <div className="col-span-3 min-w-0">
+                  <div className="font-semibold text-slate-900 break-words">{edu.institution}</div>
+                  <div className="text-slate-500 break-words">{edu.degree} {edu.fieldOfStudy ? `• ${edu.fieldOfStudy}` : ''}</div>
                   {edu.gpa && <div className="text-slate-400 text-[10px]">GPA: {edu.gpa}</div>}
                 </div>
               </div>
@@ -88,7 +88,7 @@ export const TemplateMinimal: React.FC<TemplateProps> = ({ data }) => {
       )}
 
       {/* Skills & Projects Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+      <div className="grid grid-cols-2 gap-6 mb-6">
         {skills && skills.length > 0 && (
           <div>
             <h2 className="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-2">{terms.skills}</h2>

@@ -13,7 +13,7 @@ export const TemplateATSCompact: React.FC<TemplateProps> = ({ data, showPhoto = 
   const displayPhoto = showPhoto && !!personalInfo.photoUrl;
 
   return (
-    <div id="cv-preview-ats" className="bg-white text-slate-900 p-8 rounded-lg shadow-sm border border-slate-300 font-sans max-w-[850px] mx-auto min-h-[1050px] text-left">
+    <div id="cv-preview-ats" className="bg-white text-slate-900 p-8 rounded-lg shadow-sm border border-slate-300 font-sans w-full max-w-[800px] mx-auto min-h-[1050px] text-left">
       {/* Standard ATS Header */}
       <div className="text-center border-b-2 border-slate-900 pb-4 mb-5">
         {displayPhoto && (
@@ -21,15 +21,15 @@ export const TemplateATSCompact: React.FC<TemplateProps> = ({ data, showPhoto = 
             <img
               src={personalInfo.photoUrl}
               alt={personalInfo.fullName || 'Namizəd'}
-              className={`${getPhotoClasses(personalInfo.photoSize, personalInfo.photoShape)} border-2 border-slate-800`}
+              className={`${getPhotoClasses(personalInfo.photoSize, personalInfo.photoShape)} border-2 border-slate-800 shrink-0`}
               referrerPolicy="no-referrer"
             />
           </div>
         )}
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900 uppercase">
+        <h1 className="text-2xl font-bold tracking-tight text-slate-900 uppercase break-words">
           {personalInfo.fullName || 'Ad Soyad'}
         </h1>
-        <p className="text-sm font-semibold text-slate-700 mt-0.5">
+        <p className="text-sm font-semibold text-slate-700 mt-0.5 break-words">
           {personalInfo.jobTitle || 'Vəzifə'}
         </p>
 
@@ -84,17 +84,17 @@ export const TemplateATSCompact: React.FC<TemplateProps> = ({ data, showPhoto = 
           <div className="space-y-3.5">
             {experiences.map((exp) => (
               <div key={exp.id}>
-                <div className="flex justify-between items-baseline text-xs font-bold text-slate-900">
-                  <span>{exp.position}</span>
-                  <span className="font-semibold text-slate-700 text-[11px]">
+                <div className="flex justify-between items-baseline gap-2 min-w-0 text-xs font-bold text-slate-900">
+                  <span className="flex-1 min-w-0 break-words">{exp.position}</span>
+                  <span className="font-semibold text-slate-700 text-[11px] shrink-0 whitespace-nowrap">
                     {exp.startDate} – {exp.current ? terms.present : exp.endDate}
                   </span>
                 </div>
-                <div className="text-xs font-medium text-slate-700 mb-1">
+                <div className="text-xs font-medium text-slate-700 mb-1 break-words">
                   {exp.company} {exp.location ? `| ${exp.location}` : ''}
                 </div>
                 {exp.description && (
-                  <p className="text-xs text-slate-800 leading-normal whitespace-pre-line">
+                  <p className="text-xs text-slate-800 leading-normal whitespace-pre-line break-words">
                     {exp.description}
                   </p>
                 )}
@@ -113,13 +113,13 @@ export const TemplateATSCompact: React.FC<TemplateProps> = ({ data, showPhoto = 
           <div className="space-y-2">
             {education.map((edu) => (
               <div key={edu.id} className="text-xs">
-                <div className="flex justify-between items-baseline font-bold text-slate-900">
-                  <span>{edu.degree} {edu.fieldOfStudy ? `• ${edu.fieldOfStudy}` : ''}</span>
-                  <span className="font-normal text-slate-600 text-[11px]">
+                <div className="flex justify-between items-baseline gap-2 min-w-0 font-bold text-slate-900">
+                  <span className="flex-1 min-w-0 break-words">{edu.degree} {edu.fieldOfStudy ? `• ${edu.fieldOfStudy}` : ''}</span>
+                  <span className="font-normal text-slate-600 text-[11px] shrink-0 whitespace-nowrap">
                     {edu.startDate} – {edu.endDate}
                   </span>
                 </div>
-                <div className="text-slate-700">
+                <div className="text-slate-700 break-words">
                   {edu.institution} {edu.gpa ? `| GPA: ${edu.gpa}` : ''}
                 </div>
               </div>

@@ -22,6 +22,7 @@ import {
   saveJobAlertSubscription, 
   createNotification 
 } from '../../services/firestoreService';
+import { ModalBottomLogo } from '../ModalBottomLogo';
 
 export const ALL_JOB_CATEGORIES = [
   'İT və Proqramlaşdırma',
@@ -529,23 +530,18 @@ export const JobAlertManagerModal: React.FC<JobAlertManagerModalProps> = ({
           <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
             <button
               type="button"
-              onClick={onClose}
-              className="px-4 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-100 text-slate-700 text-xs font-bold transition-colors cursor-pointer"
-            >
-              Bağla
-            </button>
-
-            <button
-              type="button"
               onClick={handleSave}
               disabled={isSaving}
-              className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-all shadow-md hover:shadow-lg flex items-center gap-2 cursor-pointer disabled:opacity-50"
+              className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
             >
               <CheckCircle2 className="w-4 h-4" />
               <span>{isSaving ? 'Yadda saxlanılır...' : 'Tənzimləmələri Yadda Saxla'}</span>
             </button>
           </div>
         </div>
+
+        {/* Modal Bottom Brand Logo */}
+        <ModalBottomLogo size="xs" tagline="Vakansiya bildirişləri və abunəliklər" />
       </div>
     </div>
   );

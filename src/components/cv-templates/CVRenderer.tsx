@@ -95,7 +95,10 @@ export const CVRenderer: React.FC<CVRendererProps> = ({
   };
 
   return (
-    <div id={id} className="w-full bg-white print:p-0">
+    <div 
+      id={id} 
+      className="w-[800px] min-w-[800px] max-w-[800px] bg-white text-left box-border print:p-0 print:border-none print:shadow-none mx-auto overflow-hidden text-slate-900"
+    >
       {renderTemplate()}
     </div>
   );

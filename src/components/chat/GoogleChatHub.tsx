@@ -13,6 +13,7 @@ import {
   GoogleChatMessage
 } from '../../utils/googleChatService';
 import { Vacancy, Application, CVData } from '../../types';
+import { SectionBottomLogo } from '../common/SectionBottomLogo';
 import { 
   MessageSquare, 
   Send, 
@@ -173,6 +174,13 @@ export const GoogleChatHub: React.FC<GoogleChatHubProps> = ({
         loadSpaces(res.accessToken);
       }
     } catch (err: any) {
+      if (
+        err?.code === 'auth/popup-closed-by-user' ||
+        err?.code === 'auth/cancelled-popup-request'
+      ) {
+        // Voluntarily dismissed or closed by user - no error logging or error banner needed
+        return;
+      }
       console.error('Sign-in failed:', err);
       setAuthError(err.message || 'Google hesabı ilə daxil olma uğursuz oldu.');
     } finally {
@@ -180,8 +188,23 @@ export const GoogleChatHub: React.FC<GoogleChatHubProps> = ({
     }
   };
 
+  // Demo Workspace Sandbox Mode for testing without corporate Google Chat credentials
+  const handleEnableDemoWorkspace = () => {
+    const demoUser = {
+      displayName: 'İstedad Meneceri (Demo)',
+      email: 'hr-demo@jobia.az',
+      photoURL: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=100&auto=format&fit=crop&q=80',
+    } as any;
+    setCurrentUser(demoUser);
+    setAccessToken('demo-token');
+    setAuthError(null);
+    loadSpaces('demo-token');
+  };
+
   const handleLogout = async () => {
-    await logoutGoogleChat();
+    if (accessToken !== 'demo-token') {
+      await logoutGoogleChat();
+    }
     setCurrentUser(null);
     setAccessToken(null);
     setSpaces([]);
@@ -378,18 +401,29 @@ export const GoogleChatHub: React.FC<GoogleChatHubProps> = ({
             Şirkətinizin HR otaqlarına qoşulmaq, vakansiyaları komanda ilə bölüşmək və namizəd statuslarını Google Chat üzərindən idarə etmək üçün Google hesabınızla daxil olun.
           </p>
 
-          <button
-            onClick={handleSignIn}
-            disabled={isLoggingIn}
-            className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold flex items-center gap-2 shadow-sm transition-colors cursor-pointer"
-          >
-            {isLoggingIn ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <LogIn className="w-4 h-4" />
-            )}
-            <span>Google ilə Qoşul və İcazə Ver</span>
-          </button>
+          <div className="flex flex-col sm:flex-row items-center gap-3">
+            <button
+              onClick={handleSignIn}
+              disabled={isLoggingIn}
+              className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold flex items-center gap-2 shadow-sm transition-colors cursor-pointer disabled:opacity-60"
+            >
+              {isLoggingIn ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <LogIn className="w-4 h-4" />
+              )}
+              <span>Google ilə Qoşul və İcazə Ver</span>
+            </button>
+
+            <button
+              onClick={handleEnableDemoWorkspace}
+              type="button"
+              className="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold flex items-center gap-2 transition-colors cursor-pointer border border-slate-300"
+            >
+              <Sparkles className="w-4 h-4 text-amber-500" />
+              <span>Demo Rejimi ilə Sına (Sandbox)</span>
+            </button>
+          </div>
 
           {authError && (
             <div className="mt-4 p-3 bg-red-50 text-red-700 text-xs rounded-xl border border-red-200 max-w-md flex items-center gap-2">
@@ -897,6 +931,9 @@ export const GoogleChatHub: React.FC<GoogleChatHubProps> = ({
           </div>
         </div>
       )}
+
+      {/* Section Bottom Logo */}
+      <SectionBottomLogo size="sm" tagline="Google Chat ilə komanda və namizəd əməkdaşlığı" />
     </div>
   );
 };

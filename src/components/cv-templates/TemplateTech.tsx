@@ -12,33 +12,33 @@ export const TemplateTech: React.FC<TemplateProps> = ({ data }) => {
   const terms = getCVTerms(language);
 
   return (
-    <div id="cv-preview-tech" className="bg-slate-900 text-slate-100 p-8 rounded-lg shadow-sm border border-slate-700 font-mono max-w-[850px] mx-auto min-h-[1050px]">
+    <div id="cv-preview-tech" className="bg-slate-900 text-slate-100 p-8 rounded-lg shadow-sm border border-slate-700 font-mono w-full max-w-[800px] mx-auto min-h-[1050px]">
       {/* Top terminal bar */}
-      <div className="flex items-center justify-between border-b border-slate-800 pb-4 mb-6">
-        <div className="flex items-center gap-4">
+      <div className="flex items-center justify-between border-b border-slate-800 pb-4 mb-6 gap-4">
+        <div className="flex items-center gap-4 min-w-0 flex-1">
           {personalInfo.photoUrl && (
             <img
               src={personalInfo.photoUrl}
               alt={personalInfo.fullName || 'Candidate'}
-              className={`${getPhotoClasses(personalInfo.photoSize, personalInfo.photoShape)} border-2 border-cyan-500 shadow-md bg-slate-800`}
+              className={`${getPhotoClasses(personalInfo.photoSize, personalInfo.photoShape)} border-2 border-cyan-500 shadow-md bg-slate-800 shrink-0`}
               referrerPolicy="no-referrer"
             />
           )}
-          <div>
+          <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2 text-cyan-400 text-xs font-semibold">
-              <Terminal className="w-4 h-4" />
+              <Terminal className="w-4 h-4 shrink-0" />
               <span>developer_profile.json</span>
             </div>
-            <h1 className="text-3xl font-bold text-white tracking-tight mt-1">{personalInfo.fullName || 'Full Name'}</h1>
-            <p className="text-cyan-300 text-sm font-medium">{personalInfo.jobTitle || 'Full-Stack Developer'}</p>
+            <h1 className="text-3xl font-bold text-white tracking-tight mt-1 break-words">{personalInfo.fullName || 'Full Name'}</h1>
+            <p className="text-cyan-300 text-sm font-medium break-words">{personalInfo.jobTitle || 'Full-Stack Developer'}</p>
           </div>
         </div>
 
-        <div className="text-right text-xs text-slate-400 space-y-1 font-sans">
-          {personalInfo.email && <div className="text-slate-300">{personalInfo.email}</div>}
-          {personalInfo.phone && <div>{personalInfo.phone}</div>}
-          {personalInfo.address && <div>{personalInfo.address}</div>}
-          {personalInfo.github && <div className="text-cyan-400">{personalInfo.github.replace(/^https?:\/\//, '')}</div>}
+        <div className="text-right text-xs text-slate-400 space-y-1 font-sans shrink-0 max-w-[240px]">
+          {personalInfo.email && <div className="text-slate-300 truncate">{personalInfo.email}</div>}
+          {personalInfo.phone && <div className="truncate">{personalInfo.phone}</div>}
+          {personalInfo.address && <div className="truncate">{personalInfo.address}</div>}
+          {personalInfo.github && <div className="text-cyan-400 truncate">{personalInfo.github.replace(/^https?:\/\//, '')}</div>}
         </div>
       </div>
 
@@ -80,15 +80,15 @@ export const TemplateTech: React.FC<TemplateProps> = ({ data }) => {
           <div className="space-y-4">
             {experiences.map((exp) => (
               <div key={exp.id} className="border-l-2 border-cyan-500/60 pl-3">
-                <div className="flex justify-between items-baseline font-sans">
-                  <span className="text-xs font-bold text-white">{exp.position}</span>
-                  <span className="text-[10px] text-cyan-400 font-mono">
+                <div className="flex justify-between items-baseline font-sans gap-2 min-w-0">
+                  <span className="text-xs font-bold text-white flex-1 min-w-0 break-words">{exp.position}</span>
+                  <span className="text-[10px] text-cyan-400 font-mono shrink-0 whitespace-nowrap">
                     {exp.startDate} ~ {exp.current ? terms.present : exp.endDate}
                   </span>
                 </div>
-                <div className="text-xs text-slate-400 font-sans mb-1">{exp.company}</div>
+                <div className="text-xs text-slate-400 font-sans mb-1 break-words">{exp.company}</div>
                 {exp.description && (
-                  <p className="text-[11px] text-slate-300 leading-relaxed whitespace-pre-line font-sans mt-1">
+                  <p className="text-[11px] text-slate-300 leading-relaxed whitespace-pre-line font-sans mt-1 break-words">
                     {exp.description}
                   </p>
                 )}
@@ -99,7 +99,7 @@ export const TemplateTech: React.FC<TemplateProps> = ({ data }) => {
       )}
 
       {/* Projects & Education Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-2 gap-6">
         {/* Projects */}
         {projects && projects.length > 0 && (
           <div>

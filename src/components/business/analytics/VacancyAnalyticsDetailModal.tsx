@@ -555,13 +555,9 @@ export const VacancyAnalyticsDetailModal: React.FC<VacancyAnalyticsDetailModalPr
           <span className="text-slate-500">
             Məlumatlar real vaxt rejimində bazaya qeyd olunan hadisələr üzərindən hesablanmışdır.
           </span>
-
-          <button
-            onClick={onClose}
-            className="px-5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-semibold shadow-xs transition-colors cursor-pointer"
-          >
-            Bağla
-          </button>
+          <span className="text-xs font-semibold text-blue-700 bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-200">
+            Canlı Analitika
+          </span>
         </div>
 
         {/* Dynamic moving Jobia Logo at bottom */}

@@ -15,22 +15,11 @@ export interface PaymentProcessingResult {
   paymentMethod?: string;
 }
 
-// Helper: Format and validate card
+// Helper: Format and validate card (cleanly groups into 4 digits, maximum 16 digits)
 export function formatCardNumber(value: string): string {
-  const v = value.replace(/\s+/g, '').replace(/[^0-9]/gi, '');
-  const matches = v.match(/\d{4,16}/g);
-  const match = (matches && matches[0]) || '';
-  const parts = [];
-
-  for (let i = 0, len = match.length; i < len; i += 4) {
-    parts.push(match.substring(i, i + 4));
-  }
-
-  if (parts.length) {
-    return parts.join(' ');
-  } else {
-    return value;
-  }
+  const digits = value.replace(/\D/g, '').slice(0, 16);
+  const chunks = digits.match(/.{1,4}/g);
+  return chunks ? chunks.join(' ') : digits;
 }
 
 export function detectCardBrand(number: string): 'Visa' | 'Mastercard' | 'Birbank' | 'Leobank' | 'Kart' {

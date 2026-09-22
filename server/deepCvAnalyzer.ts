@@ -182,6 +182,467 @@ const KNOWN_UNIVERSITIES = [
 ];
 
 // ============================================================================
+// Intelligent Industry Domain & Benchmark Keywords Analysis
+// ============================================================================
+interface DomainBenchmarkItem {
+  name: string;
+  category: 'technical' | 'tool' | 'industry' | 'soft';
+  importance: 'critical' | 'recommended' | 'optional';
+  placementAdvice: string;
+  sampleSentence: string;
+  aliases: string[];
+}
+
+const DOMAIN_BENCHMARKS: Record<string, DomainBenchmarkItem[]> = {
+  tech: [
+    {
+      name: 'Git & GitHub / GitLab',
+      category: 'tool',
+      importance: 'critical',
+      placementAdvice: 'Alətlər və ya İş Təcrübəsi bəndlərinə əlavə edin.',
+      sampleSentence: 'Git və GitHub platformaları vasitəsilə 5+ proqramçıdan ibarət komandada versiya nəzarəti və kod təhlili (Code Review) icra etdim.',
+      aliases: ['git', 'github', 'gitlab', 'version control', 'bitbucket']
+    },
+    {
+      name: 'RESTful API & İnteqrasiya',
+      category: 'technical',
+      importance: 'critical',
+      placementAdvice: 'Texniki Bacarıqlar və layihə təsvirlərində göstərin.',
+      sampleSentence: 'Üçüncü tərəf xidmətləri ilə təhlükəsiz məlumat mübadiləsini təmin edən yüksək performanslı RESTful API arxitekturası qurdum.',
+      aliases: ['rest api', 'restful', 'api', 'graphql', 'json api', 'endpoints']
+    },
+    {
+      name: 'Agile & Scrum Metodologiyası',
+      category: 'industry',
+      importance: 'recommended',
+      placementAdvice: 'İş Təcrübəsi və Komanda Əməkdaşlığı bəndlərinə daxil edin.',
+      sampleSentence: '2 həftəlik Agile/Scrum sprintlərində aktiv iştirak edərək sprint tapşırıqlarını 98% dəqiqliklə vaxtında təhvil verdim.',
+      aliases: ['agile', 'scrum', 'kanban', 'sprint', 'jira', 'confluence']
+    },
+    {
+      name: 'CI/CD & Avtomatlaşdırma',
+      category: 'technical',
+      importance: 'recommended',
+      placementAdvice: 'DevOps və ya Təcrübə bölməsində vurğulayın.',
+      sampleSentence: 'GitHub Actions / Docker əsasında avtomatlaşdırılmış CI/CD boru xətləri quraraq layihənin canlıya çıxış müddətini 40% sürətləndirdim.',
+      aliases: ['ci/cd', 'docker', 'kubernetes', 'jenkins', 'devops', 'pipeline']
+    },
+    {
+      name: 'SQL & Verilənlər Bazası Optimallaşdırılması',
+      category: 'technical',
+      importance: 'critical',
+      placementAdvice: 'Məlumat bazası və backend təsvirində yerləşdirin.',
+      sampleSentence: 'Mürəkkəb SQL sorğularını və indeksləri optimallaşdıraraq verilənlər bazası cavab sürətini 35% artırdım.',
+      aliases: ['sql', 'postgresql', 'mysql', 'mongodb', 'database', 'queries', 'orm']
+    },
+    {
+      name: 'Unit Testing & Kod Keyfiyyəti',
+      category: 'technical',
+      importance: 'optional',
+      placementAdvice: 'Testləşdirmə və keyfiyyət təminatı bəndlərinə daxil edin.',
+      sampleSentence: 'Unit və inteqrasiya testləri yazaraq kod örtüyünü (code coverage) 80%-ə çatdırdım və istehsalat xətalarını minimuma endirdim.',
+      aliases: ['unit test', 'testing', 'jest', 'cypress', 'qa', 'test coverage']
+    }
+  ],
+  finance: [
+    {
+      name: '1C Mühasibatlıq (8.3 versiyası)',
+      category: 'tool',
+      importance: 'critical',
+      placementAdvice: 'Kompüter və Proqram Bilikləri bölməsinə əlavə edin.',
+      sampleSentence: '1C 8.3 proqramında ilkin sənədlərin işlənməsi, kassa və bank əməliyyatlarının uçotunu apardım.',
+      aliases: ['1c', '1c 8.3', '1s', '1c enterprise', '1c mühasibatlıq']
+    },
+    {
+      name: 'Maliyyə Hesabatlarının Beynəlxalq Standartları (MHBS / IFRS)',
+      category: 'industry',
+      importance: 'critical',
+      placementAdvice: 'Peşəkar Təlim və Standartlar bəndində qeyd edin.',
+      sampleSentence: 'MHBS (IFRS) standartlarına uyğun Mənfəət və Zərər (P&L), Balans hesabatlarının tərtibində iştirak etdim.',
+      aliases: ['ifrs', 'mhbs', 'beynəlxalq standartlar', 'p&l', 'balans', 'maliyyə hesabatı']
+    },
+    {
+      name: 'BTP & e-Bəyannamə (Vergi Məcəlləsi)',
+      category: 'tool',
+      importance: 'critical',
+      placementAdvice: 'Vergi və Uyğunluq bacarıqlarında qeyd edin.',
+      sampleSentence: 'Vergi orqanlarına təqdim edilən ƏDV, ÖMV və Mənfəət bəyannamələrini BTP proqramı ilə vaxtında formalaşdırdım.',
+      aliases: ['btp', 'bəyannamə', 'vergi məcəlləsi', 'ədv', 'gəlir vergisi', 'taxes']
+    },
+    {
+      name: 'Ətraflı MS Excel (VLOOKUP, Pivot, XLOOKUP)',
+      category: 'tool',
+      importance: 'critical',
+      placementAdvice: 'Texniki Bacarıqlar və Alətlər bölməsinə əlavə edin.',
+      sampleSentence: 'MS Excel-də Pivot Table, VLOOKUP və dinamik modelləşdirmə ilə 10,000+ sətirlik əməliyyat məlumatlarını konsolidasiya etdim.',
+      aliases: ['excel', 'pivot table', 'vlookup', 'xlookup', 'ms excel', 'makro']
+    },
+    {
+      name: 'Bank-Klient Əməliyyatları & Ödəniş Tapşırıqları',
+      category: 'technical',
+      importance: 'recommended',
+      placementAdvice: 'İş Təcrübəsi və Gündəlik Öhdəliklərdə qeyd edin.',
+      sampleSentence: 'İnternet-bankçılıq sistemi vasitəsilə daxili və xarici valyuta ödəniş tapşırıqlarını 100% dəqiqliklə icra etdim.',
+      aliases: ['bank-klient', 'internet bankçılıq', 'ödəniş tapşırıqları', 'köçürmələr']
+    },
+    {
+      name: 'Maliyyə Analizi & Büdcələmə (Budgeting)',
+      category: 'industry',
+      importance: 'recommended',
+      placementAdvice: 'Analitik Fəaliyyət bəndlərində göstərin.',
+      sampleSentence: 'İllik departament büdcəsinin faktiki xərclərlə müqayisəli plan-fakt təhlilini apararaq xərclərin 12% optimallaşdırılmasına nail oldum.',
+      aliases: ['büdcələmə', 'budgeting', 'maliyyə analizi', 'plan-fakt', 'proqnozlaşdırma']
+    }
+  ],
+  sales: [
+    {
+      name: 'B2B & Korporativ Satış Danışıqları',
+      category: 'industry',
+      importance: 'critical',
+      placementAdvice: 'İş Təcrübəsi nailiyyət bəndlərində göstərin.',
+      sampleSentence: 'Korporativ B2B tərəfdaşlarla yüksək səviyyəli danışıqlar apararaq illik 150,000+ AZN həcmində yeni müqavilələr bağladım.',
+      aliases: ['b2b', 'b2c', 'satış', 'danışıqlar', 'müqavilə', 'danışıqlar aparma']
+    },
+    {
+      name: 'Satış Hunisi (Sales Funnel) & KPI İcrası',
+      category: 'technical',
+      importance: 'critical',
+      placementAdvice: 'Əsas Göstəricilər və Metriklər bölməsinə əlavə edin.',
+      sampleSentence: 'Satış hunisinin hər bir mərhələsini izləyərək rüblük fərdi KPI satış planını 115% icra etdim.',
+      aliases: ['kpi', 'satış hunisi', 'sales funnel', 'satış planı', 'hədəflər']
+    },
+    {
+      name: 'Soyuq Zənglər & Yeni Müştəri Cəlbi',
+      category: 'technical',
+      importance: 'recommended',
+      placementAdvice: 'Təcrübə və Satış Fəaliyyəti bəndlərinə əlavə edin.',
+      sampleSentence: 'Aktiv prospektinq və soyuq zənglər strategiyası ilə bazaya ayda 30-dan çox yeni potensial korporativ müştəri qazandırdım.',
+      aliases: ['soyuq zəng', 'cold call', 'prospektinq', 'müştəri cəlbi', 'lead generation']
+    },
+    {
+      name: 'Kommersiya Təkliflərinin (KP) Hazırlanması',
+      category: 'tool',
+      importance: 'recommended',
+      placementAdvice: 'Bacarıqlar və Təcrübə bölməsinə daxil edin.',
+      sampleSentence: 'Müştərinin fərdi ehtiyaclarına uyğun cəlbedici kommersiya təklifləri və təqdimatlar hazırlayaraq qərarvermə müddətini qısaltdım.',
+      aliases: ['kp', 'kommersiya təklifi', 'təqdimat', 'presentation', 'pitch']
+    },
+    {
+      name: 'Müştəri Məmnuniyyəti & Loyallıq (Account Management)',
+      category: 'soft',
+      importance: 'recommended',
+      placementAdvice: 'Müştəri Münasibətləri və Əlaqələr bəndinə əlavə edin.',
+      sampleSentence: 'Mövcud VIP müştərilərlə uzunmüddətli əlaqələr quraraq müştəri itkisini (churn rate) minimum həddə saxladım.',
+      aliases: ['account management', 'müştəri məmnuniyyəti', 'loyallıq', 'retention']
+    }
+  ],
+  marketing: [
+    {
+      name: 'Meta Business Suite & SMM Strategiyası',
+      category: 'tool',
+      importance: 'critical',
+      placementAdvice: 'Sosial Media və Reklam bölməsinə əlavə edin.',
+      sampleSentence: 'Instagram və Facebook səhifələri üçün aylıq kontent planı hazırlayıb Meta Ads vasitəsilə orqanik izləyici sayını 45% artırdım.',
+      aliases: ['smm', 'meta ads', 'meta business', 'facebook ads', 'instagram', 'social media']
+    },
+    {
+      name: 'Google Ads & Google Analytics 4 (GA4)',
+      category: 'tool',
+      importance: 'critical',
+      placementAdvice: 'Rəqəmsal Marketinq və Analitika bəndlərində göstərin.',
+      sampleSentence: 'Google Ads axtarış kampaniyalarını idarə edərək klik başına xərci (CPC) 20% azaltdım və GA4-də konversiyaları izlədim.',
+      aliases: ['google ads', 'ga4', 'google analytics', 'cpc', 'sem', 'analitika']
+    },
+    {
+      name: 'SEO & Məzmun Optimallaşdırılması',
+      category: 'technical',
+      importance: 'recommended',
+      placementAdvice: 'Vebsayt Məzmunu və Açar Sözlər bölməsinə daxil edin.',
+      sampleSentence: 'SEO tələblərinə uyğun açar söz araşdırması apararaq bloq və səhifələrin Google axtarışında ilk 5-liyə çıxmasını təmin etdim.',
+      aliases: ['seo', 'search engine', 'açar söz', 'kontent', 'orqanik trafik']
+    },
+    {
+      name: 'Kopiraytinq & Storytelling',
+      category: 'soft',
+      importance: 'recommended',
+      placementAdvice: 'Mətn Yaradıcılığı və Brendinq bəndinə əlavə edin.',
+      sampleSentence: 'Müştəri auditoriyasını cəlb edən və satışa təşviq edən kreativ reklam mətnləri (copy) hazırladım.',
+      aliases: ['kopiraytinq', 'copywriting', 'mətn yazarlığı', 'kreativ yazı']
+    },
+    {
+      name: 'E-mail Marketinq & Mailchimp / Sendpulse',
+      category: 'tool',
+      importance: 'optional',
+      placementAdvice: 'E-mail İnteqrasiyası və Birbaşa Marketinq bölməsinə əlavə edin.',
+      sampleSentence: 'Seqmentasiya olunmuş e-poçt bülletenləri hazırlayaraq açılma dərəcəsini (Open Rate) 28%-ə çatdırdım.',
+      aliases: ['email marketing', 'mailchimp', 'sendpulse', 'e-poçt marketinq']
+    }
+  ],
+  hr: [
+    {
+      name: 'Azərbaycan Respublikasının Əmək Məcəlləsi',
+      category: 'industry',
+      importance: 'critical',
+      placementAdvice: 'Kadr Kargüzarlığı və Hüquqi Uyğunluq bölməsinə əlavə edin.',
+      sampleSentence: 'Əmək Məcəlləsinin tələblərinə tam uyğun olaraq əmək müqavilələrinin, əmrlərin və kadr sənədlərinin rəsmiləşdirilməsini təmin etdim.',
+      aliases: ['əmək məcəlləsi', 'əmək qanunvericiliyi', 'əmək müqaviləsi', 'labor code']
+    },
+    {
+      name: 'ƏMAS Altsistemi (emas.sosial.gov.az)',
+      category: 'tool',
+      importance: 'critical',
+      placementAdvice: 'Dövlət Portalları və Kadr Sistemləri bölməsinə əlavə edin.',
+      sampleSentence: 'ƏMAS portalında işçilərin işə qəbulu, xitam, məzuniyyət və ştat dəyişikliklərinin bildirişlərini vaxtında qeydiyyata aldım.',
+      aliases: ['əmas', 'emas', 'sosial gov az', 'əmək bildirişi']
+    },
+    {
+      name: '1C: ZUP (Zарплата и Управление Персоналом)',
+      category: 'tool',
+      importance: 'critical',
+      placementAdvice: 'Proqram Təminatı və Hesabatlılıq bəndinə əlavə edin.',
+      sampleSentence: '1C ZUP proqramında iş vaxtının uçotu cədvəli (tabel), məzuniyyət hesablamaları və kadr bazasının idarə olunmasını həyata keçirdim.',
+      aliases: ['1c zup', 'zup', '1c kadr', 'tabel', 'kadr uçotu']
+    },
+    {
+      name: 'Tam Dövrü İşə Qəbul (End-to-End Recruitment)',
+      category: 'technical',
+      importance: 'critical',
+      placementAdvice: 'İşə Qəbul və İstedad Cəlbi bölməsinə daxil edin.',
+      sampleSentence: 'Vakansiya elanlarının yerləşdirilməsindən ilkin müsahibə və iş təklifi mərhələsinə qədər ayda 15+ vakansiyanı uğurla qapatdım.',
+      aliases: ['recruitment', 'işə qəbul', 'müsahibə', 'interviewing', 'headhunting', 'talent acquisition']
+    },
+    {
+      name: 'Onboarding & Adaptasiya Proqramları',
+      category: 'industry',
+      importance: 'recommended',
+      placementAdvice: 'Korporativ Mədəniyyət və Təlim bəndinə əlavə edin.',
+      sampleSentence: 'Yeni işə qəbul olunan əməkdaşlar üçün strukturlu 30 günlük adaptasiya təlimatı hazırlayaraq sınaq müddətində işdən ayrılma nisbətini 20% azaltdım.',
+      aliases: ['onboarding', 'adaptasiya', 'loyallıq', 'retention', 'təlim']
+    }
+  ],
+  general: [
+    {
+      name: 'Layihə İdarəetməsi & Vaxtın Bölüşdürülməsi',
+      category: 'industry',
+      importance: 'critical',
+      placementAdvice: 'İş Təcrübəsi və Xülasə bölməsinə daxil edin.',
+      sampleSentence: 'Eyni vaxtda icra olunan bir neçə layihənin vaxt qrafikini və prioritetlərini müəyyən edərək təhvil müddətini qorudum.',
+      aliases: ['layihə idarəetməsi', 'project management', 'vaxt idarəetməsi', 'time management']
+    },
+    {
+      name: 'MS Office Paketi (Excel, Word, PowerPoint)',
+      category: 'tool',
+      importance: 'critical',
+      placementAdvice: 'Kompüter və Ofis Proqramları bölməsinə əlavə edin.',
+      sampleSentence: 'Rəhbərlik üçün aylıq analitik hesabatlar və vizual qərarvermə təqdimatları hazırladım.',
+      aliases: ['ms office', 'excel', 'word', 'powerpoint', 'ofis proqramları']
+    },
+    {
+      name: 'Analitik Düşüncə & Nəticəyönümlülük',
+      category: 'soft',
+      importance: 'recommended',
+      placementAdvice: 'Xülasə və Şəxsi Nailiyyətlər bölməsinə daxil edin.',
+      sampleSentence: 'Gündəlik iş proseslərindəki çatışmazlıqları müəyyən edərək iş səmərəliliyini artıran təkliflər irəli sürdüm.',
+      aliases: ['analitik düşüncə', 'nəticəyönümlülük', 'problem həlli', 'tənqidi düşüncə']
+    },
+    {
+      name: 'İşgüzar Yazışmalar & Peşəkar Ünsiyyət',
+      category: 'soft',
+      importance: 'recommended',
+      placementAdvice: 'Kommunikasiya və Əlaqələr bölməsinə əlavə edin.',
+      sampleSentence: 'Daxili və xarici tərəfdaşlarla rəsmi işgüzar protokola uyğun yazışmaları və danışıqları təmin etdim.',
+      aliases: ['işgüzar yazışmalar', 'kommunikasiya', 'ünsiyyət', 'business correspondence']
+    }
+  ]
+};
+
+function detectCandidateDomain(role: string, rawText: string): 'tech' | 'finance' | 'sales' | 'marketing' | 'hr' | 'general' {
+  const combined = normalizeAzText(`${role} ${rawText}`);
+  if (/(developer|proqramçı|frontend|backend|fullstack|software|it|devops|qa|data|engineer|kod|react|python|java|javascript|c#|sql)/i.test(combined)) {
+    return 'tech';
+  }
+  if (/(mühasib|accountant|maliyyə|finance|audit|vergi|1c|btp|bəyannamə|kassa|iqtisadçı|bank|xəzinədar)/i.test(combined)) {
+    return 'finance';
+  }
+  if (/(satış|sales|biznesin inkişafı|b2b|b2c|müştəri|kassir|merçendayzer|menecer|ticarət|satıcı)/i.test(combined)) {
+    return 'sales';
+  }
+  if (/(marketinq|marketing|smm|reklam|seo|kopirayt|dizayn|qrafik|media|pr|social media)/i.test(combined)) {
+    return 'marketing';
+  }
+  if (/(insan resursları|hr|kadr|işə qəbul|recruitment|əmək məcəlləsi|tabel|zup)/i.test(combined)) {
+    return 'hr';
+  }
+  return 'general';
+}
+
+export function computeIntelligentKeywordAnalysis(
+  rawText: string,
+  primaryRole: string,
+  extractedTech: string[],
+  extractedTools: string[],
+  extractedIndustry: string[],
+  targetJobDescription?: string
+): KeywordAnalysis {
+  const domain = detectCandidateDomain(primaryRole, rawText);
+  const benchmark = DOMAIN_BENCHMARKS[domain] || DOMAIN_BENCHMARKS.general;
+  const normText = normalizeAzText(rawText);
+
+  const detailedKeywords: Array<{
+    name: string;
+    category: 'technical' | 'tool' | 'industry' | 'soft';
+    importance: 'critical' | 'recommended' | 'optional';
+    status: 'matched' | 'missing' | 'partial';
+    placementAdvice?: string;
+    sampleSentence?: string;
+  }> = [];
+
+  const matchedKeywordsSet = new Set<string>();
+  const missingKeywordsSet = new Set<string>();
+
+  // If candidate explicitly had tech or tools
+  [...extractedTech, ...extractedTools].forEach(t => {
+    if (t && t.length > 2) matchedKeywordsSet.add(t);
+  });
+
+  // Evaluate against domain benchmark
+  benchmark.forEach(item => {
+    const isMatched = item.aliases.some(alias => normText.includes(normalizeAzText(alias)));
+    if (isMatched) {
+      matchedKeywordsSet.add(item.name);
+      detailedKeywords.push({
+        name: item.name,
+        category: item.category,
+        importance: item.importance,
+        status: 'matched',
+        placementAdvice: 'CV mətninizdə təsdiqləndi.'
+      });
+    } else {
+      missingKeywordsSet.add(item.name);
+      detailedKeywords.push({
+        name: item.name,
+        category: item.category,
+        importance: item.importance,
+        status: 'missing',
+        placementAdvice: item.placementAdvice,
+        sampleSentence: item.sampleSentence
+      });
+    }
+  });
+
+  // If vacancy JD was provided, extract additional requirements
+  if (targetJobDescription && targetJobDescription.trim().length > 10) {
+    const jdWords = targetJobDescription
+      .split(/[\n,;•\.\s]+/)
+      .map(w => w.trim())
+      .filter(w => w.length >= 4 && !/^(üçün|vəzifə|tələblər|şirkət|şəxslər|iş|haqqında)$/i.test(w));
+    
+    // Pick top unique JD keywords
+    const topJd = Array.from(new Set(jdWords)).slice(0, 5);
+    topJd.forEach(kw => {
+      const isPresent = normText.includes(normalizeAzText(kw));
+      if (!isPresent && !missingKeywordsSet.has(kw)) {
+        missingKeywordsSet.add(kw);
+        detailedKeywords.push({
+          name: kw,
+          category: 'technical',
+          importance: 'critical',
+          status: 'missing',
+          placementAdvice: 'Vakansiya elanında qeyd olunan əsas tələbdir.',
+          sampleSentence: `Təcrübəniz varsa, "${kw}" üzrə gördüyünüz işləri konkret göstəricilərlə CV-yə daxil edin.`
+        });
+      }
+    });
+  }
+
+  // Calculate category statistics for graph
+  const categories = [
+    { key: 'technical', label: 'Texniki Bacarıqlar' },
+    { key: 'tool', label: 'Proqram və Alətlər' },
+    { key: 'industry', label: 'Sahəvi Metodologiyalar' },
+    { key: 'soft', label: 'Soft & Liderlik Bacarıqları' },
+  ];
+
+  const categoryBreakdown = categories.map(cat => {
+    const items = detailedKeywords.filter(k => k.category === cat.key);
+    const matched = items.filter(k => k.status === 'matched').length;
+    const missing = items.filter(k => k.status === 'missing').length;
+    const total = items.length || 1;
+    const matchRate = Math.round((matched / total) * 100);
+    return {
+      category: cat.key,
+      categoryLabel: cat.label,
+      matchedCount: matched,
+      missingCount: missing,
+      totalCount: total,
+      matchRate
+    };
+  });
+
+  // Concrete Actionable Advice
+  const concreteAdvice = [
+    {
+      id: 'adv-metrics',
+      category: 'metric' as const,
+      title: 'Google XYZ Düsturu ilə Rəqəmsal Nailiyyətlər',
+      priority: 'high' as const,
+      currentState: 'Öhdəliklər ölçülə bilən rəqəm, faiz və biznes nəticələri olmadan sadalanıb.',
+      actionableFix: 'Hər bir iş təcrübəsi üçün ən azı 2 bəndi [X nəticəsinə Y üsulu ilə nail oldum, Z qədər qənaət/artım təmin etdim] düsturuna uyğunlaşdırın.',
+      beforeExample: domain === 'tech' ? 'Sistemdə xətaları düzəltdim və yeni funksiyalar yazdım.' : domain === 'finance' ? 'Mühasibatlıqda sənədləri və hesabatları hazırlayırdım.' : 'Müştərilərlə əlaqə saxlayırdım və sifarişləri qəbul edirdim.',
+      afterExample: domain === 'tech' ? 'Kritik sistem xətalarını aradan qaldıraraq və yeni API servisi inteqrasiya edərək platformanın yüklənmə sürətini 35% artırdım.' : domain === 'finance' ? '1C və Excel vasitəsilə 45+ aylıq maliyyə hesabatını avtomatlaşdıraraq hesabat hazırlama müddətini 30% azaltdım.' : 'Aylıq 120+ müştəri sorğusunu operativ cavablandıraraq müştəri məmnuniyyətini (CSAT) 82%-dən 95%-ə yüksəltdim.',
+      impactScore: '+15 ATS Balı'
+    },
+    {
+      id: 'adv-keywords',
+      category: 'keyword' as const,
+      title: 'Çatışmayan Açar Sözlərin Strateji İnteqrasiyası',
+      priority: 'high' as const,
+      currentState: `Sahəniz üçün zəruri olan ${Array.from(missingKeywordsSet).slice(0, 3).join(', ') || 'əsas terminlər'} CV-də aşkar edilmədi.`,
+      actionableFix: 'Açar sözləri sadəcə siyahı kimi kopyalamayın. Onları iş təcrübənizdə gördüyünüz real işlərin kontekstində cümlələrlə izah edin.',
+      beforeExample: Array.from(missingKeywordsSet)[0] ? `Bacarıqlar: ${Array.from(missingKeywordsSet)[0]}` : 'Bacarıqlar: Müxtəlif proqramlar',
+      afterExample: detailedKeywords.find(k => k.status === 'missing')?.sampleSentence || 'Sahənizə uyğun alətlərlə əldə etdiyiniz real iş nəticəsini cümlə şəklində daxil edin.',
+      impactScore: '+20 ATS Balı'
+    },
+    {
+      id: 'adv-structure',
+      category: 'structure' as const,
+      title: 'ATS-Dostu Standart Bölmə Başlıqları',
+      priority: 'medium' as const,
+      currentState: 'Mürəkkəb cədvəllər, qrafik ikonlar və ya qeyri-standart bölmə adları robotların oxumasını çətinləşdirə bilər.',
+      actionableFix: 'Tək sütunlu, təmiz başlıqlardan (İş Təcrübəsi, Təhsil, Bacarıqlar, Dillər) və standart maddə işarələrindən (•) istifadə edin.',
+      beforeExample: 'Şəkilli qrafik sütunlar, bəzəkli cədvəllər və qeyri-standart simvollar.',
+      afterExample: 'Aydın ardıcıllıq: 1. Şəxsi Məlumatlar -> 2. Xülasə -> 3. İş Təcrübəsi -> 4. Təhsil -> 5. Bacarıqlar.',
+      impactScore: '+10 ATS Balı'
+    },
+    {
+      id: 'adv-summary',
+      category: 'summary' as const,
+      title: '3 Cümləlik Yüksək Təsirli Peşəkar Xülasə',
+      priority: 'medium' as const,
+      currentState: 'Profil xülasəsi (Summary/Haqqımda) ya yoxdur, ya da ümumi şablon xarakteri daşıyır.',
+      actionableFix: 'İşəgötürənin ilk 6 saniyədə diqqətini çəkəcək formulla xülasə yazın: [İxtisas & təcrübə ili] + [Ən böyük nailiyyət və alətlər] + [Şirkətə verəcəyiniz dəyər].',
+      beforeExample: 'Mən məsuliyyətli, komandada işləməyi bacaran və karyera qurmaq istəyən gəncəm.',
+      afterExample: `${primaryRole} sahəsində dərin bilik və praktiki təcrübəyə malik nəticəyönümlü mütəxəssis. Müasir standartlar və analitik yanaşma ilə layihələrin vaxtında yüksək keyfiyyətlə icrasını təmin edirəm. Şirkətinizin strateji hədəflərinə dərhal töhfə verməyə hazıram.`,
+      impactScore: '+12 ATS Balı'
+    }
+  ];
+
+  return {
+    matchedKeywords: Array.from(matchedKeywordsSet).slice(0, 10),
+    partiallyMatchedKeywords: extractedIndustry.slice(0, 4),
+    missingKeywords: Array.from(missingKeywordsSet).slice(0, 8),
+    detailedKeywords,
+    concreteAdvice,
+    categoryBreakdown,
+    ethicalRecommendations: [
+      'Açar sözləri yalnız həqiqətən təcrübəniz və praktiki biliyiniz olduqda CV-yə əlavə edin.',
+      'Sırf ATS filtrini aldatmaq üçün təcrübəniz olmayan texnologiyaları və ya saxta açar sözləri qeyd etməyin.',
+      'Açar sözləri cümlələrin daxilində real biznes nəticələri və alətlərlə birlikdə istifadə edin.'
+    ]
+  };
+}
+
+// ============================================================================
 // Main Engine: Build 100% Factual Deep CV Extraction
 // ============================================================================
 export function buildFactualDeepFallback(
@@ -1037,16 +1498,14 @@ export function buildFactualDeepFallback(
     };
   }
 
-  // Keyword Analysis
-  const keywordAnalysis: KeywordAnalysis = {
-    matchedKeywords: [...extractedTech, ...extractedTools].slice(0, 6),
-    partiallyMatchedKeywords: extractedIndustry.slice(0, 3),
-    missingKeywords: ['Agile / Scrum', 'CI/CD', 'Unit Testing'],
-    ethicalRecommendations: [
-      'Açar sözləri yalnız həqiqətən təcrübəniz və biliyiniz olduqda CV-yə əlavə edin.',
-      'Sırf ATS-i aldatmaq üçün təcrübəniz olmayan texnologiyaları qeyd etməyin.'
-    ]
-  };
+  const keywordAnalysis: KeywordAnalysis = computeIntelligentKeywordAnalysis(
+    rawText,
+    primaryRole,
+    extractedTech,
+    extractedTools,
+    extractedIndustry,
+    jobDescription
+  );
 
   const candidateProfile: CandidateProfileResult = {
     careerLevel: workExperience.length >= 3 ? 'Senior' : workExperience.length >= 1 ? 'Mid-Level' : 'Junior / Entry',

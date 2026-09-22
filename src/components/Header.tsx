@@ -1,24 +1,28 @@
-import React from 'react';
-import { UserRole, User, UserSubscription, Company, AppNotification } from '../types';
+import React, { useMemo, useRef, useState, useEffect } from 'react';
+import { UserRole, User, UserSubscription, Company, AppNotification, Vacancy } from '../types';
 import { JobiaLogo } from './JobiaLogo';
 import { useLanguage } from '../context/LanguageContext';
 import { LanguageSwitcher } from './LanguageSwitcher';
 import { 
   Menu, 
-  Crown, 
   LogIn, 
   LogOut, 
   Plus, 
   Sparkles,
   User as UserIcon,
-  Settings
+  Settings,
+  Bell,
+  CheckCircle2,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
+import { NotificationCenterOverlay } from './notifications/NotificationCenterOverlay';
 
 interface HeaderProps {
   currentRole?: UserRole;
   onRoleChange?: (role: UserRole) => void;
-  candidateTab?: 'jobs' | 'my-applications' | 'salary-trends' | 'calculia' | 'nearby-map' | 'google-chat' | 'cv-analyzer' | 'cv-creator';
-  onCandidateTabChange?: (tab: 'jobs' | 'my-applications' | 'salary-trends' | 'calculia' | 'nearby-map' | 'google-chat' | 'cv-analyzer' | 'cv-creator') => void;
+  candidateTab?: 'jobs' | 'my-applications' | 'salary-trends' | 'salary-calculator' | 'vacation-calculator' | 'calculia' | 'nearby-map' | 'google-chat' | 'cv-analyzer' | 'cv-creator' | 'network';
+  onCandidateTabChange?: (tab: 'jobs' | 'my-applications' | 'salary-trends' | 'salary-calculator' | 'vacation-calculator' | 'calculia' | 'nearby-map' | 'google-chat' | 'cv-analyzer' | 'cv-creator' | 'network') => void;
   applicationsCount?: number;
   activeVacanciesCount?: number;
   pendingApprovalsCount?: number;
@@ -41,6 +45,7 @@ interface HeaderProps {
   selectedCompany?: string;
   onSelectCompany?: (companyName: string) => void;
   companies?: Company[];
+  vacancies?: Vacancy[];
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -48,6 +53,10 @@ export const Header: React.FC<HeaderProps> = ({
   onRoleChange,
   candidateTab = 'jobs',
   onCandidateTabChange,
+  applicationsCount = 0,
+  activeVacanciesCount = 0,
+  pendingApprovalsCount = 0,
+  savedJobsCount = 0,
   onToggleMobileSidebar,
   isSidebarCollapsed = false,
   onToggleCollapseSidebar,
@@ -64,15 +73,118 @@ export const Header: React.FC<HeaderProps> = ({
   selectedCompany = 'Hamısı',
   onSelectCompany,
   companies = [],
+  vacancies = [],
 }) => {
   const { dict, language } = useLanguage();
-  const planTier = currentSubscription?.tier || 'FREE';
-  const isPaidUser = planTier !== 'FREE';
 
-  // STRICT ADMIN APPROVAL: Only verified companies approved by admin are shown in directory
-  const realCompaniesWithJobs = companies.filter(
-    (c) => c.name && c.name.trim().length > 0 && (c.verified === true || c.verificationStatus === 'verified')
-  );
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const isInteractingRef = useRef(false);
+  const interactionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const unreadNotificationsCount = useMemo(() => {
+    return (notifications || []).filter((n) => !n.isRead).length;
+  }, [notifications]);
+
+  // Robust company list compilation:
+  // Combines explicitly passed companies and any company with approved/published vacancies
+  // Every registered company is strictly unique (deduplicated by normalized name)
+  const realCompaniesWithJobs = useMemo(() => {
+    const map = new Map<string, Company>();
+
+    // 1. From companies prop
+    if (Array.isArray(companies)) {
+      for (const c of companies) {
+        if (c && c.name && c.name.trim()) {
+          const norm = c.name.trim().toLowerCase();
+          map.set(norm, {
+            ...c,
+            name: c.name.trim(),
+            verified: c.verified ?? (c.verificationStatus === 'verified'),
+            logo: c.logo || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(c.name.trim())}&backgroundColor=0284c7,16a34a,d97706,4f46e5`,
+          });
+        }
+      }
+    }
+
+    // 2. From vacancies prop (ensures 100% visibility for companies with active vacancies)
+    if (Array.isArray(vacancies)) {
+      for (const v of vacancies) {
+        if (v.isApproved !== false && (v.status === 'published' || !v.status) && v.companyName && v.companyName.trim()) {
+          const norm = v.companyName.trim().toLowerCase();
+          if (!map.has(norm)) {
+            map.set(norm, {
+              id: v.companyId || `comp-${norm.replace(/[^a-z0-9]/g, '-')}`,
+              name: v.companyName.trim(),
+              logo: (v as any).companyLogo || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(v.companyName.trim())}&backgroundColor=0284c7,16a34a,d97706,4f46e5`,
+              verified: true,
+              verificationStatus: 'verified',
+              industry: (v as any).industry || v.category || 'Biznes və Xidmət',
+              location: v.city || 'Bakı',
+              city: v.city || 'Bakı',
+              description: `${v.companyName.trim()} rəsmi işəgötürəndir.`,
+              employeeCount: '10-50',
+              activeJobsCount: 1,
+              email: '',
+            });
+          }
+        }
+      }
+    }
+
+    return Array.from(map.values());
+  }, [companies, vacancies]);
+
+  // Display list: strictly unique real registered companies with jobs (NO duplicates)
+  const displayCompanies = realCompaniesWithJobs;
+
+  // Ref for the smoothly scrolling companies container
+  const marqueeContainerRef = useRef<HTMLDivElement>(null);
+  const [isMarqueeHovered, setIsMarqueeHovered] = useState(false);
+
+  // Smooth continuous auto-scroll for real companies frames (pauses on hover)
+  useEffect(() => {
+    if (isMarqueeHovered || displayCompanies.length === 0) return;
+
+    const container = marqueeContainerRef.current;
+    if (!container) return;
+
+    let animationFrameId: number;
+    let forward = true;
+
+    const scrollStep = () => {
+      if (!container || isMarqueeHovered) return;
+
+      const maxScroll = container.scrollWidth - container.clientWidth;
+      if (maxScroll <= 0) return;
+
+      if (forward) {
+        container.scrollLeft += 0.6;
+        if (container.scrollLeft >= maxScroll - 1) {
+          forward = false;
+        }
+      } else {
+        container.scrollLeft -= 0.6;
+        if (container.scrollLeft <= 1) {
+          forward = true;
+        }
+      }
+
+      animationFrameId = requestAnimationFrame(scrollStep);
+    };
+
+    animationFrameId = requestAnimationFrame(scrollStep);
+
+    return () => {
+      cancelAnimationFrame(animationFrameId);
+    };
+  }, [isMarqueeHovered, displayCompanies.length]);
+
+  const handleScrollMarquee = (direction: 'left' | 'right') => {
+    if (!marqueeContainerRef.current) return;
+    const offset = direction === 'left' ? -220 : 220;
+    marqueeContainerRef.current.scrollBy({ left: offset, behavior: 'smooth' });
+  };
 
   const handleCompanyClick = (name: string) => {
     if (onRoleChange && currentRole !== 'candidate') {
@@ -88,18 +200,18 @@ export const Header: React.FC<HeaderProps> = ({
 
   return (
     <header className="sticky top-0 z-30 bg-white border-b border-slate-200 w-full max-w-full shadow-2xs">
-      <div className="w-full max-w-full px-2 sm:px-4 md:px-5">
-        <div className="flex items-center justify-between gap-2 sm:gap-3 py-1.5 min-h-[60px]">
+      <div className="w-full max-w-full px-1.5 sm:px-4 md:px-5">
+        <div className="flex items-center justify-between gap-1 sm:gap-2.5 py-1 min-h-[56px] w-full max-w-full">
           
           {/* LEFT: Sidebar Toggle & Mobile Brand Logo */}
-          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          <div className="flex items-center gap-1 sm:gap-2 shrink-0">
             {/* Mobile Menu Hamburger */}
             {onToggleMobileSidebar && (
               <button
                 id="header-mobile-menu-btn"
                 type="button"
                 onClick={onToggleMobileSidebar}
-                className="p-1.5 sm:p-2 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 lg:hidden cursor-pointer transition-colors"
+                className="p-1 sm:p-2 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 lg:hidden cursor-pointer transition-colors"
                 title={language === 'en' ? 'Open navigation' : language === 'ru' ? 'Меню' : 'Menyu'}
               >
                 <Menu className="w-5 h-5" />
@@ -112,58 +224,96 @@ export const Header: React.FC<HeaderProps> = ({
               className="cursor-pointer select-none flex items-center lg:hidden"
               title="jobia.az"
             >
-              <JobiaLogo size="md" className="scale-85 origin-left" />
+              <JobiaLogo size="sm" className="origin-left" />
             </div>
           </div>
 
-          {/* MIDDLE: TOP REAL COMPANY LOGOS OR CLEAN PORTAL BADGE */}
-          <div className="flex-1 flex items-center min-w-0 px-1 py-0.5 overflow-hidden">
-            {realCompaniesWithJobs.length > 0 ? (
-              <div className="flex-1 overflow-hidden relative select-none">
-                <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-4 bg-gradient-to-r from-white to-transparent z-10 hidden sm:block" />
-                <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-5 bg-gradient-to-l from-white to-transparent z-10" />
+          {/* MIDDLE: TOP REAL COMPANY STATUS / SMOOTH MOVING FRAMES BAR (Strictly real unique registered companies, NO repetitions) */}
+          <div 
+            className="flex-1 flex items-center min-w-0 px-1 sm:px-2 py-0.5 relative group/header-bar overflow-hidden"
+            onMouseEnter={() => setIsMarqueeHovered(true)}
+            onMouseLeave={() => setIsMarqueeHovered(false)}
+          >
+            {displayCompanies.length > 0 ? (
+              <div className="flex-1 min-w-0 relative select-none flex items-center overflow-hidden">
+                {/* Left Scroll Navigation Button */}
+                <button
+                  type="button"
+                  onClick={() => handleScrollMarquee('left')}
+                  className="absolute left-0 z-20 p-1 rounded-full bg-white/95 border border-slate-200 text-slate-600 shadow-sm opacity-0 group-hover/header-bar:opacity-100 transition-opacity hover:bg-slate-100 hover:text-slate-900 cursor-pointer hidden sm:flex items-center justify-center -translate-x-1"
+                  title="Sola sürüşdür"
+                  aria-label="Sola sürüşdür"
+                >
+                  <ChevronLeft className="w-3.5 h-3.5" />
+                </button>
 
-                <div className="animate-continuous-marquee flex items-center gap-2 sm:gap-2.5">
-                  {realCompaniesWithJobs.map((company, idx) => {
+                {/* Left Gradient Fade */}
+                <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-3 sm:w-6 bg-gradient-to-r from-white via-white/80 to-transparent z-10" />
+
+                {/* Right Gradient Fade */}
+                <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-3 sm:w-6 bg-gradient-to-l from-white via-white/80 to-transparent z-10" />
+
+                {/* Real Company Frames Track (Strictly UNIQUE real companies, NO repeats) */}
+                <div 
+                  ref={marqueeContainerRef}
+                  className="flex items-center gap-2 sm:gap-2.5 py-1 px-1 overflow-x-auto scrollbar-none select-none scroll-smooth w-full"
+                >
+                  {displayCompanies.map((company, idx) => {
                     const isSelected = selectedCompany.toLowerCase() === company.name.toLowerCase() ||
                       (selectedCompany !== 'Hamısı' && company.name.toLowerCase().includes(selectedCompany.toLowerCase()));
+                    const safeLogo = company.logo || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(company.name)}&backgroundColor=0284c7,16a34a,d97706,4f46e5`;
                     return (
                       <button
-                        key={`track1-${company.name}-${idx}`}
-                        id={`company-chip-${company.name.toLowerCase().replace(/[^a-z0-9]/g, '-')}-1`}
+                        key={`real-company-${company.id || company.name}-${idx}`}
+                        id={`company-frame-${company.name.toLowerCase().replace(/[^a-z0-9]/g, '-')}`}
                         type="button"
                         onClick={() => handleCompanyClick(company.name)}
-                        className={`group shrink-0 flex flex-col items-center gap-0.5 p-1 rounded-xl transition-all cursor-pointer select-none ${
-                          isSelected ? 'scale-105' : 'hover:scale-105'
+                        className={`group/cframe shrink-0 flex items-center gap-2 px-2.5 py-1 rounded-xl bg-slate-50/90 hover:bg-blue-50/90 border transition-all cursor-pointer select-none active:scale-95 ${
+                          isSelected
+                            ? 'bg-blue-50 border-blue-500 shadow-xs ring-1 ring-blue-500'
+                            : 'border-slate-200/90 hover:border-blue-300 shadow-2xs'
                         }`}
-                        title={`${company.name} ${language === 'en' ? 'vacancies' : language === 'ru' ? 'вакансии' : 'vakansiyaları'}`}
+                        title={`${company.name} (${language === 'en' ? 'Click to filter vacancies' : language === 'ru' ? 'Фильтровать вакансии' : 'Vakansiyaları süzgəcdən keçir'})`}
                       >
-                        <div
-                          className={`relative w-9 h-9 sm:w-10 sm:h-10 rounded-xl p-0.5 bg-white flex items-center justify-center transition-all ${
-                            isSelected
-                              ? 'ring-2 ring-blue-600 ring-offset-2 shadow-xs'
-                              : company.verified
-                              ? 'ring-2 ring-emerald-500/80 shadow-2xs'
-                              : 'border border-slate-200 shadow-2xs hover:border-blue-400'
-                          }`}
-                        >
+                        {/* Company Logo in sleek square frame */}
+                        <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg overflow-hidden bg-white border border-slate-200/90 p-0.5 aspect-square flex items-center justify-center shrink-0 shadow-2xs">
                           <img
-                            src={company.logo}
+                            src={safeLogo}
                             alt={company.name}
                             loading="lazy"
-                            className="w-full h-full object-cover rounded-lg"
+                            draggable={false}
+                            className="w-full h-full object-cover rounded-md pointer-events-none"
                             referrerPolicy="no-referrer"
+                            onError={(e) => {
+                              (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(company.name)}&backgroundColor=0284c7,16a34a,d97706,4f46e5`;
+                            }}
                           />
                         </div>
-                        <span className={`text-[9px] font-bold max-w-[70px] truncate text-center ${
-                          isSelected ? 'text-blue-600 font-extrabold' : 'text-slate-700 group-hover:text-blue-600'
-                        }`}>
-                          {company.name}
-                        </span>
+
+                        {/* Company Name & Verified Badge */}
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <span className="text-xs font-bold text-slate-800 group-hover/cframe:text-blue-700 whitespace-nowrap">
+                            {company.name}
+                          </span>
+                          {company.verified && (
+                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                          )}
+                        </div>
                       </button>
                     );
                   })}
                 </div>
+
+                {/* Right Scroll Navigation Button */}
+                <button
+                  type="button"
+                  onClick={() => handleScrollMarquee('right')}
+                  className="absolute right-0 z-20 p-1 rounded-full bg-white/95 border border-slate-200 text-slate-600 shadow-sm opacity-0 group-hover/header-bar:opacity-100 transition-opacity hover:bg-slate-100 hover:text-slate-900 cursor-pointer hidden sm:flex items-center justify-center translate-x-1"
+                  title="Sağa sürüşdür"
+                  aria-label="Sağa sürüşdür"
+                >
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </button>
               </div>
             ) : (
               <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-50 border border-slate-200/80 text-xs text-slate-600 font-medium select-none truncate">
@@ -179,102 +329,104 @@ export const Header: React.FC<HeaderProps> = ({
             )}
           </div>
 
-          {/* RIGHT ACTION BAR: SUBSCRIPTION (VIP) + LANGUAGE SWITCHER + AUTH */}
-          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 pl-1 border-l border-slate-200">
-            
-            {/* VIP / Subscription Plan Button (Visible on Desktop / Tablet md+) */}
-            {onOpenPricing && (
+          {/* RIGHT ACTION BAR: NOTIFICATIONS BELL WITH BADGE & DROPDOWN, USER AUTH / PROFILE / LOGOUT, & LANGUAGE SWITCHER */}
+          <div className="flex items-center justify-end gap-1 sm:gap-2 shrink-0 pl-1.5 sm:pl-2.5 border-l border-slate-200">
+            {/* 1. Interactive Notifications Bell with Badge & Dropdown */}
+            <div className="relative">
               <button
-                id="header-vip-pricing-btn"
+                id="header-notification-center-btn"
                 type="button"
-                onClick={onOpenPricing}
-                className="hidden md:flex items-center gap-1.5 px-2.5 lg:px-3 py-1.5 rounded-xl text-xs font-bold bg-amber-50 hover:bg-amber-100/90 text-amber-900 border border-amber-300/80 shadow-2xs hover:shadow-xs transition-all cursor-pointer group active:scale-95 shrink-0 whitespace-nowrap"
-                title={dict.nav.pricing}
+                onClick={() => setIsNotificationsOpen((prev) => !prev)}
+                className={`h-7 w-7 sm:h-8 sm:w-8 flex items-center justify-center rounded-lg transition-all cursor-pointer select-none active:scale-95 ${
+                  isNotificationsOpen
+                    ? 'bg-blue-600 text-white shadow-xs'
+                    : unreadNotificationsCount > 0
+                    ? 'bg-slate-100 hover:bg-slate-200 text-slate-800'
+                    : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
+                }`}
+                title={
+                  unreadNotificationsCount > 0
+                    ? `${unreadNotificationsCount} oxunmamış bildiriş`
+                    : 'Bildirişlər Mərkəzi'
+                }
+                aria-label="Bildirişlər"
+                aria-expanded={isNotificationsOpen}
               >
-                <Crown className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-                <span className="tracking-tight whitespace-nowrap">
-                  {language === 'en' ? 'VIP Plans' : language === 'ru' ? 'VIP Тарифы' : 'VIP Planlar'}
-                </span>
-                {isPaidUser ? (
-                  <span className="px-1.5 py-0.5 rounded-md bg-amber-200/70 text-amber-950 text-[9px] font-extrabold uppercase">
-                    {planTier}
-                  </span>
-                ) : (
-                  <span className="px-1.5 py-0.5 rounded-md bg-amber-200/60 text-amber-900 text-[8px] font-black uppercase tracking-wider">
-                    PRO
-                  </span>
+                <Bell className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${isNotificationsOpen ? 'text-white' : 'text-slate-700'}`} />
+                {unreadNotificationsCount > 0 && (
+                  <>
+                    <span className="absolute -top-1 -right-1 flex h-4 min-w-[16px] px-1 items-center justify-center rounded-full bg-red-600 text-white text-[10px] font-black shadow-xs ring-2 ring-white">
+                      {unreadNotificationsCount > 99 ? '99+' : unreadNotificationsCount}
+                    </span>
+                    <span className="absolute -top-1 -right-1 flex h-4 min-w-[16px] rounded-full bg-red-500 opacity-75 animate-ping pointer-events-none" />
+                  </>
                 )}
               </button>
-            )}
 
-            {/* 3. Language Switcher (Prominently Placed at the Top Header) */}
-            <div className="shrink-0">
-              <LanguageSwitcher />
+              {/* Notification Dropdown Menu */}
+              <NotificationCenterOverlay
+                currentUser={currentUser || null}
+                currentRole={currentRole}
+                applicationsCount={applicationsCount}
+                activeVacanciesCount={activeVacanciesCount}
+                pendingApprovalsCount={pendingApprovalsCount}
+                notifications={notifications}
+                isOpen={isNotificationsOpen}
+                onClose={() => setIsNotificationsOpen(false)}
+                onNavigateNotification={onNavigateNotification}
+                onOpenAuthModal={onOpenAuthModal}
+                onPostJobClick={onPostJobClick}
+                onExploreJobs={() => {
+                  if (onRoleChange && currentRole !== 'candidate') onRoleChange('candidate');
+                  if (onCandidateTabChange) onCandidateTabChange('jobs');
+                  setIsNotificationsOpen(false);
+                }}
+              />
             </div>
 
-            {/* 4. Eye-Pleasing Interactive Auth Button / User Profile (Visible on Desktop / Tablet md+) */}
+            {/* 2. User Profile Capsule & Dedicated Logout Button (for Mobile & Desktop) */}
             {currentUser ? (
-              <div className="hidden md:flex items-center gap-1.5 bg-slate-100/90 hover:bg-slate-200/80 p-1 pl-1.5 rounded-xl border border-slate-200/90 transition-all shrink-0">
+              <div className="flex items-center gap-1 shrink-0">
                 <button
+                  id="header-user-profile-btn"
                   type="button"
-                  onClick={() => onOpenProfileModal?.('settings')}
-                  className="flex items-center gap-1.5 cursor-pointer text-left focus:outline-hidden"
-                  title={language === 'en' ? 'Profile & Notification Settings' : language === 'ru' ? 'Настройки профиля и уведомлений' : 'Profil və Bildiriş Tənzimləmələri'}
+                  onClick={() => onOpenProfileModal?.(currentUser.role === 'candidate' ? 'profile' : 'settings')}
+                  className="h-7 sm:h-8 flex items-center gap-1 sm:gap-1.5 bg-slate-100 hover:bg-slate-200/80 px-1.5 sm:px-2 rounded-lg border border-slate-200/90 transition-all cursor-pointer select-none active:scale-98"
+                  title={
+                    currentUser.role === 'candidate'
+                      ? (language === 'en' ? 'My Profile & Ready CV' : language === 'ru' ? 'Мой профиль и готовое резюме' : 'Profilim və Hazır CV-m')
+                      : (language === 'en' ? 'Profile & Settings' : language === 'ru' ? 'Профиль и настройки' : 'Profil və Tənzimləmələr')
+                  }
                 >
-                  <div className="relative">
+                  <div className="relative shrink-0">
                     <img
-                      src={currentUser.avatarUrl || `https://api.dicebear.com/7.x/initials/svg?seed=${currentUser.fullName}`}
+                      src={currentUser.avatarUrl || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(currentUser.fullName)}`}
                       alt={currentUser.fullName}
-                      className="w-6 h-6 rounded-lg object-cover border border-slate-300"
+                      className="w-4 h-4 sm:w-5 sm:h-5 rounded-full object-cover border border-slate-300"
                     />
                     {currentUser.emailVerified ? (
-                      <span className="absolute -bottom-1 -right-1 w-2.5 h-2.5 bg-emerald-500 rounded-full border border-white" title={language === 'en' ? 'Email Verified' : language === 'ru' ? 'Email подтвержден' : 'E-poçt Təsdiqlənib'} />
+                      <span className="absolute -bottom-0.5 -right-0.5 w-1.5 h-1.5 bg-emerald-500 rounded-full border border-white" title={language === 'en' ? 'Email Verified' : language === 'ru' ? 'Email подтвержден' : 'E-poçt Təsdiqlənib'} />
                     ) : (
-                      <span className="absolute -bottom-1 -right-1 w-2.5 h-2.5 bg-amber-500 rounded-full border border-white" title={language === 'en' ? 'Email Not Verified' : language === 'ru' ? 'Email не подтвержден' : 'E-poçt Təsdiqlənməyib'} />
+                      <span className="absolute -bottom-0.5 -right-0.5 w-1.5 h-1.5 bg-amber-500 rounded-full border border-white" title={language === 'en' ? 'Email Not Verified' : language === 'ru' ? 'Email не подтвержден' : 'E-poçt Təsdiqlənməyib'} />
                     )}
                   </div>
-                  <div className="flex flex-col text-left">
-                    <span className="text-xs font-bold text-slate-800 max-w-[90px] truncate leading-none">
-                      {currentUser.fullName.split(' ')[0]}
-                    </span>
-                    {!currentUser.emailVerified && onOpenVerifyModal ? (
-                      <span
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onOpenVerifyModal(currentUser);
-                        }}
-                        className="text-[9px] font-bold text-amber-600 hover:text-amber-700 hover:underline cursor-pointer leading-tight mt-0.5 whitespace-nowrap"
-                      >
-                        {language === 'en' ? 'Verify ⚡' : language === 'ru' ? 'Подтвердить ⚡' : 'Təsdiqlə ⚡'}
-                      </span>
-                    ) : (
-                      <span className="text-[9px] text-slate-500 font-medium leading-tight mt-0.5 whitespace-nowrap">
-                        {language === 'en' ? 'Settings' : language === 'ru' ? 'Настройки' : 'Tənzimləmələr'}
-                      </span>
-                    )}
-                  </div>
+                  <span className="text-[10px] sm:text-xs font-bold text-slate-800 max-w-[50px] sm:max-w-[85px] truncate leading-none">
+                    {currentUser.fullName.split(' ')[0]}
+                  </span>
                 </button>
 
-                {/* Direct Settings Gear button */}
-                {onOpenProfileModal && (
-                  <button
-                    id="header-settings-btn"
-                    type="button"
-                    onClick={() => onOpenProfileModal('settings')}
-                    className="p-1 rounded-lg text-slate-500 hover:text-blue-600 hover:bg-blue-50 transition-colors cursor-pointer shrink-0"
-                    title={language === 'en' ? 'Settings' : language === 'ru' ? 'Настройки' : 'Tənzimləmələr'}
-                  >
-                    <Settings className="w-3.5 h-3.5" />
-                  </button>
-                )}
-
+                {/* Prominent Direct Logout Button (next to user panel & language switcher, 1-tap logout on mobile) */}
                 {onLogout && (
                   <button
-                    id="header-logout-btn"
+                    id="header-quick-logout-btn"
                     type="button"
-                    onClick={onLogout}
-                    className="p-1 rounded-lg text-slate-500 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer shrink-0"
-                    title={dict.nav.logout}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onLogout();
+                    }}
+                    className="h-7 w-7 sm:h-8 sm:w-8 flex items-center justify-center rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 hover:text-rose-700 border border-rose-200/90 transition-all cursor-pointer shadow-2xs hover:shadow-xs active:scale-95 shrink-0"
+                    title={language === 'en' ? 'Sign out of account' : language === 'ru' ? 'Выйти из аккаунта' : 'Hesabdan çıxış et'}
+                    aria-label="Hesabdan çıxış et"
                   >
                     <LogOut className="w-3.5 h-3.5" />
                   </button>
@@ -286,20 +438,24 @@ export const Header: React.FC<HeaderProps> = ({
                   id="header-auth-trigger-btn"
                   type="button"
                   onClick={() => onOpenAuthModal('login', currentRole)}
-                  className="hidden md:flex animate-auth-trigger items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white cursor-pointer shadow-xs hover:shadow-md active:scale-95 transition-all shrink-0 whitespace-nowrap"
+                  className="animate-auth-trigger h-7 sm:h-8 px-2 sm:px-3 flex items-center justify-center gap-1 rounded-lg text-[10px] sm:text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white cursor-pointer shadow-2xs hover:shadow-xs active:scale-95 transition-all shrink-0 whitespace-nowrap leading-none"
                   title={language === 'en' ? 'Sign In / Register' : language === 'ru' ? 'Вход / Регистрация' : 'Daxil ol / Qeydiyyat'}
                 >
-                  <Sparkles className="w-3.5 h-3.5 text-blue-200 shrink-0" />
+                  <LogIn className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0" />
                   <span className="tracking-tight whitespace-nowrap font-bold">
-                    {dict.nav.login}{' '}
-                    <span className="hidden lg:inline">
-                      {language === 'en' ? '/ Sign Up' : language === 'ru' ? '/ Регистрация' : '/ Qeydiyyat'}
-                    </span>
+                    {dict.nav.login}
                   </span>
                 </button>
               )
             )}
 
+            {/* 3. Language Switcher */}
+            <div className="shrink-0">
+              <LanguageSwitcher 
+                className=""
+                buttonClassName="h-7 sm:h-8 flex items-center justify-center gap-1 px-1.5 sm:px-2 rounded-lg text-[10px] sm:text-xs font-bold bg-slate-100 hover:bg-slate-200/80 text-slate-700 border border-slate-200/90 transition-all cursor-pointer shadow-2xs hover:border-slate-300 leading-none"
+              />
+            </div>
           </div>
 
         </div>

@@ -27,15 +27,16 @@ import {
   LogIn,
   FileCheck,
   ArrowLeft,
+  Crown,
   Bell,
   BellRing,
-  Linkedin,
-  Twitter,
-  Facebook
+  Zap,
+  ArrowRight
 } from 'lucide-react';
 import { ModalBottomLogo } from '../ModalBottomLogo';
 import { JobAlertSubscription } from '../../types';
 import { getJobAlertSubscription, saveJobAlertSubscription } from '../../services/firestoreService';
+import { buildActiveCandidateCV } from '../../utils/applicationCVHelper';
 import { 
   getLocalizedCategory, 
   getLocalizedCity, 
@@ -63,6 +64,7 @@ interface JobDetailModalProps {
   onToggleBookmark?: () => void;
   onOpenInterviewPrep: (vacancy: Vacancy) => void;
   onShareToGoogleChat?: (vacancy: Vacancy) => void;
+  onViewApplications?: () => void;
 }
 
 export const JobDetailModal: React.FC<JobDetailModalProps> = ({
@@ -79,6 +81,7 @@ export const JobDetailModal: React.FC<JobDetailModalProps> = ({
   onToggleBookmark,
   onOpenInterviewPrep,
   onShareToGoogleChat,
+  onViewApplications,
 }) => {
   const { dict, language } = useLanguage();
   if (!vacancy) return null;
@@ -212,7 +215,7 @@ export const JobDetailModal: React.FC<JobDetailModalProps> = ({
     window.dispatchEvent(new CustomEvent('jobia_job_alert_updated', { detail: updatedSub }));
   };
 
-  // Social Media & Web Sharing URLs
+  // Share URL helper
   const getJobShareUrl = () => {
     try {
       const shareUrl = new URL(window.location.origin + window.location.pathname);
@@ -224,11 +227,6 @@ export const JobDetailModal: React.FC<JobDetailModalProps> = ({
   };
 
   const jobShareUrl = getJobShareUrl();
-  const shareText = `${vacancy.title} - ${vacancy.companyName} | Jobia.az`;
-
-  const linkedInShareUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(jobShareUrl)}`;
-  const twitterShareUrl = `https://twitter.com/intent/tweet?url=${encodeURIComponent(jobShareUrl)}&text=${encodeURIComponent(shareText)}`;
-  const facebookShareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(jobShareUrl)}`;
 
   const handleShare = () => {
     try {
@@ -310,17 +308,32 @@ export const JobDetailModal: React.FC<JobDetailModalProps> = ({
       return;
     }
 
-    // Construct real CV data from the form or registered user
+    // Unregistered guest applicants must attach their CV file
+    if (!isCandidateUser && !cvFileAttachment) {
+      setFormValidationError(
+        language === 'en'
+          ? 'Please attach your CV file (PDF or Word) to submit your application.'
+          : language === 'ru'
+          ? 'Пожалуйста, прикрепите файл вашего резюме (PDF или Word).'
+          : 'Qeydiyyatsız müraciət üçün zəhmət olmasa CV faylınızı (PDF və ya Word) əlavə edin.'
+      );
+      return;
+    }
+
+    // Construct real CV data from the form or registered user using active candidate profile
+    const activeBaseCV = buildActiveCandidateCV(currentUser, savedCV);
     const applicationCV: CVData = {
-      ...savedCV,
+      ...activeBaseCV,
+      template: activeBaseCV.template || (localStorage.getItem('jobia_cv_creator_template') as any) || 'modern-emerald',
+      showPhoto: activeBaseCV.showPhoto !== undefined ? activeBaseCV.showPhoto : localStorage.getItem('jobia_cv_show_photo') !== 'false',
       personalInfo: {
-        ...savedCV.personalInfo,
+        ...activeBaseCV.personalInfo,
         fullName: name,
         email: email,
         phone: phone,
-        jobTitle: applicantJobTitle.trim() || savedCV.personalInfo.jobTitle || vacancy.title,
-        summary: applicantSummary.trim() || savedCV.personalInfo.summary || '',
-        portfolio: applicantPortfolio.trim() || savedCV.personalInfo.portfolio || '',
+        jobTitle: applicantJobTitle.trim() || activeBaseCV.personalInfo.jobTitle || vacancy.title,
+        summary: applicantSummary.trim() || activeBaseCV.personalInfo.summary || '',
+        portfolio: applicantPortfolio.trim() || activeBaseCV.personalInfo.portfolio || '',
       }
     };
 
@@ -331,6 +344,53 @@ export const JobDetailModal: React.FC<JobDetailModalProps> = ({
     } : undefined;
 
     onApply(vacancy, coverNote, applicationCV, attachmentPayload);
+    setIsApplying(false);
+    onClose();
+  };
+
+  // Instant One-Click Application with Candidate's Ready Platform CV
+  const handleOneClickApply = () => {
+    const name = applicantName.trim() || currentUser?.fullName || savedCV.personalInfo.fullName || 'Namizəd';
+    const email = applicantEmail.trim() || currentUser?.email || savedCV.personalInfo.email || '';
+    const phone = applicantPhone.trim() || currentUser?.phone || savedCV.personalInfo.phone || '';
+
+    if (!email) {
+      setIsApplying(true);
+      setFormValidationError(
+        language === 'en'
+          ? 'Please provide your email address to complete your application.'
+          : language === 'ru'
+          ? 'Пожалуйста, укажите ваш email для завершения отклика.'
+          : 'Müraciəti tamamlamaq üçün zəhmət olmasa e-poçt ünvanınızı daxil edin.'
+      );
+      return;
+    }
+
+    const activeBaseCV = buildActiveCandidateCV(currentUser, savedCV);
+    const applicationCV: CVData = {
+      ...activeBaseCV,
+      template: activeBaseCV.template || (localStorage.getItem('jobia_cv_creator_template') as any) || 'modern-emerald',
+      showPhoto: activeBaseCV.showPhoto !== undefined ? activeBaseCV.showPhoto : localStorage.getItem('jobia_cv_show_photo') !== 'false',
+      personalInfo: {
+        ...activeBaseCV.personalInfo,
+        fullName: name,
+        email: email,
+        phone: phone,
+        jobTitle: applicantJobTitle.trim() || activeBaseCV.personalInfo.jobTitle || currentUser?.jobTitle || vacancy.title,
+        summary: applicantSummary.trim() || activeBaseCV.personalInfo.summary || currentUser?.bio || '',
+        portfolio: applicantPortfolio.trim() || activeBaseCV.personalInfo.portfolio || '',
+      }
+    };
+
+    onApply(
+      vacancy,
+      coverNote.trim() || (language === 'en'
+        ? 'Applied with official Jobia profile CV (One-click direct application).'
+        : language === 'ru'
+        ? 'Отклик отправлен с готовым официальным резюме из профиля Jobia (В 1 клик).'
+        : 'Profilimdəki rəsmi Jobia CV-si ilə müraciət edildi (1 kliklə birbaşa müraciət).'),
+      applicationCV
+    );
     setIsApplying(false);
     onClose();
   };
@@ -372,8 +432,9 @@ export const JobDetailModal: React.FC<JobDetailModalProps> = ({
                   )}
                 </button>
                 {vacancy.isFeatured && (
-                  <span className="text-[10px] sm:text-[11px] font-bold px-2 py-0.5 rounded-md bg-amber-50 text-amber-700 border border-amber-200">
-                    {dict.jobExplorer.featured}
+                  <span className="inline-flex items-center gap-1.5 text-[10px] sm:text-[11px] font-black px-2.5 py-0.5 rounded-lg bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-500 text-slate-950 shadow-xs ring-1 ring-amber-400/80 uppercase tracking-wide">
+                    <Crown className="w-3.5 h-3.5 fill-slate-950 text-slate-950 shrink-0" />
+                    <span>VIP PREMİUM</span>
                   </span>
                 )}
                 <span className="bg-green-100 text-green-700 text-[9px] sm:text-[10px] px-2 py-0.5 rounded-full font-bold">
@@ -484,29 +545,24 @@ export const JobDetailModal: React.FC<JobDetailModalProps> = ({
 
               {/* Candidate State / Notice Card */}
               {isCandidateUser ? (
-                <div className="bg-white p-3.5 rounded-xl border border-blue-200 text-xs text-slate-700 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
+                <div className="bg-gradient-to-r from-emerald-50 via-teal-50 to-blue-50 p-4 rounded-xl border border-emerald-300 text-xs text-slate-700 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
                   <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-full bg-blue-100 text-blue-700 font-bold flex items-center justify-center text-sm shrink-0 border border-blue-200">
-                      <UserCheck className="w-4 h-4" />
+                    <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white font-bold flex items-center justify-center text-sm shrink-0 shadow-xs">
+                      <UserCheck className="w-5 h-5" />
                     </div>
                     <div>
-                      <div className="font-bold text-slate-900 flex items-center gap-1.5">
-                        <span>{currentUser?.fullName || applicantName}</span>
-                        <span className="text-[10px] bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full font-bold">
-                          {language === 'en' ? 'Registered Candidate' : language === 'ru' ? 'Зарегистрированный кандидат' : 'Qeydiyyatlı Namizəd'}
+                      <div className="font-bold text-slate-900 flex items-center gap-1.5 flex-wrap">
+                        <span className="text-sm">{currentUser?.fullName || applicantName}</span>
+                        <span className="text-[10px] bg-emerald-100 text-emerald-800 border border-emerald-300 px-2 py-0.5 rounded-full font-bold flex items-center gap-1">
+                          <CheckCircle className="w-3 h-3 text-emerald-600" />
+                          {language === 'en' ? 'Profile CV Active' : language === 'ru' ? 'Резюме активно' : 'Profil CV-si Aktivdir'}
                         </span>
                       </div>
-                      <div className="text-[11px] text-slate-500">
-                        {currentUser?.email || applicantEmail} {currentUser?.phone ? `• ${currentUser.phone}` : ''}
+                      <div className="text-[11px] text-slate-600 mt-0.5">
+                        {applicantEmail} {applicantPhone ? `• ${applicantPhone}` : ''}
+                        {applicantJobTitle ? ` • ${applicantJobTitle}` : ''}
                       </div>
                     </div>
-                  </div>
-
-                  <div className="flex items-center gap-1.5 text-[11px] text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200 font-bold">
-                    <CheckCircle className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                    <span>
-                      {language === 'en' ? 'Your active CV on the platform will be used' : language === 'ru' ? 'Будет использовано ваше активное резюме' : 'Sistemdəki Aktiv CV-niz istifadə olunacaq'}
-                    </span>
                   </div>
                 </div>
               ) : (
@@ -724,19 +780,6 @@ export const JobDetailModal: React.FC<JobDetailModalProps> = ({
                   />
                 </div>
               </div>
-
-              {/* In-Form Submit Button as secondary anchor */}
-              <div className="pt-2">
-                <button
-                  type="submit"
-                  className="w-full py-3.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition-all cursor-pointer"
-                >
-                  <Send className="w-4 h-4" />
-                  <span>
-                    {language === 'en' ? 'Submit Application to Employer 🚀' : language === 'ru' ? 'Отправить отклик работодателю 🚀' : 'Müraciəti Tamamla və İşəgötürənə Göndər 🚀'}
-                  </span>
-                </button>
-              </div>
             </form>
           </div>
         ) : (
@@ -865,74 +908,6 @@ export const JobDetailModal: React.FC<JobDetailModalProps> = ({
               </div>
             )}
 
-            {/* Social Media Sharing Section */}
-            <div className="p-3.5 sm:p-4 rounded-xl bg-slate-50 border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div>
-                <h4 className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                  <Share2 className="w-3.5 h-3.5 text-blue-600" />
-                  <span>
-                    {language === 'en'
-                      ? 'Share this vacancy'
-                      : language === 'ru'
-                      ? 'Поделиться вакансией'
-                      : 'Bu vakansiyanı paylaş'}
-                  </span>
-                </h4>
-                <p className="text-[11px] text-slate-500 mt-0.5">
-                  {language === 'en'
-                    ? 'Share with professionals in your network across LinkedIn, Twitter or Facebook'
-                    : language === 'ru'
-                    ? 'Поделитесь с коллегами в LinkedIn, Twitter или Facebook'
-                    : 'LinkedIn, Twitter və ya Facebook-da peşəkar şəbəkənizlə bölüşün'}
-                </p>
-              </div>
-
-              <div className="flex items-center gap-2 flex-wrap">
-                <a
-                  href={linkedInShareUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="px-3 py-1.5 rounded-lg bg-white border border-[#0A66C2]/30 text-[#0A66C2] hover:bg-[#0A66C2]/10 transition-colors text-xs font-bold flex items-center gap-1.5 shadow-2xs cursor-pointer"
-                  title={language === 'en' ? 'Share on LinkedIn' : language === 'ru' ? 'Поделиться в LinkedIn' : 'LinkedIn-də paylaş'}
-                >
-                  <Linkedin className="w-3.5 h-3.5" />
-                  <span>LinkedIn</span>
-                </a>
-
-                <a
-                  href={twitterShareUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="px-3 py-1.5 rounded-lg bg-white border border-slate-300 text-slate-800 hover:bg-slate-100 transition-colors text-xs font-bold flex items-center gap-1.5 shadow-2xs cursor-pointer"
-                  title={language === 'en' ? 'Share on Twitter (X)' : language === 'ru' ? 'Поделиться в Twitter (X)' : 'Twitter (X)'}
-                >
-                  <Twitter className="w-3.5 h-3.5" />
-                  <span>Twitter (X)</span>
-                </a>
-
-                <a
-                  href={facebookShareUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="px-3 py-1.5 rounded-lg bg-white border border-[#1877F2]/30 text-[#1877F2] hover:bg-[#1877F2]/10 transition-colors text-xs font-bold flex items-center gap-1.5 shadow-2xs cursor-pointer"
-                  title={language === 'en' ? 'Share on Facebook' : language === 'ru' ? 'Поделиться в Facebook' : 'Facebook'}
-                >
-                  <Facebook className="w-3.5 h-3.5" />
-                  <span>Facebook</span>
-                </a>
-
-                <button
-                  type="button"
-                  onClick={handleShare}
-                  className="px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-slate-700 hover:bg-slate-100 transition-colors text-xs font-bold flex items-center gap-1.5 shadow-2xs cursor-pointer"
-                  title={copied ? (language === 'en' ? 'Link copied!' : language === 'ru' ? 'Ссылка скопирована!' : 'Link kopyalandı!') : (language === 'en' ? 'Copy Link' : language === 'ru' ? 'Копировать' : 'Linki Kopyala')}
-                >
-                  <Share2 className="w-3.5 h-3.5 text-slate-500" />
-                  <span>{copied ? (language === 'en' ? 'Copied!' : language === 'ru' ? 'Скопировано!' : 'Kopyalandı!') : (language === 'en' ? 'Copy Link' : language === 'ru' ? 'Копировать' : 'Linki Kopyala')}</span>
-                </button>
-              </div>
-            </div>
-
             {/* Meta dates */}
             <div className="flex flex-wrap items-center justify-between gap-4 text-xs text-slate-500 pt-4 border-t border-slate-100">
               <div className="flex items-center gap-1.5">
@@ -986,43 +961,6 @@ export const JobDetailModal: React.FC<JobDetailModalProps> = ({
                 <span className="hidden sm:inline">{copied ? (language === 'en' ? 'Link copied!' : language === 'ru' ? 'Ссылка скопирована!' : 'Link kopyalandı!') : (language === 'en' ? 'Copy Link' : language === 'ru' ? 'Копировать' : 'Linki Kopyala')}</span>
               </button>
 
-              {/* Social Media Sharing Buttons (LinkedIn, Twitter, Facebook) */}
-              <a
-                href={linkedInShareUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="p-2 rounded-lg border border-[#0A66C2]/30 bg-blue-50/50 hover:bg-[#0A66C2]/10 text-[#0A66C2] transition-colors text-xs font-semibold flex items-center gap-1.5 cursor-pointer shrink-0"
-                title={language === 'en' ? 'Share on LinkedIn' : language === 'ru' ? 'Поделиться в LinkedIn' : 'LinkedIn-də paylaş'}
-                aria-label="LinkedIn"
-              >
-                <Linkedin className="w-4 h-4" />
-                <span className="hidden md:inline">LinkedIn</span>
-              </a>
-
-              <a
-                href={twitterShareUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="p-2 rounded-lg border border-slate-300 bg-slate-50 hover:bg-slate-100 text-slate-800 transition-colors text-xs font-semibold flex items-center gap-1.5 cursor-pointer shrink-0"
-                title={language === 'en' ? 'Share on Twitter (X)' : language === 'ru' ? 'Поделиться в Twitter (X)' : 'Twitter-də (X) paylaş'}
-                aria-label="Twitter"
-              >
-                <Twitter className="w-4 h-4" />
-                <span className="hidden md:inline">Twitter</span>
-              </a>
-
-              <a
-                href={facebookShareUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="p-2 rounded-lg border border-[#1877F2]/30 bg-blue-50/50 hover:bg-[#1877F2]/10 text-[#1877F2] transition-colors text-xs font-semibold flex items-center gap-1.5 cursor-pointer shrink-0"
-                title={language === 'en' ? 'Share on Facebook' : language === 'ru' ? 'Поделиться в Facebook' : 'Facebook-da paylaş'}
-                aria-label="Facebook"
-              >
-                <Facebook className="w-4 h-4" />
-                <span className="hidden md:inline">Facebook</span>
-              </a>
-
               {onShareToGoogleChat && (
                 <button
                   type="button"
@@ -1038,9 +976,54 @@ export const JobDetailModal: React.FC<JobDetailModalProps> = ({
 
             <div className="flex items-center justify-end w-full sm:w-auto shrink-0">
               {hasApplied ? (
-                <div className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-blue-50 text-blue-800 text-xs font-bold border border-blue-200">
-                  <CheckCircle className="w-4 h-4 text-blue-600" />
-                  <span>{language === 'en' ? 'You have already applied to this job' : language === 'ru' ? 'Вы уже откликнулись на эту вакансию' : 'Siz bu vakansiyaya artıq müraciət etmisiniz'}</span>
+                <div className="w-full sm:w-auto flex flex-wrap items-center justify-center gap-2.5 px-4 py-2.5 rounded-xl bg-emerald-50 text-emerald-800 text-xs font-bold border border-emerald-200 shadow-2xs">
+                  <div className="flex items-center gap-1.5">
+                    <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <span>{language === 'en' ? 'You have already applied to this job' : language === 'ru' ? 'Вы уже откликнулись на эту вакансию' : 'Siz bu vakansiyaya artıq müraciət etmisiniz'}</span>
+                  </div>
+                  {onViewApplications && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onClose();
+                        onViewApplications();
+                      }}
+                      className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[11px] font-bold transition-all cursor-pointer flex items-center gap-1 shadow-2xs active:scale-95"
+                    >
+                      <span>{language === 'en' ? 'My Applications' : language === 'ru' ? 'Мои отклики' : 'Müraciətlərimə Bax'}</span>
+                      <ArrowRight className="w-3 h-3" />
+                    </button>
+                  )}
+                </div>
+              ) : isCandidateUser ? (
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
+                  {/* ONE-TOUCH DIRECT APPLY WITH SAVED PROFILE/CV */}
+                  <button
+                    id="btn-one-click-apply"
+                    type="button"
+                    onClick={handleOneClickApply}
+                    className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:from-emerald-700 hover:to-teal-800 text-white font-black text-xs sm:text-sm shadow-md hover:shadow-lg active:scale-95 flex items-center justify-center gap-2 transition-all cursor-pointer ring-2 ring-emerald-400/40"
+                    title={language === 'en' ? 'One-click instant application with your profile CV' : language === 'ru' ? 'Отклик в 1 клик с готовым резюме' : 'Profilinizdəki hazır rəsmi CV ilə dərhal müraciət edin'}
+                  >
+                    <Zap className="w-4 h-4 text-amber-300 fill-amber-300 animate-pulse shrink-0" />
+                    <span className="whitespace-nowrap">
+                      {language === 'en'
+                        ? '⚡ One-Click Apply with Ready CV'
+                        : language === 'ru'
+                        ? '⚡ Откликнуться готовым CV (1 клик)'
+                        : '⚡ Hazır CV-mlə Müraciət Et (1 Kliklə)'}
+                    </span>
+                  </button>
+
+                  <button
+                    id="btn-apply-job"
+                    type="button"
+                    onClick={() => setIsApplying(true)}
+                    className="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition-colors cursor-pointer flex items-center justify-center gap-1.5 whitespace-nowrap"
+                    title={language === 'en' ? 'Open form to add note or update details' : language === 'ru' ? 'Открыть форму с примечанием' : 'Qeyd əlavə et / Formla müraciət'}
+                  >
+                    <span>{language === 'en' ? 'Add Note / Form' : language === 'ru' ? 'С примечанием' : 'Qeyd əlavə et'}</span>
+                  </button>
                 </div>
               ) : (
                 <button

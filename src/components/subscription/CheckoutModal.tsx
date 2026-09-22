@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { SubscriptionPlan, BillingCycle, User, UserRole, UserSubscription } from '../../types';
 import { processCardPayment, formatCardNumber } from '../../services/paymentService';
-import { applySubscriptionUpgrade } from '../../services/subscriptionService';
+import { applySubscriptionUpgrade, formatPrice } from '../../services/subscriptionService';
 import { useLanguage } from '../../context/LanguageContext';
 import { 
   X, 
@@ -61,8 +61,8 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   const isRu = language === 'ru';
 
   const unitPrice = cycle === 'yearly' ? plan.priceYearly : plan.priceMonthly;
-  const totalAmount = cycle === 'yearly' ? plan.priceYearly * 12 : plan.priceMonthly;
-  const savings = cycle === 'yearly' ? (plan.priceMonthly - plan.priceYearly) * 12 : 0;
+  const totalAmount = Math.round((cycle === 'yearly' ? plan.priceYearly * 12 : plan.priceMonthly) * 100) / 100;
+  const savings = Math.round((cycle === 'yearly' ? (plan.priceMonthly - plan.priceYearly) * 12 : 0) * 100) / 100;
 
   const handleCardNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const formatted = formatCardNumber(e.target.value);
@@ -162,12 +162,12 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
         <div className="p-6 pb-4 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <span className="bg-blue-100 text-blue-800 text-[10px] font-extrabold px-2 py-0.5 rounded-full uppercase tracking-wider">
+              <span className="bg-[#00a859]/10 text-[#00a859] border border-[#00a859]/20 text-[10px] font-extrabold px-2 py-0.5 rounded-full uppercase tracking-wider">
                 {isEn ? 'Secure Payment Portal' : isRu ? 'Безопасный платежный шлюз' : 'Təhlükəsiz Ödəniş Portalı'}
               </span>
             </div>
-            <h2 className="text-xl font-black text-slate-900 flex items-center gap-2">
-              <CreditCard className="w-5 h-5 text-blue-600" />
+            <h2 className="text-xl font-black text-[#0b1b2b] flex items-center gap-2">
+              <CreditCard className="w-5 h-5 text-[#00a859]" />
               <span>{isEn ? 'Subscription Checkout' : isRu ? 'Оплата подписки' : 'Abunəlik Ödənişi'}</span>
             </h2>
           </div>
@@ -198,13 +198,15 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
               </div>
 
               <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 text-left text-xs space-y-2 max-w-sm mx-auto">
-                <div className="flex justify-between">
+                <div className="flex justify-between items-center gap-2">
                   <span className="text-slate-500">{isEn ? 'Transaction ID:' : isRu ? 'ID транзакции:' : 'Tranzaksiya ID:'}</span>
-                  <span className="font-mono font-bold text-slate-800">{txReceipt?.id}</span>
+                  <span className="font-mono font-bold text-slate-800 truncate max-w-[180px]" title={txReceipt?.id}>
+                    {txReceipt?.id ? (txReceipt.id.startsWith('tx-') ? `TX-${txReceipt.id.slice(-8).toUpperCase()}` : txReceipt.id) : ''}
+                  </span>
                 </div>
-                <div className="flex justify-between">
+                <div className="flex justify-between items-center">
                   <span className="text-slate-500">{isEn ? 'Amount Paid:' : isRu ? 'Оплаченная сумма:' : 'Ödənilən Məbləğ:'}</span>
-                  <span className="font-bold text-emerald-700">{txReceipt?.amount} AZN</span>
+                  <span className="font-bold text-emerald-700">{formatPrice(txReceipt?.amount || totalAmount)} AZN</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-slate-500">{isEn ? 'Status:' : isRu ? 'Статус:' : 'Status:'}</span>
@@ -220,12 +222,12 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
             /* Checkout Form */
             <form onSubmit={handleSubmitPayment} className="space-y-5">
               {/* Plan Summary Card */}
-              <div className="p-4 bg-blue-50/70 border border-blue-200/80 rounded-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+              <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                 <div>
                   <div className="flex items-center gap-2">
-                    <h3 className="text-sm font-black text-slate-900">{plan.name}</h3>
+                    <h3 className="text-sm font-black text-[#0b1b2b]">{plan.name}</h3>
                     {plan.badge && (
-                      <span className="bg-blue-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
+                      <span className="bg-[#00a859] text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
                         {plan.badge}
                       </span>
                     )}
@@ -234,13 +236,13 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 </div>
 
                 {/* Billing toggle */}
-                <div className="text-right sm:border-l sm:border-blue-200 sm:pl-4">
-                  <div className="flex items-center gap-1 bg-white p-1 rounded-lg border border-blue-200 text-xs">
+                <div className="text-right sm:border-l sm:border-slate-200 sm:pl-4">
+                  <div className="flex items-center gap-1 bg-white p-1 rounded-lg border border-slate-200 text-xs">
                     <button
                       type="button"
                       onClick={() => setCycle('monthly')}
-                      className={`px-2 py-1 rounded-md font-bold text-[11px] transition-all ${
-                        cycle === 'monthly' ? 'bg-blue-600 text-white' : 'text-slate-600'
+                      className={`px-2 py-1 rounded-md font-bold text-[11px] transition-all cursor-pointer ${
+                        cycle === 'monthly' ? 'bg-[#0b1b2b] text-white' : 'text-slate-600 hover:text-slate-900'
                       }`}
                     >
                       {isEn ? 'Monthly' : isRu ? 'Месяц' : 'Aylıq'}
@@ -248,15 +250,15 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                     <button
                       type="button"
                       onClick={() => setCycle('yearly')}
-                      className={`px-2 py-1 rounded-md font-bold text-[11px] transition-all ${
-                        cycle === 'yearly' ? 'bg-blue-600 text-white' : 'text-slate-600'
+                      className={`px-2 py-1 rounded-md font-bold text-[11px] transition-all cursor-pointer ${
+                        cycle === 'yearly' ? 'bg-[#00a859] text-white' : 'text-slate-600 hover:text-slate-900'
                       }`}
                     >
                       {isEn ? 'Yearly (-20%)' : isRu ? 'Год (-20%)' : 'İllik (-20%)'}
                     </button>
                   </div>
                   <div className="mt-1 text-right">
-                    <span className="text-base font-black text-blue-700">{totalAmount} AZN</span>
+                    <span className="text-base font-black text-[#00a859]">{formatPrice(totalAmount)} AZN</span>
                     <span className="text-[11px] text-slate-500 block">
                       {cycle === 'yearly' ? (isEn ? 'total 12-month billing' : isRu ? 'итого за 12 месяцев' : '12 aylıq cəmi ödəniş') : (isEn ? 'monthly billing' : isRu ? 'ежемесячно' : 'aylıq ödəniş')}
                     </span>
@@ -275,14 +277,14 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
               {/* Card Inputs */}
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <label className="text-xs font-bold text-slate-700 flex items-center gap-1">
-                    <CreditCard className="w-3.5 h-3.5 text-blue-600" />
+                  <label className="text-xs font-bold text-[#0b1b2b] flex items-center gap-1">
+                    <CreditCard className="w-3.5 h-3.5 text-[#00a859]" />
                     <span>{isEn ? 'Bank Card Details' : isRu ? 'Данные банковской карты' : 'Bank Kartı Məlumatları'}</span>
                   </label>
                   <button
                     type="button"
                     onClick={handleFillTestCard}
-                    className="text-[11px] text-blue-600 hover:text-blue-800 font-bold hover:underline cursor-pointer"
+                    className="text-[11px] text-[#00a859] hover:text-[#008f4c] font-bold hover:underline cursor-pointer"
                   >
                     {isEn ? '+ Auto-Fill Test Card' : isRu ? '+ Заполнить тест-карту' : '+ Test Kartını Doldur'}
                   </button>
@@ -295,7 +297,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                     placeholder="4128 0000 0000 0000"
                     value={cardNumber}
                     onChange={handleCardNumberChange}
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-mono text-slate-900 tracking-wider focus:bg-white focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 transition-all"
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-mono text-slate-900 tracking-wider focus:bg-white focus:ring-2 focus:ring-[#00a859]/20 focus:border-[#00a859] transition-all"
                   />
                 </div>
 
@@ -310,7 +312,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                       placeholder={isEn ? 'FULL NAME' : isRu ? 'ИМЯ ФАМИЛИЯ' : 'AD SOYAD'}
                       value={cardHolder}
                       onChange={(e) => setCardHolder(e.target.value.toUpperCase())}
-                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs uppercase font-medium text-slate-900 focus:bg-white focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 transition-all"
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs uppercase font-medium text-slate-900 focus:bg-white focus:ring-2 focus:ring-[#00a859]/20 focus:border-[#00a859] transition-all"
                     />
                   </div>
 
@@ -322,7 +324,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                       <select
                         value={expiryMonth}
                         onChange={(e) => setExpiryMonth(e.target.value)}
-                        className="w-full px-2 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:bg-white focus:border-blue-600"
+                        className="w-full px-2 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:bg-white focus:border-[#00a859]"
                       >
                         {Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, '0')).map((m) => (
                           <option key={m} value={m}>
@@ -334,7 +336,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                       <select
                         value={expiryYear}
                         onChange={(e) => setExpiryYear(e.target.value)}
-                        className="w-full px-2 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:bg-white focus:border-blue-600"
+                        className="w-full px-2 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:bg-white focus:border-[#00a859]"
                       >
                         {['26', '27', '28', '29', '30', '31'].map((y) => (
                           <option key={y} value={y}>
@@ -354,7 +356,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                       placeholder="•••"
                       value={cvv}
                       onChange={(e) => setCvv(e.target.value.replace(/\D/g, ''))}
-                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono text-slate-900 text-center focus:bg-white focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 transition-all"
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono text-slate-900 text-center focus:bg-white focus:ring-2 focus:ring-[#00a859]/20 focus:border-[#00a859] transition-all"
                     />
                   </div>
                 </div>
@@ -363,7 +365,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
               {/* Security badges */}
               <div className="flex items-center justify-between py-2 border-t border-b border-slate-100 text-[11px] text-slate-500">
                 <span className="flex items-center gap-1">
-                  <Lock className="w-3.5 h-3.5 text-emerald-600" />
+                  <Lock className="w-3.5 h-3.5 text-[#00a859]" />
                   <span>{isEn ? '256-bit SSL Protection' : isRu ? '256-битное шифрование SSL' : '256-bit SSL Təhlükəsizlik'}</span>
                 </span>
                 <span className="flex items-center gap-2">
@@ -377,7 +379,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-black text-xs rounded-xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
+                className="w-full py-3 bg-[#00a859] hover:bg-[#00914c] text-white font-black text-xs rounded-xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
               >
                 {loading ? (
                   <>
@@ -387,7 +389,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 ) : (
                   <>
                     <ShieldCheck className="w-4 h-4" />
-                    <span>{totalAmount} AZN {isEn ? 'Pay & Activate Plan' : isRu ? 'Оплатить и активировать' : 'Ödə və Planı Aktivləşdir'}</span>
+                    <span>{formatPrice(totalAmount)} AZN {isEn ? 'Pay & Activate Plan' : isRu ? 'Оплатить и активировать' : 'Ödə və Planı Aktivləşdir'}</span>
                   </>
                 )}
               </button>

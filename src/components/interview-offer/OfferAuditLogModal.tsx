@@ -105,13 +105,9 @@ export const OfferAuditLogModal: React.FC<OfferAuditLogModalProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="p-3.5 bg-slate-50 border-t border-slate-200 flex justify-end">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 bg-slate-900 text-white font-bold rounded-lg hover:bg-slate-800"
-          >
-            Bağla
-          </button>
+        <div className="p-3.5 bg-slate-50 border-t border-slate-200 flex items-center justify-between text-xs text-slate-500">
+          <span>İş Təklifi Rəsmi Audit Jurnalı</span>
+          <span className="text-[11px] font-mono text-slate-400">Şifrələnmiş qeydlər</span>
         </div>
 
         {/* Dynamic moving Jobia Logo at bottom */}

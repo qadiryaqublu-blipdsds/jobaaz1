@@ -13,7 +13,7 @@ export const TemplateAcademic: React.FC<TemplateProps> = ({ data, showPhoto = tr
   const displayPhoto = showPhoto && !!personalInfo.photoUrl;
 
   return (
-    <div id="cv-preview-academic" className="bg-white text-stone-900 p-8 rounded-lg shadow-sm border border-stone-300 font-serif max-w-[850px] mx-auto min-h-[1050px]">
+    <div id="cv-preview-academic" className="bg-white text-stone-900 p-8 rounded-lg shadow-sm border border-stone-300 font-serif w-full max-w-[800px] mx-auto min-h-[1050px]">
       {/* Centered Academic Header */}
       <div className="text-center pb-4 mb-6 border-b-2 border-stone-800">
         {displayPhoto && (
@@ -21,15 +21,15 @@ export const TemplateAcademic: React.FC<TemplateProps> = ({ data, showPhoto = tr
             <img
               src={personalInfo.photoUrl}
               alt={personalInfo.fullName || 'Namizəd'}
-              className={`${getPhotoClasses(personalInfo.photoSize, personalInfo.photoShape)} border border-stone-400 shadow-2xs bg-stone-100`}
+              className={`${getPhotoClasses(personalInfo.photoSize, personalInfo.photoShape)} border border-stone-400 shadow-2xs bg-stone-100 shrink-0`}
               referrerPolicy="no-referrer"
             />
           </div>
         )}
-        <h1 className="text-3xl font-bold tracking-tight uppercase text-stone-900">
+        <h1 className="text-3xl font-bold tracking-tight uppercase text-stone-900 break-words">
           {personalInfo.fullName || 'Ad Soyad'}
         </h1>
-        <p className="text-base italic text-stone-700 font-serif mt-0.5">
+        <p className="text-base italic text-stone-700 font-serif mt-0.5 break-words">
           {personalInfo.jobTitle || 'Akademik / Tədqiqatçı'}
         </p>
 
@@ -84,11 +84,11 @@ export const TemplateAcademic: React.FC<TemplateProps> = ({ data, showPhoto = tr
           <div className="space-y-3 font-sans">
             {education.map((edu) => (
               <div key={edu.id} className="text-xs">
-                <div className="flex justify-between items-baseline font-serif">
-                  <h3 className="font-bold text-stone-950 text-sm">{edu.degree} — {edu.fieldOfStudy}</h3>
-                  <span className="font-sans text-[11px] text-stone-600">{edu.startDate} – {edu.endDate}</span>
+                <div className="flex justify-between items-baseline gap-2 min-w-0 font-serif">
+                  <h3 className="font-bold text-stone-950 text-sm flex-1 min-w-0 break-words">{edu.degree} — {edu.fieldOfStudy}</h3>
+                  <span className="font-sans text-[11px] text-stone-600 shrink-0 whitespace-nowrap">{edu.startDate} – {edu.endDate}</span>
                 </div>
-                <div className="text-stone-700 italic text-[11px]">
+                <div className="text-stone-700 italic text-[11px] break-words">
                   {edu.institution} {edu.gpa ? `(GPA: ${edu.gpa})` : ''}
                 </div>
               </div>
@@ -106,16 +106,16 @@ export const TemplateAcademic: React.FC<TemplateProps> = ({ data, showPhoto = tr
           <div className="space-y-4 font-sans">
             {experiences.map((exp) => (
               <div key={exp.id} className="text-xs">
-                <div className="flex justify-between items-baseline font-serif">
-                  <h3 className="font-bold text-stone-950 text-sm">{exp.position}</h3>
-                  <span className="font-sans text-[11px] text-stone-600">
+                <div className="flex justify-between items-baseline gap-2 min-w-0 font-serif">
+                  <h3 className="font-bold text-stone-950 text-sm flex-1 min-w-0 break-words">{exp.position}</h3>
+                  <span className="font-sans text-[11px] text-stone-600 shrink-0 whitespace-nowrap">
                     {exp.startDate} – {exp.current ? terms.present : exp.endDate}
                   </span>
                 </div>
-                <div className="text-stone-700 font-medium italic text-[11px] mb-1">
+                <div className="text-stone-700 font-medium italic text-[11px] mb-1 break-words">
                   {exp.company} {exp.location ? `, ${exp.location}` : ''}
                 </div>
-                <div className="text-stone-800 leading-relaxed whitespace-pre-line text-[11px]">
+                <div className="text-stone-800 leading-relaxed whitespace-pre-line text-[11px] break-words">
                   {exp.description}
                 </div>
               </div>

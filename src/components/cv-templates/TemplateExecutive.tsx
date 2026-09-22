@@ -14,21 +14,21 @@ export const TemplateExecutive: React.FC<TemplateProps> = ({ data, showPhoto = t
   const displayPhoto = showPhoto && !!personalInfo.photoUrl;
 
   return (
-    <div id="cv-preview-executive" className="bg-white text-slate-800 p-8 rounded-lg shadow-sm border border-stone-200 font-sans max-w-[850px] mx-auto min-h-[1050px]">
+    <div id="cv-preview-executive" className="bg-white text-slate-800 p-8 rounded-lg shadow-sm border border-stone-200 font-sans w-full max-w-[800px] mx-auto min-h-[1050px]">
       {/* Executive Header Banner */}
       <div className="bg-gradient-to-r from-stone-900 via-rose-950 to-stone-900 text-white p-6 -mx-8 -mt-8 mb-6 rounded-t-lg border-b-4 border-amber-600 shadow-xs">
-        <div className="flex flex-col sm:flex-row items-center sm:items-start justify-between gap-5">
-          <div className="text-center sm:text-left flex-1">
-            <h1 className="text-2xl sm:text-3xl font-serif font-bold tracking-wide text-stone-100 uppercase">
+        <div className="flex flex-row items-center justify-between gap-5">
+          <div className="text-left flex-1 min-w-0">
+            <h1 className="text-2xl sm:text-3xl font-serif font-bold tracking-wide text-stone-100 uppercase break-words">
               {personalInfo.fullName || 'Ad Soyad'}
             </h1>
-            <p className="text-sm sm:text-base font-medium text-amber-300 tracking-wider uppercase mt-1">
+            <p className="text-sm sm:text-base font-medium text-amber-300 tracking-wider uppercase mt-1 break-words">
               {personalInfo.jobTitle || 'Rəhbər / İcraçı'}
             </p>
             {personalInfo.address && (
-              <div className="flex items-center justify-center sm:justify-start gap-1.5 text-xs text-stone-300 mt-2">
-                <MapPin className="w-3.5 h-3.5 text-amber-400" />
-                <span>{personalInfo.address}</span>
+              <div className="flex items-center justify-start gap-1.5 text-xs text-stone-300 mt-2">
+                <MapPin className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                <span className="truncate">{personalInfo.address}</span>
               </div>
             )}
           </div>
@@ -38,7 +38,7 @@ export const TemplateExecutive: React.FC<TemplateProps> = ({ data, showPhoto = t
               <img
                 src={personalInfo.photoUrl}
                 alt={personalInfo.fullName || 'Namizəd'}
-                className={`${getPhotoClasses(personalInfo.photoSize, personalInfo.photoShape)} border-2 border-amber-400/80 shadow-md bg-stone-800`}
+                className={`${getPhotoClasses(personalInfo.photoSize, personalInfo.photoShape)} border-2 border-amber-400/80 shadow-md bg-stone-800 shrink-0`}
                 referrerPolicy="no-referrer"
               />
             </div>
@@ -84,10 +84,10 @@ export const TemplateExecutive: React.FC<TemplateProps> = ({ data, showPhoto = t
         </div>
       )}
 
-      {/* Two Columns Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      {/* Two Columns Grid: 2/3 Main, 1/3 Sidebar */}
+      <div className="grid grid-cols-3 gap-6">
         {/* Main Column: Experience & Key Projects */}
-        <div className="md:col-span-2 space-y-6">
+        <div className="col-span-2 space-y-6">
           {/* Work Experience */}
           {experiences && experiences.length > 0 && (
             <div>
@@ -97,16 +97,16 @@ export const TemplateExecutive: React.FC<TemplateProps> = ({ data, showPhoto = t
               <div className="space-y-4">
                 {experiences.map((exp) => (
                   <div key={exp.id} className="relative pl-3 border-l-2 border-rose-800">
-                    <div className="flex justify-between items-baseline flex-wrap gap-1">
-                      <h3 className="text-xs font-bold text-stone-950">{exp.position}</h3>
-                      <span className="text-[11px] font-semibold text-rose-900">
+                    <div className="flex justify-between items-baseline gap-2 min-w-0">
+                      <h3 className="text-xs font-bold text-stone-950 flex-1 min-w-0 break-words">{exp.position}</h3>
+                      <span className="text-[11px] font-semibold text-rose-900 shrink-0 whitespace-nowrap">
                         {exp.startDate} – {exp.current ? terms.present : exp.endDate}
                       </span>
                     </div>
-                    <div className="text-[11px] font-medium text-stone-600 mb-1.5">
+                    <div className="text-[11px] font-medium text-stone-600 mb-1.5 break-words">
                       {exp.company} {exp.location ? `| ${exp.location}` : ''}
                     </div>
-                    <div className="text-[11px] text-stone-700 leading-relaxed whitespace-pre-line space-y-1">
+                    <div className="text-[11px] text-stone-700 leading-relaxed whitespace-pre-line space-y-1 break-words">
                       {exp.description}
                     </div>
                   </div>
