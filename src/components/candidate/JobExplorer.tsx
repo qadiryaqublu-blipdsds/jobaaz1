@@ -1523,10 +1523,7 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
             }`}
             title={dict.filters?.title || (language === 'en' ? 'All Filters' : language === 'ru' ? 'Все фильтры' : 'Bütün Filtrlər')}
           >
-            <div className="flex items-center gap-1 shrink-0">
-              <SlidersHorizontal className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
-              <Filter className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0 -ml-0.5 opacity-80" />
-            </div>
+            <SlidersHorizontal className="w-4 h-4 shrink-0" />
             <span className="truncate">
               {dict.filters?.title || (language === 'en' ? 'Filters' : language === 'ru' ? 'Фильтры' : 'Filtrlər')}
             </span>

@@ -18,9 +18,6 @@ export const TemplateSiliconDev: React.FC<TemplateProps> = ({ data, showPhoto = 
       <div className="bg-[#0f172a] text-white p-6 sm:p-8">
         <div className="flex flex-row items-center justify-between gap-5">
           <div className="flex-1 min-w-0 space-y-1">
-            <div className="text-[10px] font-mono tracking-widest text-cyan-400 uppercase">
-              // Tech Stack & Engineering Profile
-            </div>
             <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-white break-words">
               {personalInfo.fullName || 'Ad Soyad'}
             </h1>

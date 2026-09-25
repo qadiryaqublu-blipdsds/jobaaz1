@@ -251,9 +251,48 @@
         "status": { "type": "string", "description": "Connection status" }
       },
       "required": ["id"]
+    },
+    "CreatedCV": {
+      "title": "CreatedCV",
+      "description": "Database registry of all resumes created, edited or downloaded on the platform",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique CV record identifier" },
+        "userId": { "type": "string", "description": "Creator user UID or guest id" },
+        "userEmail": { "type": "string", "format": "email", "description": "Account email" },
+        "fullName": { "type": "string", "maxLength": 150, "description": "Candidate full name" },
+        "jobTitle": { "type": "string", "maxLength": 150, "description": "Job title or profession" },
+        "email": { "type": "string", "format": "email", "description": "Contact email on CV" },
+        "phone": { "type": "string", "maxLength": 30, "description": "Contact phone on CV" },
+        "city": { "type": "string", "maxLength": 100, "description": "City or location" },
+        "template": { "type": "string", "description": "Selected CV template" },
+        "templateName": { "type": "string", "description": "Human-readable template name" },
+        "language": { "type": "string", "description": "CV language" },
+        "hasPhoto": { "type": "boolean", "description": "Whether CV includes a photo" },
+        "photoUrl": { "type": "string", "description": "Candidate photo URL" },
+        "summary": { "type": "string", "maxLength": 5000, "description": "Professional summary" },
+        "skills": { "type": "array", "description": "List of extracted skills" },
+        "skillsCount": { "type": "number", "description": "Total number of skills" },
+        "experienceCount": { "type": "number", "description": "Number of work experiences" },
+        "educationCount": { "type": "number", "description": "Number of education entries" },
+        "languagesCount": { "type": "number", "description": "Number of spoken languages" },
+        "completenessScore": { "type": "number", "description": "Completeness score percentage" },
+        "downloadCount": { "type": "number", "description": "Times downloaded or exported" },
+        "lastAction": { "type": "string", "enum": ["created", "updated", "downloaded", "ai_generated"] },
+        "source": { "type": "string", "enum": ["creator_studio", "candidate_profile", "job_application"] },
+        "status": { "type": "string", "enum": ["active", "archived", "contacted", "shortlisted"] },
+        "adminNotes": { "type": "string", "maxLength": 2000, "description": "Admin notes" },
+        "createdAt": { "type": "string", "description": "Creation timestamp" },
+        "updatedAt": { "type": "string", "description": "Update timestamp" }
+      },
+      "required": ["id", "fullName", "createdAt"]
     }
   },
   "firestore": {
+    "/createdCVs/{cvId}": {
+      "schema": "CreatedCV",
+      "description": "Registry of candidate resumes created on the platform"
+    },
     "/users/{userId}": {
       "schema": "User",
       "description": "User accounts and authentication profiles"

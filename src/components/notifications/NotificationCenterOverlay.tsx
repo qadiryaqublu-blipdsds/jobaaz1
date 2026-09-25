@@ -62,7 +62,7 @@ export const NotificationCenterOverlay: React.FC<NotificationCenterOverlayProps>
   onPostJobClick,
   onExploreJobs,
 }) => {
-  const effectiveRole: UserRole = currentUser?.role || currentRole || 'candidate';
+  const effectiveRole: UserRole = currentRole || currentUser?.role || 'candidate';
   const [activeFilter, setActiveFilter] = useState<string>('all');
   const [soundEnabled, setSoundEnabled] = useState<boolean>(true);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -90,10 +90,15 @@ export const NotificationCenterOverlay: React.FC<NotificationCenterOverlayProps>
     }
   };
 
-  // 100% REAL NOTIFICATIONS: Exclude any leftover mock simulation items
+  // 100% REAL NOTIFICATIONS: Exclude any mock simulation, test or senseless items
   const realNotifications = notifications.filter((n) => {
+    if (!n || !n.id) return false;
     if (n.data?.isSimulation) return false;
     if (n.userId === 'demo-candidate') return false;
+    const title = (n.title || '').toLowerCase();
+    const msg = (n.message || '').toLowerCase();
+    if (title.includes('mock') || title.includes('simulyasiya') || title.includes('test bildiriş')) return false;
+    if (msg.includes('mock') || msg.includes('simulyasiya')) return false;
     return true;
   });
 
@@ -106,6 +111,7 @@ export const NotificationCenterOverlay: React.FC<NotificationCenterOverlayProps>
     if (activeFilter === 'offers') return n.type === 'job_offer';
     if (activeFilter === 'interviews') return n.type === 'interview_invite';
     if (activeFilter === 'applications') return n.type === 'application_submitted' || n.type === 'status_changed';
+    if (activeFilter === 'matching_jobs') return n.type === 'new_matching_vacancy';
     if (activeFilter === 'applicants') return n.type === 'new_applicant';
     if (activeFilter === 'approvals') return n.type === 'vacancy_approval' || n.type === 'company_verification';
     if (activeFilter === 'general') return n.type === 'general';
@@ -168,13 +174,14 @@ export const NotificationCenterOverlay: React.FC<NotificationCenterOverlayProps>
   };
 
   const handleMarkAllRead = async () => {
-    const targetUserId = currentUser?.id || currentUser?.email || 'all';
-    await markAllNotificationsAsRead(targetUserId);
+    await markAllNotificationsAsRead(currentUser || 'all');
   };
 
   const handleClearAll = async () => {
-    const targetUserId = currentUser?.id || currentUser?.email || 'all';
-    await clearAllNotificationsForUser(targetUserId);
+    try {
+      localStorage.removeItem('jobia_notifications_store');
+    } catch {}
+    await clearAllNotificationsForUser(currentUser || 'all');
   };
 
   const handleDeleteItem = async (e: React.MouseEvent, notifId: string) => {
@@ -253,10 +260,22 @@ export const NotificationCenterOverlay: React.FC<NotificationCenterOverlayProps>
               <button
                 type="button"
                 onClick={handleMarkAllRead}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+                className="px-2 py-1 rounded-lg text-slate-300 hover:text-white hover:bg-white/10 text-[11px] font-semibold flex items-center gap-1 transition-colors cursor-pointer"
                 title="Hamısını oxunmuş kimi qeyd et"
               >
-                <CheckCheck className="w-4 h-4 text-emerald-400" />
+                <CheckCheck className="w-3.5 h-3.5 text-emerald-400" />
+                <span className="hidden sm:inline">Oxundu</span>
+              </button>
+            )}
+            {realNotifications.length > 0 && (
+              <button
+                type="button"
+                onClick={handleClearAll}
+                className="px-2 py-1 rounded-lg text-slate-300 hover:text-rose-300 hover:bg-rose-500/20 text-[11px] font-semibold flex items-center gap-1 transition-colors cursor-pointer border border-white/10"
+                title="Bütün bildirişləri təmizlə"
+              >
+                <Trash2 className="w-3.5 h-3.5 text-rose-400" />
+                <span>Təmizlə</span>
               </button>
             )}
             <button
@@ -469,6 +488,17 @@ export const NotificationCenterOverlay: React.FC<NotificationCenterOverlayProps>
               >
                 Müraciət Statusları
               </button>
+              <button
+                type="button"
+                onClick={() => setActiveFilter('matching_jobs')}
+                className={`px-2.5 py-1 rounded-lg text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
+                  activeFilter === 'matching_jobs'
+                    ? 'bg-blue-600 text-white shadow-xs'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200/70'
+                }`}
+              >
+                Uyğun Vakansiyalar
+              </button>
             </>
           ) : effectiveRole === 'business' ? (
             <>
@@ -601,6 +631,7 @@ export const NotificationCenterOverlay: React.FC<NotificationCenterOverlayProps>
               const isStatus = notif.type === 'status_changed';
               const isApplicant = notif.type === 'new_applicant';
               const isApproval = notif.type === 'vacancy_approval' || notif.type === 'company_verification';
+              const isMatchingJob = notif.type === 'new_matching_vacancy';
 
               return (
                 <div
@@ -622,6 +653,10 @@ export const NotificationCenterOverlay: React.FC<NotificationCenterOverlayProps>
                     ) : isInterview ? (
                       <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-700 flex items-center justify-center border border-blue-200/80">
                         <Calendar className="w-4 h-4" />
+                      </div>
+                    ) : isMatchingJob ? (
+                      <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-700 flex items-center justify-center border border-indigo-200/80">
+                        <Sparkles className="w-4 h-4" />
                       </div>
                     ) : isApplicant ? (
                       <div className="w-8 h-8 rounded-lg bg-slate-100 text-slate-700 flex items-center justify-center border border-slate-200">
@@ -659,6 +694,12 @@ export const NotificationCenterOverlay: React.FC<NotificationCenterOverlayProps>
                           Müsahibə Dəvəti
                         </span>
                       )}
+                      {isMatchingJob && (
+                        <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-indigo-50 text-indigo-800 border border-indigo-200/70 flex items-center gap-1">
+                          <Sparkles className="w-2.5 h-2.5" />
+                          <span>Uyğun Vakansiya</span>
+                        </span>
+                      )}
                       {isApplicant && (
                         <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-100 text-slate-800 border border-slate-200/70">
                           Yeni Müraciət
@@ -692,7 +733,7 @@ export const NotificationCenterOverlay: React.FC<NotificationCenterOverlayProps>
                     {/* Action pill */}
                     <div className="mt-2 flex items-center gap-2">
                       <span className="inline-flex items-center gap-1 text-[10px] font-bold text-blue-600 group-hover:text-blue-700">
-                        <span>{isOffer ? 'Təklifə bax' : isInterview ? 'Dəvətə bax' : isApplicant ? 'Müraciəti aç' : 'Ətraflı bax'}</span>
+                        <span>{isOffer ? 'Təklifə bax' : isInterview ? 'Dəvətə bax' : isApplicant ? 'Müraciəti aç' : isMatchingJob ? 'Vakansiyanı Aç' : 'Ətraflı bax'}</span>
                         <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
                       </span>
                       {!notif.isRead && (

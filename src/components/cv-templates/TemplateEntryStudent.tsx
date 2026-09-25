@@ -27,9 +27,6 @@ export const TemplateEntryStudent: React.FC<TemplateProps> = ({ data, showPhoto 
             />
           )}
           <div className="flex-1 min-w-0 text-left">
-            <div className="inline-block px-2.5 py-0.5 rounded-full bg-sky-100 text-sky-800 text-[10px] font-bold uppercase tracking-wider mb-1.5">
-              {terms.graduateOrIntern}
-            </div>
             <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight break-words">
               {personalInfo.fullName || ''}
             </h1>

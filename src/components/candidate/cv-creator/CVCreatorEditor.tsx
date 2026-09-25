@@ -38,13 +38,16 @@ interface CVCreatorEditorProps {
   showPhoto: boolean;
   setShowPhoto: (show: boolean) => void;
   onOpenAiModal?: () => void;
+  onOpenImageAiModal?: () => void;
 }
 
 export const CVCreatorEditor: React.FC<CVCreatorEditorProps> = ({
   cvData,
   setCvData,
   showPhoto,
-  setShowPhoto
+  setShowPhoto,
+  onOpenAiModal,
+  onOpenImageAiModal
 }) => {
   // Accordion state
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
@@ -334,6 +337,53 @@ export const CVCreatorEditor: React.FC<CVCreatorEditorProps> = ({
             }`}
             style={{ width: `${completionScore}%` }}
           />
+        </div>
+      </div>
+
+      {/* Quick AI & Image CV Generation Banner */}
+      <div className="bg-gradient-to-r from-purple-50 via-indigo-50/70 to-blue-50 rounded-2xl border border-purple-200/90 p-3 sm:p-4 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className="p-2.5 rounded-xl bg-purple-600 text-white shadow-2xs shrink-0">
+            <Sparkles className="w-4 h-4 text-white" />
+          </div>
+          <div>
+            <h4 className="text-xs sm:text-sm font-bold text-slate-900 flex items-center gap-1.5 flex-wrap">
+              <span>Şəkildən və ya Fayldan CV Hazırla</span>
+              <span className="px-1.5 py-0.5 rounded bg-purple-100 text-purple-700 text-[10px] font-extrabold border border-purple-200">
+                AI Vision
+              </span>
+            </h4>
+            <p className="text-[11px] text-slate-600 mt-0.5 leading-relaxed">
+              Qalereyadan köhnə CV şəkli yükləyin, səslə deyin və ya mətn yazın — AI bütün bölmələri avtomatik doldursun.
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 shrink-0 w-full sm:w-auto">
+          {onOpenImageAiModal && (
+            <button
+              id="btn-editor-open-image-ai"
+              type="button"
+              onClick={onOpenImageAiModal}
+              className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shadow-xs transition-all cursor-pointer"
+              title="Qalereyadan CV şəkli yükləyərək formalaşdır"
+            >
+              <Camera className="w-3.5 h-3.5" />
+              <span>Şəkil Yüklə (AI)</span>
+            </button>
+          )}
+          {onOpenAiModal && (
+            <button
+              id="btn-editor-open-ai-fill"
+              type="button"
+              onClick={onOpenAiModal}
+              className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl bg-white hover:bg-purple-50 text-purple-700 border border-purple-300 text-xs font-bold shadow-2xs transition-all cursor-pointer"
+              title="Mətn yapışdırıb və ya səslə diktə edərək doldur"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-purple-600" />
+              <span>AI ilə Doldur</span>
+            </button>
+          )}
         </div>
       </div>
 

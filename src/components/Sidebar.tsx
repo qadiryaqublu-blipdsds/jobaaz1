@@ -215,8 +215,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       id: 'network' as const,
       label: language === 'en' ? 'Network' : language === 'ru' ? 'Сеть' : 'Peşəkar Şəbəkə',
       icon: Users,
-      badge: 'YENİ',
-      badgeClass: 'bg-blue-100 text-blue-800 font-bold border border-blue-200/80',
+      badge: null,
       color: 'blue',
     },
     {
@@ -290,7 +289,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       id: 'talent-pool' as any,
       label: language === 'en' ? 'Candidate Pool' : language === 'ru' ? 'База кадров' : 'Kadr Bankı',
       icon: UserCheck,
-      badge: 'TOP',
+      badge: null,
       color: 'blue',
       onClick: () => {
         onRoleChange('business');

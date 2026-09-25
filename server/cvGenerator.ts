@@ -9,12 +9,86 @@ export interface GenerateCVRequest {
   language?: 'az' | 'en' | 'ru';
   photoUrl?: string;
   rawPastedText?: string;
+  hasImage?: boolean;
 }
 
 /**
  * Builds a comprehensive system & user prompt for Gemini to generate an ATS-optimized, high-impact CV
  */
 export function buildGeminiCVPrompt(req: GenerateCVRequest): string {
+  if (req.hasImage) {
+    return `Sən ən yüksək səviyyəli peşəkar HR mütəxəssisi və CV tərtibatçısısan.
+Təqdim olunmuş şəkildəki (CV sənədi, şəkil, diplom, sertifikat, qeydlər və ya profil fotosu/skrinşotu) bütün mətn və vizual məlumatları dəqiq oxu (OCR) və təhlil et.
+${req.rawPastedText && req.rawPastedText.trim().length > 0 ? `İstifadəçinin əlavə yazdığı qeydlər:\n"${req.rawPastedText.trim()}"\n` : ''}
+
+SƏNİN TAPŞIRIĞIN:
+Şəkildəki bütün məlumatları (Ad, Soyad, Əlaqə nömrəsi, E-poçt, Şəhər, Peşə/Vəzifə, Haqqında/Xülasə, İş Təcrübələri, Təhsil, Bacarıqlar, Dillər, Layihələr, Sertifikatlar) çıxar və təmiz, ardıcıl, yüksək standartlı ATS-uyğun CV JSON strukturuna sal.
+
+Vacib qaydalar:
+1. Şəkildə mövcud olan ad, telefon, e-poçt, təhsil və iş yerlərini 100% dəqiqliklə oxu və çıxar.
+2. İş təcrübələrini ardıcıl tarixlərlə (başlama-bitmə) düz, vəzifə öhdəliklərini isə ölçülə bilən nailiyyətlərlə zənginləşdirilmiş güclü maddə bəndləri (•) halında yaz.
+3. Bacarıqları fərdi şəkildə kateqoriyalara ('Texniki', 'Soft skill', 'Alət / Proqram') böl.
+4. Dilləri və səviyyələrini ('Ana dili', 'C1-C2 (Sərbəst)', 'B1-B2 (Orta/İşgüzar)', 'A1-A2 (Başlanğıc)') dəqiqləşdir.
+5. Şəkildə çatışmayan hər hansı zəruri xülasə və ya təcrübə bəndlərini həmin ixtisasa tam uyğun şəkildə peşəkarca tamamla ki, nəticə tam və mükəmməl CV olsun.
+
+ÇIXIŞ FORMATI:
+YALNIZ AŞAĞIDAKI JSON STRUKTURUNDA CAVAB VER. HEÇ BİR İZAH VƏ YA ARTIQ SÖZ YAZMA:
+{
+  "personalInfo": {
+    "fullName": "Ad Soyad",
+    "jobTitle": "Vəzifə / İxtisas",
+    "email": "email@example.com",
+    "phone": "+994 ...",
+    "address": "Bakı, Azərbaycan",
+    "linkedin": "linkedin.com/in/...",
+    "github": "",
+    "portfolio": "",
+    "summary": "Güclü və peşəkar 3-4 cümləlik xülasə..."
+  },
+  "experiences": [
+    {
+      "id": "exp-1",
+      "company": "Şirkət",
+      "position": "Vəzifə",
+      "location": "Şəhər",
+      "startDate": "2021",
+      "endDate": "İndiyədək",
+      "current": true,
+      "description": "• Vəzifə və nailiyyət 1\\n• Vəzifə və nailiyyət 2"
+    }
+  ],
+  "education": [
+    {
+      "id": "edu-1",
+      "institution": "Təhsil müəssisəsi",
+      "degree": "Bakalavr",
+      "fieldOfStudy": "İxtisas",
+      "startDate": "2016",
+      "endDate": "2020",
+      "current": false,
+      "gpa": ""
+    }
+  ],
+  "skills": [
+    {
+      "id": "sk-1",
+      "name": "Bacarıq",
+      "level": "Yaxşı",
+      "category": "Texniki"
+    }
+  ],
+  "languages": [
+    {
+      "id": "lang-1",
+      "language": "Azərbaycan dili",
+      "proficiency": "Ana dili"
+    }
+  ],
+  "projects": [],
+  "certificates": []
+}`;
+  }
+
   if (req.rawPastedText && req.rawPastedText.trim().length > 10) {
     return `Sən ən yüksək səviyyəli peşəkar HR mütəxəssisi və CV tərtibatçısısan.
 Aşağıda istifadəçinin sərbəst şəkildə yapışdırdığı (LinkedIn profili, köhnə CV, qeydlər, bioqrafiya və ya qarışıq mətn) məlumatlar verilmişdir:

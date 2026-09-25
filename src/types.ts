@@ -483,7 +483,48 @@ export type CVTemplateType =
   | 'berlin-creative'
   | 'tokyo-minimal'
   | 'cambridge-scholar'
-  | 'scandinavian-edge';
+  | 'scandinavian-edge'
+  | 'dubai-gold'
+  | 'vienna-formal'
+  | 'amsterdam-modern'
+  | 'seoul-minimal'
+  | 'baku-corporate'
+  | 'paris-elegance'
+  | 'ats-pro-clean'
+  | 'toronto-hybrid'
+  | 'florence-classic';
+
+export interface CreatedCVRecord {
+  id: string;
+  userId?: string;
+  userEmail?: string;
+  fullName: string;
+  jobTitle: string;
+  email: string;
+  phone: string;
+  city: string;
+  template: CVTemplateType | string;
+  templateName?: string;
+  language: CVLanguage | string;
+  hasPhoto: boolean;
+  photoUrl?: string;
+  summary?: string;
+  skills: string[];
+  skillsCount: number;
+  experienceCount: number;
+  educationCount: number;
+  languagesCount: number;
+  completenessScore: number;
+  downloadCount: number;
+  lastAction: 'created' | 'updated' | 'downloaded' | 'ai_generated';
+  source: 'creator_studio' | 'candidate_profile' | 'job_application';
+  status: 'active' | 'archived' | 'contacted' | 'shortlisted';
+  adminNotes?: string;
+  tags?: string[];
+  createdAt: string;
+  updatedAt: string;
+  cvData: CVData;
+}
 
 export interface Application {
   id: string;

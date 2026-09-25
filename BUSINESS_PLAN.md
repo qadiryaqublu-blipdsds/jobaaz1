@@ -601,6 +601,50 @@ Platforma həm B2B (İşəgötürənlər), həm də B2C (Namizədlər) istiqamə
   2. **Vakansiya Kartlarında Vizual Yükün Azaldılması (`JobExplorer.tsx`):** Başlıq zolağında bir-birinin ardınca yığılan qabarıq və uzun etiketlər ("VIP PREMİUM", "⚡ YENİ", "Tez Müraciət", "98% • AI uyğunluq izahı") yığcam, zərif və səliqəli `VIP`, `Yeni`, `Tez Müraciət` və faiz formatına gətirildi.
   3. **Təmiz Axtarış və Əməliyyat Zolağı:** Saytın bütün bölmələrində (`JobExplorer`, `NearbyJobsMap`, `CandidateTalentPool`) filtr çipləri, axtarış panelləri və fəaliyyət düymələri arasında simmetriya, boşluq və tipoqrafik zəriflik təmin edildi.
 
+- [x] **Bildirişlər Sisteminin Tam Təkmilləşdirilməsi və Firestore ilə Canlı Sinxronizasiyası (Real-Time Notification Synchronization Overhaul):**
+  1. **Çoxşaxəli İstifadəçi İdentifikasiyası (`extractNotificationTargetIds`):** Bildirişlərin yalnız tək bir ID ilə axtarılması və e-poçt və ya şirkət ID-si ilə göndərilən bildirişlərin itməsi problemi həll edildi. Artıq `subscribeToUserNotifications` funksiyası istifadəçinin sistemdəki bütün unikal açarlarını (User UID, qeydiyyat e-poçtu, kiçik hərflərlə e-poçt, şirkət ID-si, admin statusu və 'all' ümumi bildirişləri) dəqiq sinxronlaşdırır.
+  2. **`App` Komponentində `useEffect` və Toast Nəzarətinin Yenidən Qurulması:** Hər renderdə təkrar abunəlik və köhnə bildirişlərin saxta yeni bildiriş kimi pop-up verməsi xətası aradan qaldırıldı; `[currentUser?.id, currentUser?.email, currentUser?.companyId, currentUser?.role]` asılılıqları ilə yalnız real dəyişikliklərdə yenilənir və sessiya zamanı daxil olan həqiqi yeni bildirişləri canlı toast kimi göstərir.
+  3. **100% Real Məlumatlar və Saxta Simulyasiyaların Təmizlənməsi:** `NotificationCenterOverlay` və `Header` sayğacları eyniləşdirildi; sınaq/demo bildirişlər mənbədən süzülür, oxunmamış bildiriş sayı həm zəng ikonunda, həm də daxili paneldə həqiqi Firestore vəziyyətini əks etdirir.
+  4. **Bütün Bildiriş Növlərinin Dəstəklənməsi və Dəqiq Yönləndirmə:** `new_matching_vacancy` (uyğun vakansiyalar), `job_offer` (iş təklifləri), `new_applicant` (yeni müraciətlər), `interview_invite` (müsahibələr) və `status_changed` üçün uyğun nişanlar, rənglər və kliklədikdə birbaşa hədəf bölməyə və ya vakansiyaya yönləndirən naviqasiya məntiqi təmin edildi.
+  5. **Bütün Bildirişləri Oxunmuş Qeyd Etmə və Təmizləmə Funksiyalarının Düzəldilməsi:** `markAllNotificationsAsRead` və `clearAllNotificationsForUser` funksiyaları istifadəçinin bütün identifikasiya açarları üzrə Firestore və yerli keşdə tam və təhlükəsiz tətbiq edildi.
+
+- [x] **Yuxarı Freymdə Şirkət Adlarının Canlı və Yavaş Hərəkəti və İnterfeysin Sadələşdirilməsi (Continuous Smooth Corporate Ticker & UI Simplification):**
+  1. **Kəsilməz və Yavaş Hərəkət Edən Şirkət Zolağı (`Header.tsx` & `index.css`):** Saytın yuxarı freymində şirkət adları və loqoları artıq donmur, dayanmır; GPU tərəfindən sürətləndirilən xüsusi CSS `@keyframes header-marquee-scroll` sayəsində daimi, çox zərif və sabit sürətlə (50s) yavaş-yavaş axır.
+  2. **Dondurucu Tətikləyicilərin Ləğvi:** Əvvəllər kursorun yaxınlaşması və ya mobil ekranda toxunuş zamanı zolağın tamamilə dayanmasına səbəb olan hadisə dinləyiciləri aradan qaldırıldı; kursor üzərinə gəldikdə hərəkət kəsilmir, fərdi şirkət kartı zərif böyüyür və istənilən an bir kliklə vakansiyaları süzgəcdən keçirməyə imkan verir.
+  3. **Yalnız Real Şirkətlərin Göstərilməsi və Saxta Məlumatların Ləğvi:** İstifadəçinin tələbinə əsasən bütün saxta stok şəkilləri və qeyri-real məlumatlar silindi; zolaqda yalnız bazada mövcud olan qeydiyyatlı işəgötürənlər və təsdiqlənmiş aktiv vakansiyası olan həqiqi şirkətlər göstərilir.
+  4. **Sadə, Yüngül və Qüsursuz İnterfeys (`App.tsx`):** İstifadəçinin xahişinə uyğun olaraq interfeysi yükləyən böyük xəbərdarlıq blokları yığcamlaşdırıldı, e-poçt təsdiq zolağına dərhal bağlama (dismiss) düyməsi əlavə edildi, bütün xətalar aradan qaldırıldı və vizual iyerarxiya tam sadələşdirildi.
+
+- [x] **CV Şablonlarının Genişləndirilməsi, Daxili Başlıqların Ləğvi, Göndərilmiş CV İdarəetməsi və Bütün Bazar Üzrə Dinamik Vəzifə Maaş Analitikası:**
+  1. **CV Şablonlarında Daxili Başlıq və Etiketlərin Ləğvi:**
+     - CV şablonlarının daxilində görünən lüzumsuz və artıq başlıqlar ("Peşəkar İşçi & Xidmət Sektoru Profili", "Portfel & CV", "Peşəkar Profil", "developer_profile.json", "Məzun / Tələbə") sənədin daxilindən tamamilə ləğv edildi. CV sənədi artıq beynəlxalq standartlara uyğun olaraq birbaşa namizədin adı, vəzifəsi və əlaqə məlumatları ilə təmiz şəkildə başlayır.
+  2. **CV Şablon Sayının 30-a Çatdırılması (5 Yeni Zəngin Dizayn):**
+     - İstifadəçinin tələbinə əsasən şablon çeşidi artırılaraq 30-a çatdırıldı:
+       - `Bakı Korporativ & Neft-Qaz` (`TemplateBakuCorporate`): Xəzər göyü və mis/bürünc zolaqlar, neft-qaz, mühəndislik, iri sənaye və korporativ holdinqlər üçün nüfuzlu tərtibat.
+       - `Paris Zərif & Moda` (`TemplateParisElegance`): Fransız dəb jurnalı tipoqrafiyası, zərif serif şrifti və incə çərçivələr (marketinq, media, dizayn və PR üçün).
+       - `ATS Pro Qlobal Standart` (`TemplateATSProClean`): 100% maşın oxunaqlılığı, semantik başlıqlar və ATS skanerlərindən ən yüksək keçid faizi təmin edən monoxrom tərtibat.
+       - `Toronto İnnovativ İki-Sütun` (`TemplateTorontoHybrid`): Polad mavisi sol naviqasiya paneli, sağ sütunda ölçülə bilən nailiyyətlər və dinamik layihələr.
+       - `Florensiya Klassik İntibah` (`TemplateFlorenceClassic`): İsti perqament fon, zərif terrakota xətləri və klassik humanitar nizam (tibb, təhsil, elmi-tədqiqat və hüquq üçün).
+  3. **Şirkətə Göndərilmiş CV-lərin Orijinal Dizaynda Saxlanması:**
+     - Namizəd vakansiyaya müraciət etdikdə seçdiyi CV şablonu müraciət sənədinə bağlanır. Şirkət (işəgötürən) namizədin CV-sinə baxdıqda yalnız göndərilən formadakı orijinal dizayn nümayiş olunur; şirkət tərəfində lüzumsuz şablon dəyişdirmə seçimləri göstərilmir və namizədin təsdiqlədiyi dizayn qorunur.
+  4. **Bütün Bazar Üzrə İstənilən Vəzifə Adı Üzrə Dinamik Maaş Analizi və Bazar İcmalı (`SalaryTrendsView.tsx`):**
+     - Vəzifələr üzrə maaş trendləri bölməsi yenidən quruldu. Əvvəllər yalnız bir neçə sabit şablonla məhdudlaşan axtarış əvəzinə, istifadəçi bütün bazar üzrə İSTƏNİLƏN vəzifə adını yazdıqda (məsələn: *Python Developer, Baş Mühasib, Satış Meneceri, Sürücü, Qrafik Dizayner, Hüquqşünas, DevOps Mühəndisi, Kassir...*):
+       - Real portal vakansiyaları və Azərbaycan əmək bazarı göstəriciləri əsasında orta, minimum və maksimum maaş aralığı hesablanır.
+       - 2023-2026-cı illər üzrə dinamik rüblük trend qrafiki (AreaChart), təcrübə səviyyələri bölgüsü (Junior, Mid, Senior, Lead) və region/distant müqayisəsi dərhal formalaşdırılır.
+       - Həmin vəzifə üçün ən çox maaş artıran xüsusi bacarıqlar və bazar icmalı mətni təqdim olunur.
+       - Sürətli bir-klikli populyar vəzifə çipləri və standart siyahıya rahat qayıdış imkanı təmin edildi.
+
+
+- [x] **İnzibatçı (Admin) Bölməsində CV Hazırlayanlar Bazası və Data Toplama / İxrac Sistemi (Admin CV Creators Registry & Data Collection Suite):**
+  1. **Hərtərəfli CV Məlumat Bazası (`createdCVs` & `AdminCreatedCVsRegistry.tsx`):** Saytda kim CV hazırlayıb, redaktə edib və ya yükləyibsə bütün əlaqə (Ad, Soyad, Vəzifə, E-poçt, Telefon, Şəhər), iş təcrübəsi, təhsil, bacarıqlar, seçilmiş şablon və dil göstəriciləri avtomatik olaraq mərkəzi Firestore bazasında qeydə alınır.
+  2. **Data Toplama və İxrac Alətləri (Excel / CSV & JSON):**
+     - **UTF-8 BOM Dəstəkli Excel/CSV İxracı:** Azərbaycan hərflərini (Ə, ə, Ğ, ğ, İ, ı, Ö, ö, Ş, ş, Ç, ç) Microsoft Excel proqramında heç bir kodlaşdırma xətası olmadan dərhal açan `.csv` faylı bir kliklə yüklənir.
+     - **Toplu Əlaqə Kopyalama:** Rekrutinq və ya marketinq məqsədilə bütün namizədlərin e-poçtlarını və ya telefon nömrələrini buferə (clipboard) tək toxunuşla kopyalamaq imkanı.
+     - **Tam Strukturlaşdırılmış JSON İxracı:** CRM və ya xarici analitika sistemlərinə inteqrasiya üçün tam JSON formatında data ixracı.
+  3. **Canlı Statistik Metrikalar:** Cəmi hazırlanmış CV-lər, əlaqə əlçatanlığı faizi, son 24 saatda hazırlananlar, ən çox seçilən şablon və ən yüksək təmsil olunan ixtisas sahəsi.
+  4. **Dinamik Süzgəclər və Çeşidləmə:** İxtisas sahəsinə (İT, Maliyyə, Dizayn, Satış, Mühəndislik, HR, Tibb, Təhsil), 30 CV şablonuna, əlaqə növünə və statusa görə sürətli filtrasiya; həmçinin həm Cədvəl (Table), həm də Kart (Grid) görünüş rejimi.
+  5. **Canlı CV Baxışı və PDF Çapı:** İnzibatçı istənilən namizədin CV sənədini real şablonda canlı nəzərdən keçirə, şablonunu dəyişərək yoxlaya və rəsmi PDF yükləyə bilir; daxili qeydlər (note) və status təyin edə bilir.
+
+
 ### 🔮 Növbəti Mərhələlər (Gələcək Planlar)
 - [ ] **Mobil Tətbiq (iOS & Android):** Namizədlər üçün anlıq bildirişlər və mobil iş axtarışı.
 - [ ] **WhatsApp & Telegram Bot İnteqrasiyası:** Yeni vakansiyalar haqqında namizədlərə anlıq çat bildirişləri.

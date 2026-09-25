@@ -18,10 +18,6 @@ export const TemplateMetro: React.FC<TemplateProps> = ({ data, showPhoto = true 
       {/* Metro Header */}
       <div className="flex flex-row items-center justify-between gap-5 pb-6 mb-6 border-b border-purple-200">
         <div className="text-left flex-1 min-w-0">
-          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-purple-100 text-purple-800 text-[10px] font-bold uppercase tracking-wider mb-2">
-            <Sparkles className="w-3 h-3 text-purple-600 shrink-0" />
-            <span>Peşəkar Profil</span>
-          </div>
           <h1 className="text-3xl font-black text-slate-900 tracking-tight break-words">
             {personalInfo.fullName || 'Ad Soyad'}
           </h1>

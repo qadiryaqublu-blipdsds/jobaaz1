@@ -19,7 +19,6 @@ import {
   ArrowRightLeft,
   ShieldCheck
 } from 'lucide-react';
-import { JobiaSectionFooter } from '../JobiaSectionFooter';
 
 interface SalaryCalculatorViewProps {
   onExploreJobs?: () => void;
@@ -343,8 +342,6 @@ Cəmi Tutulma: ${formatAZN(result.totalEmployeeDeductions)}
         </div>
 
       </div>
-
-      <JobiaSectionFooter />
     </div>
   );
 };

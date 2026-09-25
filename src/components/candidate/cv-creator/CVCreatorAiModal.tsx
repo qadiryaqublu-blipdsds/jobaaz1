@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { CVData } from '../../../types';
 import { 
   X, 
@@ -10,7 +10,9 @@ import {
   FileText,
   Lightbulb,
   Mic,
-  MicOff
+  MicOff,
+  Image as ImageIcon,
+  UploadCloud
 } from 'lucide-react';
 
 interface CVCreatorAiModalProps {
@@ -18,18 +20,36 @@ interface CVCreatorAiModalProps {
   onClose: () => void;
   onApplyCvData: (data: CVData) => void;
   photoUrl?: string;
+  autoTriggerImageUpload?: boolean;
 }
 
 export const CVCreatorAiModal: React.FC<CVCreatorAiModalProps> = ({
   isOpen,
   onClose,
   onApplyCvData,
-  photoUrl
+  photoUrl,
+  autoTriggerImageUpload = false
 }) => {
   const [pastedText, setPastedText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [statusMsg, setStatusMsg] = useState('');
+
+  // Image upload state for CV photo / gallery scan
+  const [selectedImageBase64, setSelectedImageBase64] = useState<string | null>(null);
+  const [selectedImageMime, setSelectedImageMime] = useState<string | null>(null);
+  const [selectedImageName, setSelectedImageName] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  // Auto trigger file picker if launched specifically in image mode
+  React.useEffect(() => {
+    if (isOpen && autoTriggerImageUpload && !selectedImageBase64) {
+      const timer = setTimeout(() => {
+        fileInputRef.current?.click();
+      }, 150);
+      return () => clearTimeout(timer);
+    }
+  }, [isOpen, autoTriggerImageUpload, selectedImageBase64]);
 
   // Voice recording state for the modal
   const [isRecording, setIsRecording] = useState(false);
@@ -53,6 +73,45 @@ export const CVCreatorAiModal: React.FC<CVCreatorAiModalProps> = ({
       }
     };
   }, []);
+
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      setErrorMsg('Zəhmət olmasa düzgün şəkil formatı (JPG, PNG, WEBP) seçin.');
+      return;
+    }
+
+    if (file.size > 15 * 1024 * 1024) {
+      setErrorMsg('Şəkil ölçüsü 15MB-dan kiçik olmalıdır.');
+      return;
+    }
+
+    setErrorMsg('');
+    setSelectedImageName(file.name);
+    setSelectedImageMime(file.type);
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      setSelectedImageBase64(reader.result as string);
+      setStatusMsg('📷 Şəkil uğurla seçildi! İstəsəniz aşağıda əlavə qeydlər də yaza bilərsiniz.');
+      setTimeout(() => setStatusMsg(''), 4000);
+    };
+    reader.onerror = () => {
+      setErrorMsg('Şəkli oxumaq mümkün olmadı.');
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemoveImage = () => {
+    setSelectedImageBase64(null);
+    setSelectedImageMime(null);
+    setSelectedImageName(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
 
   const startVoiceRecording = async () => {
     setErrorMsg('');
@@ -214,14 +273,18 @@ Dillər:
 
   const handleGenerate = async () => {
     const text = pastedText.trim();
-    if (!text || text.length < 20) {
-      setErrorMsg('Zəhmət olmasa ən azı bir neçə cümlə mətn daxil edin və ya "Nümunə mətn qoy" düyməsini sıxın.');
+    if (!text && !selectedImageBase64) {
+      setErrorMsg('Zəhmət olmasa mətn daxil edin və ya qalereyadan CV şəkli yükləyin.');
       return;
     }
 
     setIsLoading(true);
     setErrorMsg('');
-    setStatusMsg('AI mətni təhlil edir və CV bölmələrini peşəkar şəkildə formalaşdırır...');
+    setStatusMsg(
+      selectedImageBase64 
+        ? 'AI şəkildəki məlumatları oxuyur və CV bölmələrini peşəkar şəkildə formalaşdırır...'
+        : 'AI mətni təhlil edir və CV bölmələrini peşəkar şəkildə formalaşdırır...'
+    );
 
     try {
       const res = await fetch('/api/ai/generate-full-cv', {
@@ -229,6 +292,8 @@ Dillər:
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           rawPastedText: text,
+          imageBase64: selectedImageBase64,
+          imageMimeType: selectedImageMime,
           photoUrl
         })
       });
@@ -262,10 +327,10 @@ Dillər:
             </div>
             <div>
               <h3 className="text-base font-bold text-slate-900">
-                AI İlə Mətndən CV Yarat
+                AI İlə Mətndən və ya Şəkildən CV Yarat
               </h3>
               <p className="text-xs text-slate-500">
-                LinkedIn profilinizi, köhnə CV mətninizi və ya qeydlərinizi yapışdırın
+                Qalereyadan şəkil yükləyin, səslə deyin və ya mətn yapışdırın
               </p>
             </div>
           </div>
@@ -286,19 +351,51 @@ Dillər:
             <div className="space-y-0.5">
               <span className="font-bold">Necə işləyir?</span>
               <p className="text-[11px] text-purple-800 leading-relaxed">
-                Mətnin səliqəsiz və ya qarışıq olması problem deyil. Süni intellekt ad, əlaqə, iş təcrübələri, vəzifələr, təhsil və bacarıqları avtomatik ayıraraq rəsmi CV strukturuna çevirir.
+                Köhnə CV-nizin və ya sənədlərinizin şəklini yükləyə, mikrofona danışa və ya LinkedIn mətnini yapışdıra bilərsiniz. Süni intellekt məlumatları avtomatik ayıraraq rəsmi CV strukturuna çevirir.
               </p>
             </div>
           </div>
 
-          {/* Text Area */}
+          {/* Uploaded Image Preview */}
+          {selectedImageBase64 && (
+            <div className="flex items-center justify-between p-3 rounded-xl bg-indigo-50/90 border border-indigo-200 animate-fadeIn">
+              <div className="flex items-center gap-3 min-w-0">
+                <img
+                  src={selectedImageBase64}
+                  alt="Yüklənmiş CV Şəkli"
+                  className="w-12 h-12 rounded-lg object-cover border border-indigo-300 shadow-2xs shrink-0"
+                />
+                <div className="min-w-0">
+                  <div className="text-xs font-bold text-indigo-950 truncate flex items-center gap-1.5">
+                    <span className="truncate">{selectedImageName || 'CV Şəkli'}</span>
+                    <span className="px-1.5 py-0.5 rounded bg-indigo-200 text-[10px] text-indigo-900 font-bold">
+                      Şəkil Yükləndi
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-indigo-800/90 truncate mt-0.5">
+                    AI şəkildəki bütün təcrübə, təhsil və əlaqə məlumatlarını oxuyacaq.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={handleRemoveImage}
+                className="p-1.5 rounded-lg text-indigo-600 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer shrink-0 ml-2"
+                title="Şəkli sil"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+
+          {/* Text Area & Action Buttons */}
           <div className="space-y-1.5">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-wrap items-center justify-between gap-2">
               <label className="font-bold text-slate-800 flex items-center gap-1.5">
                 <FileText className="w-3.5 h-3.5 text-slate-500" />
-                Mətn Sahəsi:
+                <span>{selectedImageBase64 ? 'Əlavə Qeydlər (İstəyə görə):' : 'Mətn Sahəsi:'}</span>
               </label>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 {/* Voice Dictation Button */}
                 {!isRecording ? (
                   <button
@@ -323,6 +420,25 @@ Dillər:
                   </button>
                 )}
 
+                {/* Gallery / Image Upload Button */}
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isLoading || isTranscribing}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold border border-indigo-200 transition-all cursor-pointer text-[11px]"
+                  title="Qalereyadan və ya kompüterdən CV şəkli yüklə"
+                >
+                  <ImageIcon className="w-3.5 h-3.5 text-indigo-600" />
+                  <span>Şəkildən Oxu</span>
+                </button>
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleImageSelect}
+                  accept="image/*"
+                  className="hidden"
+                />
+
                 <button
                   type="button"
                   onClick={() => setPastedText(sampleLinkedInText)}
@@ -346,10 +462,14 @@ Dillər:
             </div>
 
             <textarea
-              rows={8}
+              rows={selectedImageBase64 ? 5 : 8}
               value={pastedText}
               onChange={(e) => setPastedText(e.target.value)}
-              placeholder="LinkedIn 'About & Experience' bölməsini, köhnə CV mətninizi və ya sərbəst qeydlərinizi bura yapışdırın..."
+              placeholder={
+                selectedImageBase64
+                  ? "İstəsəniz şəkildən əlavə qeydlərinizi də bura yaza bilərsiniz (Məs: 'Maaş gözləntisi 1500 AZN, sürücülük vəsiqəm B kateqoriyasıdır')..."
+                  : "LinkedIn 'About & Experience' bölməsini, köhnə CV mətninizi və ya sərbəst qeydlərinizi bura yapışdırın..."
+              }
               className="w-full p-3.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-purple-500 focus:outline-none bg-slate-50/50 text-xs text-slate-900 font-mono leading-relaxed"
             />
           </div>
@@ -375,8 +495,8 @@ Dillər:
           <button
             type="button"
             onClick={handleGenerate}
-            disabled={isLoading || !pastedText.trim()}
-            className="px-5 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 active:bg-purple-800 text-white font-bold text-xs shadow-md transition-all inline-flex items-center gap-2 disabled:opacity-50"
+            disabled={isLoading || (!pastedText.trim() && !selectedImageBase64)}
+            className="px-5 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 active:bg-purple-800 text-white font-bold text-xs shadow-md transition-all inline-flex items-center gap-2 disabled:opacity-50 cursor-pointer"
           >
             {isLoading ? (
               <>
@@ -386,7 +506,7 @@ Dillər:
             ) : (
               <>
                 <Sparkles className="w-4 h-4 text-yellow-300" />
-                <span>AI İlə CV-ni Yarat</span>
+                <span>{selectedImageBase64 ? 'AI İlə Şəkildən CV Yarat' : 'AI İlə CV-ni Yarat'}</span>
               </>
             )}
           </button>

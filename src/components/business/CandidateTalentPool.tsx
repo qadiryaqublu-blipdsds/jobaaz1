@@ -849,10 +849,10 @@ export const CandidateTalentPool: React.FC<CandidateTalentPoolProps> = ({
                         year: c.year || c.issueDate || '',
                       })) || [],
                       projects: [],
-                      template: 'modern-emerald',
+                      template: previewingCandidateCV.cvData?.template || (previewingCandidateCV as any).preferredCvTemplate || 'modern-emerald',
                     }
                   }
-                  template="modern-emerald"
+                  template={previewingCandidateCV.cvData?.template || (previewingCandidateCV as any).preferredCvTemplate || 'modern-emerald'}
                   showPhoto={true}
                 />
               </div>

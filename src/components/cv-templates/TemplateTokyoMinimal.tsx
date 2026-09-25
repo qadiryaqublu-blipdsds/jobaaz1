@@ -17,9 +17,6 @@ export const TemplateTokyoMinimal: React.FC<TemplateProps> = ({ data, showPhoto 
       {/* Header */}
       <div className="flex flex-row items-center justify-between gap-6 pb-6 border-b border-slate-200">
         <div className="space-y-1.5 flex-1 min-w-0">
-          <div className="text-[10px] tracking-[0.25em] uppercase text-slate-400 font-bold">
-            CURRICULUM VITAE
-          </div>
           <h1 className="text-3xl sm:text-4xl font-light tracking-tight text-slate-900 break-words">
             {personalInfo.fullName || 'Ad Soyad'}
           </h1>

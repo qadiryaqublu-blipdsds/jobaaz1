@@ -77,6 +77,7 @@ import { PostJobModal } from './components/business/PostJobModal';
 import { AdminDashboard } from './components/admin/AdminDashboard';
 import { GoogleChatHub } from './components/chat/GoogleChatHub';
 import { CVRenderer } from './components/cv-templates/CVRenderer';
+import { CV_TEMPLATES } from './components/cv-templates/templateRegistry';
 import { downloadCVAsPDF, generateCVFileName } from './utils/pdfExport';
 import { usePDFDownload } from './hooks/usePDFDownload';
 import { PDFDownloadProgressToast } from './components/common/PDFDownloadProgressToast';
@@ -838,38 +839,76 @@ export default function App() {
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [isResendingVerif, setIsResendingVerif] = useState(false);
   const [isCheckingVerifStatus, setIsCheckingVerifStatus] = useState(false);
+  const [isVerifBannerDismissed, setIsVerifBannerDismissed] = useState(false);
 
   // Real-time Notification Center State
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [incomingToastNotif, setIncomingToastNotif] = useState<AppNotification | null>(null);
 
-  // Real-time Notification Subscription
+  // Real-time Notification Subscription (Firestore Realtime Sync)
   useEffect(() => {
-    const targetUserId = currentUser?.id || currentUser?.email || 'all';
-    let isFirstBatch = true;
-    let seenIds = new Set<string>();
+    // Immediate startup sanitization of legacy fake/simulation items
+    try {
+      const rawStore = localStorage.getItem('jobia_notifications_store');
+      if (rawStore) {
+        const parsed = JSON.parse(rawStore);
+        if (Array.isArray(parsed)) {
+          const sanitized = parsed.filter((n: any) => {
+            if (!n || !n.id || !n.title) return false;
+            if (n.userId === 'demo-candidate') return false;
+            if (n.data?.isSimulation) return false;
+            const t = (n.title || '').toLowerCase();
+            const m = (n.message || '').toLowerCase();
+            if (t.includes('mock') || t.includes('simulyasiya') || t.includes('test bildiriş')) return false;
+            if (m.includes('mock') || m.includes('simulyasiya')) return false;
+            return true;
+          });
+          if (sanitized.length !== parsed.length) {
+            localStorage.setItem('jobia_notifications_store', JSON.stringify(sanitized));
+          }
+        }
+      }
+    } catch {}
 
-    const unsubscribe = subscribeToUserNotifications(targetUserId, (notifList) => {
-      setNotifications(notifList);
+    let isInitialLoad = true;
+    const sessionStartTime = Date.now();
+    const knownIds = new Set<string>();
 
-      if (!isFirstBatch) {
-        // Look for any newly arrived unread notification
-        const newest = notifList.find((n) => !seenIds.has(n.id) && !n.isRead);
-        if (newest) {
-          setIncomingToastNotif(newest);
+    const unsubscribe = subscribeToUserNotifications(currentUser, (notifList) => {
+      // 100% Real notifications: clean out any demo/mock simulation items
+      const cleanList = (notifList || []).filter(
+        (n) => !n.data?.isSimulation && n.userId !== 'demo-candidate'
+      );
+      setNotifications(cleanList);
+
+      if (!isInitialLoad) {
+        // Detect newly arrived unread notification created during this live session
+        const newlyArrived = cleanList.find((n) => {
+          if (n.isRead) return false;
+          if (knownIds.has(n.id)) return false;
+          const notifTime = n.createdAt ? new Date(n.createdAt).getTime() : 0;
+          return notifTime > (sessionStartTime - 10000);
+        });
+
+        if (newlyArrived) {
+          setIncomingToastNotif(newlyArrived);
         }
       } else {
-        isFirstBatch = false;
+        isInitialLoad = false;
       }
-      seenIds = new Set(notifList.map((n) => n.id));
+
+      cleanList.forEach((n) => knownIds.add(n.id));
     });
 
-    return () => unsubscribe();
-  }, [currentUser]);
+    return () => {
+      unsubscribe();
+    };
+  }, [currentUser?.id, currentUser?.email, currentUser?.companyId, currentUser?.role]);
 
   // Handle click on a notification to seamlessly navigate to destination
   const handleNavigateNotification = (notif: AppNotification) => {
     setIsPricingViewOpen(false);
+
     if (notif.type === 'new_matching_vacancy') {
       if (currentRole !== 'candidate') {
         setCurrentRole('candidate');
@@ -886,25 +925,55 @@ export default function App() {
     }
 
     if (notif.type === 'job_offer') {
-      if (currentRole !== 'candidate') {
-        setCurrentRole('candidate');
+      if (currentRole === 'business' || (currentUser && currentUser.role === 'business')) {
+        if (currentRole !== 'business') setCurrentRole('business');
+        setBusinessTab('offers');
+      } else {
+        if (currentRole !== 'candidate') {
+          setCurrentRole('candidate');
+        }
+        setCandidateTab('my-applications');
       }
-      setCandidateTab('my-applications');
-    } else if (notif.type === 'interview_invite' || notif.type === 'status_changed') {
-      if (currentRole !== 'candidate') {
-        setCurrentRole('candidate');
-      }
-      setCandidateTab('my-applications');
-    } else if (notif.type === 'new_applicant') {
+      return;
+    }
+
+    if (notif.type === 'new_applicant') {
       if (currentRole !== 'business') {
         setCurrentRole('business');
       }
-    } else {
+      setBusinessTab('applicants');
+      return;
+    }
+
+    if (notif.type === 'vacancy_approval' || notif.type === 'company_verification') {
+      if (currentUser?.role === 'admin') {
+        setCurrentRole('admin');
+      } else {
+        if (currentRole !== 'business') {
+          setCurrentRole('business');
+        }
+        setBusinessTab('vacancies');
+      }
+      return;
+    }
+
+    if (
+      notif.type === 'interview_invite' || 
+      notif.type === 'status_changed' || 
+      notif.type === 'application_submitted'
+    ) {
       if (currentRole !== 'candidate') {
         setCurrentRole('candidate');
       }
       setCandidateTab('my-applications');
+      return;
     }
+
+    // Default fallback
+    if (currentRole !== 'candidate') {
+      setCurrentRole('candidate');
+    }
+    setCandidateTab('my-applications');
   };
 
   // Refresh user and subscription whenever role or user changes
@@ -2162,58 +2231,47 @@ export default function App() {
           {/* Main App Container */}
           <main className="flex-1 w-full max-w-full px-3 sm:px-4 md:px-5 lg:px-6 xl:px-8 py-3.5 sm:py-5 lg:py-6 pb-28 md:pb-8">
             {/* Unverified Account Security Alert Banner */}
-            {currentUser && !currentUser.emailVerified && (
-              <div className="mb-5 p-4 rounded-2xl bg-gradient-to-r from-amber-500/15 via-orange-500/10 to-amber-500/15 border border-amber-300/80 shadow-xs animate-fadeIn">
-                <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
-                  <div className="flex items-start gap-3">
-                    <div className="p-2 rounded-xl bg-amber-500 text-white shrink-0 shadow-xs">
-                      <ShieldAlert className="w-5 h-5" />
+            {currentUser && !currentUser.emailVerified && !isVerifBannerDismissed && (
+              <div className="mb-4 p-3 sm:p-3.5 rounded-xl bg-amber-50/90 border border-amber-200/90 shadow-2xs animate-fadeIn relative">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="p-1.5 rounded-lg bg-amber-500 text-white shrink-0">
+                      <ShieldAlert className="w-4 h-4" />
                     </div>
-                    <div>
-                      <h4 className="text-sm font-black text-amber-950 flex items-center gap-1.5">
-                        E-poçt Təsdiqi Tələb Olunur
-                        <span className="text-[10px] uppercase font-extrabold px-2 py-0.5 bg-amber-200 text-amber-900 rounded-full">
-                          Təsdiqlənməyib
-                        </span>
+                    <div className="min-w-0">
+                      <h4 className="text-xs font-bold text-amber-950 flex items-center gap-1.5 truncate">
+                        <span>E-poçt təsdiqi tələb olunur:</span>
+                        <span className="font-medium text-amber-800 truncate">{currentUser.email}</span>
                       </h4>
-                      <p className="text-xs text-amber-900/90 mt-0.5 max-w-2xl leading-relaxed">
-                        Hörmətli <strong>{currentUser.fullName}</strong>, <strong>{currentUser.email}</strong> ünvanına göndərilən 6-rəqəmli təhlükəsizlik kodunu və ya təsdiq linkini daxil edərək hesabınızı aktivləşdirin. Əks halda vakansiyalara müraciət və elan dərc etmə funksiyaları məhdudlaşdırılır.
+                      <p className="text-[11px] text-amber-900/80 truncate">
+                        Hesabınızı tam aktivləşdirmək üçün e-poçtunuza göndərilən təsdiq kodunu daxil edin.
                       </p>
                     </div>
                   </div>
 
-                  <div className="flex flex-wrap items-center gap-2 w-full md:w-auto shrink-0 pt-1 md:pt-0">
+                  <div className="flex items-center gap-2 shrink-0 ml-auto sm:ml-0">
                     <button
                       onClick={() => {
                         setUserToVerify(currentUser);
                         setIsVerifyModalOpen(true);
                       }}
-                      className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-black bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white shadow-xs hover:shadow-md cursor-pointer transition-all active:scale-95"
+                      className="px-2.5 py-1 rounded-lg text-xs font-bold bg-amber-600 hover:bg-amber-700 text-white shadow-2xs cursor-pointer transition-colors"
                     >
-                      <Sparkles className="w-3.5 h-3.5 text-amber-200" />
-                      <span>Kodu Daxil Et</span>
+                      Kodu Daxil Et
                     </button>
-
                     <button
                       onClick={handleResendVerifEmail}
                       disabled={isResendingVerif}
-                      className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-white text-amber-900 border border-amber-300/80 hover:bg-amber-50 cursor-pointer disabled:opacity-50 transition-all"
+                      className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-white text-amber-900 border border-amber-300 hover:bg-amber-100/60 cursor-pointer disabled:opacity-50 transition-colors"
                     >
-                      {isResendingVerif ? (
-                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      ) : (
-                        <Mail className="w-3.5 h-3.5" />
-                      )}
-                      <span>Yenidən Göndər</span>
+                      {isResendingVerif ? '...' : 'Yenidən Göndər'}
                     </button>
-
                     <button
-                      onClick={handleCheckVerifStatus}
-                      disabled={isCheckingVerifStatus}
-                      className="p-2 rounded-xl text-amber-800 hover:text-amber-950 hover:bg-amber-100/80 border border-amber-200/80 transition-all cursor-pointer"
-                      title="Statusu Yenilə"
+                      onClick={() => setIsVerifBannerDismissed(true)}
+                      className="p-1 rounded-lg text-amber-600 hover:text-amber-900 hover:bg-amber-100 cursor-pointer transition-colors"
+                      title="Bağla"
                     >
-                      <RefreshCw className={`w-4 h-4 ${isCheckingVerifStatus ? 'animate-spin' : ''}`} />
+                      <X className="w-4 h-4" />
                     </button>
                   </div>
                 </div>
@@ -2594,46 +2652,13 @@ export default function App() {
                 </p>
               </div>
 
-              {/* Template Picker in Modal (Only if Platform CV) */}
+              {/* Submitted Template Badge (Locked strictly to candidate's submitted design) */}
               {isPlatformCreatedCV(viewingSubmittedCVApp) && (
-                <div className="flex items-center gap-1 bg-white border border-slate-200 p-1 rounded-lg text-xs font-medium shadow-2xs">
-                  <span className="text-[10px] text-slate-400 font-bold px-1.5 uppercase">Şablon:</span>
-                  <button
-                    type="button"
-                    onClick={() => setSelectedSubmittedTemplate('modern-emerald')}
-                    className={`px-2 py-1 rounded-md transition-all text-xs cursor-pointer ${
-                      selectedSubmittedTemplate === 'modern-emerald' ? 'bg-blue-600 text-white font-bold' : 'text-slate-600 hover:bg-slate-100'
-                    }`}
-                  >
-                    Zümrüd
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setSelectedSubmittedTemplate('classic-corporate')}
-                    className={`px-2 py-1 rounded-md transition-all text-xs cursor-pointer ${
-                      selectedSubmittedTemplate === 'classic-corporate' ? 'bg-slate-800 text-white font-bold' : 'text-slate-600 hover:bg-slate-100'
-                    }`}
-                  >
-                    Klassik
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setSelectedSubmittedTemplate('minimal-indigo')}
-                    className={`px-2 py-1 rounded-md transition-all text-xs cursor-pointer ${
-                      selectedSubmittedTemplate === 'minimal-indigo' ? 'bg-indigo-600 text-white font-bold' : 'text-slate-600 hover:bg-slate-100'
-                    }`}
-                  >
-                    Minimal
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setSelectedSubmittedTemplate('slate-tech')}
-                    className={`px-2 py-1 rounded-md transition-all text-xs cursor-pointer ${
-                      selectedSubmittedTemplate === 'slate-tech' ? 'bg-slate-900 text-white font-bold' : 'text-slate-600 hover:bg-slate-100'
-                    }`}
-                  >
-                    Tech
-                  </button>
+                <div className="flex items-center gap-1.5 bg-white border border-slate-200 px-2.5 py-1 rounded-lg text-xs font-medium shadow-2xs">
+                  <span className="text-[10px] text-slate-400 font-bold uppercase">Təsdiqlənmiş Şablon:</span>
+                  <span className="font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 text-xs">
+                    {CV_TEMPLATES.find(t => t.id === (viewingSubmittedCVApp.cvTemplate || (viewingSubmittedCVApp.cvData as any)?.template || 'modern-emerald'))?.name || 'Zümrüd'}
+                  </span>
                 </div>
               )}
 
@@ -2696,7 +2721,7 @@ export default function App() {
             </div>
             <div className="p-6 overflow-y-auto bg-slate-100 flex-1">
               {isPlatformCreatedCV(viewingSubmittedCVApp) ? (
-                <CVRenderer id="modal-submitted-cv-export" data={effectiveSubmittedCV || viewingSubmittedCVApp.cvData} template={selectedSubmittedTemplate} />
+                <CVRenderer id="modal-submitted-cv-export" data={effectiveSubmittedCV || viewingSubmittedCVApp.cvData} template={viewingSubmittedCVApp.cvTemplate || (viewingSubmittedCVApp.cvData as any)?.template || 'modern-emerald'} />
               ) : viewingSubmittedCVApp.cvFileData ? (
                 <div className="max-w-2xl mx-auto space-y-4">
                   <div className="bg-white border border-emerald-200 rounded-2xl p-6 shadow-sm">
@@ -2738,7 +2763,7 @@ export default function App() {
                 </div>
               ) : (
                 <div className="border border-slate-200 rounded-xl overflow-hidden bg-slate-50 p-4">
-                  <CVRenderer id="modal-submitted-cv-export" data={viewingSubmittedCVApp.cvData} template={selectedSubmittedTemplate} />
+                  <CVRenderer id="modal-submitted-cv-export" data={viewingSubmittedCVApp.cvData} template={viewingSubmittedCVApp.cvTemplate || (viewingSubmittedCVApp.cvData as any)?.template || 'modern-emerald'} />
                 </div>
               )}
             </div>

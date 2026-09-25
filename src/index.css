@@ -237,18 +237,11 @@ button, input, select, textarea, label {
   align-items: center;
   width: max-content;
   will-change: transform;
-  animation: header-marquee-scroll 38s linear infinite;
+  animation: header-marquee-scroll 50s linear infinite !important;
 }
 
 .header-marquee-track:hover {
-  animation-play-state: paused;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .header-marquee-track {
-    animation: none;
-    overflow-x: auto;
-  }
+  animation-play-state: running;
 }
 
 .logo-anim-j {

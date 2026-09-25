@@ -36,9 +36,6 @@ export const TemplateCreative: React.FC<TemplateProps> = ({ data, showPhoto = tr
         )}
 
         <div className="flex-1 min-w-0 text-left">
-          <div className="inline-block px-2.5 py-0.5 rounded-full bg-orange-100 text-orange-800 text-[10px] font-bold uppercase tracking-wider mb-1.5">
-            Portfel & CV
-          </div>
           <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 break-words">
             {personalInfo.fullName || 'Ad Soyad'}
           </h1>

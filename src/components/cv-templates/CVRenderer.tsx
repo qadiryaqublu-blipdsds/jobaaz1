@@ -21,6 +21,15 @@ import { TemplateBerlinCreative } from './TemplateBerlinCreative';
 import { TemplateTokyoMinimal } from './TemplateTokyoMinimal';
 import { TemplateCambridgeScholar } from './TemplateCambridgeScholar';
 import { TemplateScandinavianEdge } from './TemplateScandinavianEdge';
+import { TemplateDubaiGold } from './TemplateDubaiGold';
+import { TemplateViennaFormal } from './TemplateViennaFormal';
+import { TemplateAmsterdamModern } from './TemplateAmsterdamModern';
+import { TemplateSeoulMinimal } from './TemplateSeoulMinimal';
+import { TemplateBakuCorporate } from './TemplateBakuCorporate';
+import { TemplateParisElegance } from './TemplateParisElegance';
+import { TemplateATSProClean } from './TemplateATSProClean';
+import { TemplateTorontoHybrid } from './TemplateTorontoHybrid';
+import { TemplateFlorenceClassic } from './TemplateFlorenceClassic';
 
 interface CVRendererProps {
   data: CVData;
@@ -68,6 +77,24 @@ export const CVRenderer: React.FC<CVRendererProps> = ({
         return <TemplateCambridgeScholar data={effectiveData} showPhoto={showPhoto} />;
       case 'scandinavian-edge':
         return <TemplateScandinavianEdge data={effectiveData} showPhoto={showPhoto} />;
+      case 'dubai-gold':
+        return <TemplateDubaiGold data={effectiveData} showPhoto={showPhoto} />;
+      case 'vienna-formal':
+        return <TemplateViennaFormal data={effectiveData} showPhoto={showPhoto} />;
+      case 'amsterdam-modern':
+        return <TemplateAmsterdamModern data={effectiveData} showPhoto={showPhoto} />;
+      case 'seoul-minimal':
+        return <TemplateSeoulMinimal data={effectiveData} showPhoto={showPhoto} />;
+      case 'baku-corporate':
+        return <TemplateBakuCorporate data={effectiveData} showPhoto={showPhoto} />;
+      case 'paris-elegance':
+        return <TemplateParisElegance data={effectiveData} showPhoto={showPhoto} />;
+      case 'ats-pro-clean':
+        return <TemplateATSProClean data={effectiveData} showPhoto={showPhoto} />;
+      case 'toronto-hybrid':
+        return <TemplateTorontoHybrid data={effectiveData} showPhoto={showPhoto} />;
+      case 'florence-classic':
+        return <TemplateFlorenceClassic data={effectiveData} showPhoto={showPhoto} />;
       case 'classic-corporate':
         return <TemplateClassic data={effectiveData} />;
       case 'minimal-indigo':

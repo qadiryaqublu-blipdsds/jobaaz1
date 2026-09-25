@@ -70,6 +70,7 @@ import {
 } from 'lucide-react';
 import { CreateCompanyModal } from './CreateCompanyModal';
 import { JobiaAIComplianceInspectorModal } from './JobiaAIComplianceInspectorModal';
+import { AdminCreatedCVsRegistry } from './AdminCreatedCVsRegistry';
 import { JobiaSectionFooter } from '../JobiaSectionFooter';
 import { useLanguage } from '../../context/LanguageContext';
 import {
@@ -111,7 +112,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   onOpenPostJobModal,
 }) => {
   const { language, t } = useLanguage();
-  const [activeTab, setActiveTab] = useState<'vacancies' | 'subscriptions' | 'users' | 'companies' | 'applications' | 'approval_history'>('vacancies');
+  const [activeTab, setActiveTab] = useState<'vacancies' | 'subscriptions' | 'users' | 'companies' | 'applications' | 'created_cvs' | 'approval_history'>('vacancies');
   const [searchQuery, setSearchQuery] = useState('');
   const [vacancyModerationFilter, setVacancyModerationFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
   const [selectedVacancyForDetail, setSelectedVacancyForDetail] = useState<Vacancy | null>(null);
@@ -684,6 +685,27 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               : language === 'ru'
               ? `Отклики (${applications.length})`
               : `Müraciətlər (${applications.length})`}
+          </span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('created_cvs')}
+          className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg whitespace-nowrap transition-all ${
+            activeTab === 'created_cvs'
+              ? 'bg-blue-600 text-white shadow-xs'
+              : 'text-slate-700 hover:text-slate-900 hover:bg-slate-50'
+          }`}
+        >
+          <FileText className="w-3.5 h-3.5 text-inherit" />
+          <span>
+            {language === 'en'
+              ? 'CV Creators Registry'
+              : language === 'ru'
+              ? 'База созданных резюме'
+              : 'CV Hazırlayanlar Bazası'}
+          </span>
+          <span className={`text-[10px] font-black px-1.5 py-0.5 rounded-full ${activeTab === 'created_cvs' ? 'bg-white/25 text-white' : 'bg-emerald-100 text-emerald-800'}`}>
+            Data
           </span>
         </button>
       </div>
@@ -2272,6 +2294,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       )}
 
       {/* ============================================================== */}
+      {/* TAB: CREATED CVS REGISTRY (DATA COLLECTION) */}
+      {/* ============================================================== */}
+      {activeTab === 'created_cvs' && (
+        <AdminCreatedCVsRegistry onRefreshParent={fetchFirestoreData} />
+      )}
+
+      {/* ============================================================== */}
       {/* ADMIN VACANCY FULL PREVIEW & MODERATION MODAL */}
       {/* ============================================================== */}
       {selectedVacancyForDetail && (
@@ -2625,18 +2654,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           }}
         />
       )}
-
-      {/* Dynamic Animated Section Footer with Job Intelligence & Automation */}
-      <JobiaSectionFooter 
-        extraTagline={
-          language === 'en'
-            ? 'Jobia.az Central Administration, Tax ID (TIN) Verification & Security Panel'
-            : language === 'ru'
-            ? 'Панель центрального управления, верификации ИНН и безопасности Jobia.az'
-            : 'Jobia.az Mərkəzi İdarəetmə, VÖEN Verifikasiya və Təhlükəsizlik Paneli'
-        }
-        showBackToTop={true}
-      />
     </div>
   );
 };

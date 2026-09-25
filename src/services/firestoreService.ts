@@ -1246,6 +1246,40 @@ export async function saveCandidatePlatformCV(userId: string, cv: CVData): Promi
       updatedAt: now,
     }));
   } catch (e) {}
+
+  // 4. Also register/update in createdCVs collection for Admin registry
+  try {
+    if (cv.personalInfo?.fullName) {
+      const cvRecRef = doc(db, 'createdCVs', `cv-user-${userId}`);
+      await setDoc(cvRecRef, sanitizeForFirestore({
+        id: `cv-user-${userId}`,
+        userId,
+        userEmail: cv.personalInfo?.email || '',
+        fullName: cv.personalInfo?.fullName || '',
+        jobTitle: cv.personalInfo?.jobTitle || 'Namizəd',
+        email: cv.personalInfo?.email || '',
+        phone: cv.personalInfo?.phone || '',
+        city: cv.personalInfo?.address || 'Bakı',
+        template: cv.template || 'baku-corporate',
+        language: cv.language || 'az',
+        hasPhoto: Boolean(cv.showPhoto && cv.personalInfo?.photoUrl),
+        photoUrl: cv.personalInfo?.photoUrl || '',
+        summary: cv.personalInfo?.summary || '',
+        skills: (cv.skills || []).map((s) => s.name),
+        skillsCount: (cv.skills || []).length,
+        experienceCount: (cv.experiences || []).length,
+        educationCount: (cv.education || []).length,
+        languagesCount: (cv.languages || []).length,
+        downloadCount: 1,
+        lastAction: 'updated',
+        source: 'candidate_profile',
+        status: 'active',
+        updatedAt: now,
+        createdAt: now,
+        cvData: cv
+      }), { merge: true });
+    }
+  } catch (e) {}
 }
 
 /**
@@ -1937,63 +1971,173 @@ export async function createNotification(data: {
 }
 
 /**
- * Realtime subscribe to user notifications
+ * Extract all identifiers belonging to a user for targeted notification synchronization
+ */
+export function extractNotificationTargetIds(target: any): string[] {
+  const ids = new Set<string>();
+  if (!target) {
+    ids.add('all');
+    return Array.from(ids);
+  }
+  if (typeof target === 'string') {
+    const trimmed = target.trim();
+    if (trimmed) {
+      ids.add(trimmed);
+      if (trimmed.includes('@')) {
+        ids.add(trimmed.toLowerCase());
+      }
+    }
+    ids.add('all');
+    return Array.from(ids).filter(Boolean);
+  }
+  if (Array.isArray(target)) {
+    target.forEach((item) => {
+      if (typeof item === 'string') {
+        const trimmed = item.trim();
+        if (trimmed) {
+          ids.add(trimmed);
+          if (trimmed.includes('@')) {
+            ids.add(trimmed.toLowerCase());
+          }
+        }
+      }
+    });
+    ids.add('all');
+    return Array.from(ids).filter(Boolean);
+  }
+  if (typeof target === 'object') {
+    if (target.id && typeof target.id === 'string' && target.id.trim()) {
+      ids.add(target.id.trim());
+    }
+    if (target.email && typeof target.email === 'string' && target.email.trim()) {
+      ids.add(target.email.trim());
+      ids.add(target.email.trim().toLowerCase());
+    }
+    if (target.companyId && typeof target.companyId === 'string' && target.companyId.trim()) {
+      ids.add(target.companyId.trim());
+    }
+    if (target.role === 'admin') {
+      ids.add('admin');
+    }
+    ids.add('all');
+  }
+  return Array.from(ids).filter(Boolean);
+}
+
+/**
+ * Filter helper for notifications belonging to any target ID
+ */
+function isNotificationForTarget(n: AppNotification, targetIdSet: Set<string>): boolean {
+  if (targetIdSet.has(n.userId)) return true;
+  if (n.userId === 'all') return true;
+  if (n.data?.candidateEmail && targetIdSet.has(n.data.candidateEmail.toLowerCase().trim())) return true;
+  if (n.data?.candidateId && targetIdSet.has(n.data.candidateId.trim())) return true;
+  if (n.data?.companyId && targetIdSet.has(n.data.companyId.trim())) return true;
+  return false;
+}
+
+/**
+ * Realtime subscribe to user notifications from Firestore
+ * Supports multi-identifier targeting: User UID, Email (case-insensitive), Company ID, Role, and Broadcasts.
  */
 export function subscribeToUserNotifications(
-  userId: string, 
+  target: string | string[] | Partial<User> | null, 
   callback: (notifications: AppNotification[]) => void
 ) {
-  if (!userId) {
-    callback([]);
-    return () => {};
-  }
+  const targetIds = extractNotificationTargetIds(target);
+  const targetIdSet = new Set(targetIds);
 
-  // Initial dispatch from local storage
-  const local = getLocalNotifications().filter(
-    (n) => n.userId === userId || n.userId === 'all' || (n.data?.candidateEmail && n.data?.candidateEmail === userId)
+  const isValidRealNotification = (n: AppNotification) => {
+    if (!n || !n.id) return false;
+    if (n.data?.isSimulation) return false;
+    if (n.userId === 'demo-candidate') return false;
+    const title = (n.title || '').toLowerCase();
+    const msg = (n.message || '').toLowerCase();
+    if (title.includes('mock') || title.includes('simulyasiya') || title.includes('test bildiriş')) return false;
+    if (msg.includes('mock') || msg.includes('simulyasiya')) return false;
+    return true;
+  };
+
+  // 1. Initial immediate local cache dispatch
+  const initialLocal = getLocalNotifications().filter(
+    (n) => isNotificationForTarget(n, targetIdSet) && isValidRealNotification(n)
   );
-  callback(local.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
+  initialLocal.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+  callback(initialLocal);
 
-  // Listen to window custom events
+  // 2. Window event listener for instantaneous local UI responsiveness
   const handleLocalEvent = () => {
     const updated = getLocalNotifications().filter(
-      (n) => n.userId === userId || n.userId === 'all' || (n.data?.candidateEmail && n.data?.candidateEmail === userId)
+      (n) => isNotificationForTarget(n, targetIdSet) && isValidRealNotification(n)
     );
-    callback(updated.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
+    updated.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+    callback(updated);
   };
-  window.addEventListener('jobia_new_notification', handleLocalEvent);
+  if (typeof window !== 'undefined') {
+    window.addEventListener('jobia_new_notification', handleLocalEvent);
+  }
 
+  // 3. Authoritative Firestore Realtime Snapshot
   let unsubscribeFirestore = () => {};
   try {
+    const validQueryIds = targetIds.slice(0, 30);
     const q = query(
       collection(db, 'notifications'),
-      where('userId', 'in', [userId, 'all'])
+      where('userId', 'in', validQueryIds)
     );
+
     unsubscribeFirestore = onSnapshot(q, (snap) => {
-      const list: AppNotification[] = [];
+      const firestoreItems: AppNotification[] = [];
       snap.forEach((d) => {
-        list.push({ ...d.data(), id: d.id } as AppNotification);
+        const item = { ...d.data(), id: d.id } as AppNotification;
+        if (isValidRealNotification(item)) {
+          firestoreItems.push(item);
+        }
       });
-      // Merge with any offline local notifications
-      const curLocal = getLocalNotifications().filter((n) => n.userId === userId || n.userId === 'all');
+
+      // Index authoritative Firestore items
       const mergedMap = new Map<string, AppNotification>();
-      curLocal.forEach((n) => mergedMap.set(n.id, n));
-      list.forEach((n) => mergedMap.set(n.id, n));
+      firestoreItems.forEach((n) => mergedMap.set(n.id, n));
+
+      // Merge recent local notifications (within 2 hours) if pending offline sync
+      const recentThreshold = Date.now() - 7200000;
+      const cached = getLocalNotifications();
+      cached.forEach((n) => {
+        if (
+          !mergedMap.has(n.id) &&
+          isNotificationForTarget(n, targetIdSet) &&
+          isValidRealNotification(n)
+        ) {
+          const created = n.createdAt ? new Date(n.createdAt).getTime() : 0;
+          if (created > recentThreshold) {
+            mergedMap.set(n.id, n);
+          }
+        }
+      });
 
       const mergedList = Array.from(mergedMap.values());
-      mergedList.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-      
-      saveLocalNotifications(mergedList);
+      mergedList.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+
+      // Update local storage safely (preserve other users' cached items)
+      try {
+        const fullLocal = getLocalNotifications();
+        const otherUsersItems = fullLocal.filter((n) => !isNotificationForTarget(n, targetIdSet));
+        const updatedFull = [...mergedList, ...otherUsersItems].slice(0, 200);
+        saveLocalNotifications(updatedFull);
+      } catch {}
+
       callback(mergedList);
     }, (err) => {
-      console.warn('Notification snapshot notice, using local store:', err);
+      console.warn('Firestore realtime notification notice, using fallback:', err);
     });
   } catch (e) {
     console.warn('Firestore notification query note:', e);
   }
 
   return () => {
-    window.removeEventListener('jobia_new_notification', handleLocalEvent);
+    if (typeof window !== 'undefined') {
+      window.removeEventListener('jobia_new_notification', handleLocalEvent);
+    }
     unsubscribeFirestore();
   };
 }
@@ -2023,12 +2167,16 @@ export async function markNotificationAsRead(notifId: string) {
 
 /**
  * Mark all notifications as read for a user
+ * Supports passing user object, string ID, email, or array of IDs
  */
-export async function markAllNotificationsAsRead(userId: string) {
+export async function markAllNotificationsAsRead(target: any) {
+  const targetIds = extractNotificationTargetIds(target);
+  const targetIdSet = new Set(targetIds);
+
   // Update local
   const list = getLocalNotifications();
   list.forEach((n) => {
-    if (n.userId === userId || n.userId === 'all') {
+    if (isNotificationForTarget(n, targetIdSet)) {
       n.isRead = true;
     }
   });
@@ -2040,9 +2188,10 @@ export async function markAllNotificationsAsRead(userId: string) {
 
   // Update Firestore
   try {
+    const validQueryIds = targetIds.slice(0, 30);
     const q = query(
       collection(db, 'notifications'),
-      where('userId', 'in', [userId, 'all']),
+      where('userId', 'in', validQueryIds),
       where('isRead', '==', false)
     );
     const snap = await getDocs(q);
@@ -2074,23 +2223,35 @@ export async function deleteNotificationFromFirestore(notifId: string) {
 }
 
 /**
- * Clear all notifications for a user
+ * Clear all notifications for a user (purges user notifications, broadcasts, and cleans storage)
  */
-export async function clearAllNotificationsForUser(userId: string) {
-  // Update local
-  const list = getLocalNotifications().filter((n) => n.userId !== userId && n.userId !== 'all');
+export async function clearAllNotificationsForUser(target: any) {
+  const targetIds = extractNotificationTargetIds(target);
+  const targetIdSet = new Set(targetIds);
+
+  // Update local: remove notifications for target, and purge any simulation/demo/empty items
+  const list = getLocalNotifications().filter((n) => {
+    if (targetIdSet.has(n.userId)) return false;
+    if (n.userId === 'all') return false;
+    if (n.userId === 'demo-candidate') return false;
+    if (n.data?.isSimulation) return false;
+    return true;
+  });
   saveLocalNotifications(list);
 
   if (typeof window !== 'undefined') {
     window.dispatchEvent(new CustomEvent('jobia_new_notification', { detail: { cleared: true } }));
   }
 
-  // Update Firestore
+  // Update Firestore: delete user notifications
   try {
-    const q = query(collection(db, 'notifications'), where('userId', 'in', [userId, 'all']));
-    const snap = await getDocs(q);
-    const promises = snap.docs.map((d) => deleteDoc(doc(db, 'notifications', d.id)));
-    await Promise.all(promises);
+    const validQueryIds = targetIds.filter((id) => id !== 'all').slice(0, 30);
+    if (validQueryIds.length > 0) {
+      const q = query(collection(db, 'notifications'), where('userId', 'in', validQueryIds));
+      const snap = await getDocs(q);
+      const promises = snap.docs.map((d) => deleteDoc(doc(db, 'notifications', d.id)));
+      await Promise.all(promises);
+    }
   } catch (err) {
     console.warn('Firestore clearAllNotifications notice:', err);
   }
@@ -2341,6 +2502,35 @@ export async function respondToJobOffer(
   }
 
   await updateDoc(doc(db, 'jobOffers', offerId), updates);
+
+  // Send real-time notification to employer
+  try {
+    const snap = await getDoc(doc(db, 'jobOffers', offerId));
+    if (snap.exists()) {
+      const offer = snap.data() as JobOffer;
+      const targetEmployerId = offer.companyId || offer.createdBy;
+      if (targetEmployerId) {
+        await createNotification({
+          userId: targetEmployerId,
+          title: status === 'ACCEPTED' ? '🎉 İş Təklifi Qəbul Edildi!' : 'ℹ️ İş Təklifindən İmtina Edildi',
+          message: status === 'ACCEPTED'
+            ? `${offer.candidateName} "${offer.position}" vəzifəsi üzrə rəsmi iş təklifinizi qəbul etdi!`
+            : `${offer.candidateName} "${offer.position}" vəzifəsi üzrə iş təklifindən imtina etdi.`,
+          type: 'job_offer',
+          link: '/business/offers',
+          data: {
+            offerId,
+            status,
+            candidateName: offer.candidateName,
+            position: offer.position,
+            companyId: offer.companyId,
+          }
+        });
+      }
+    }
+  } catch (notifErr) {
+    console.warn('respondToJobOffer notification notice:', notifErr);
+  }
 }
 
 /**

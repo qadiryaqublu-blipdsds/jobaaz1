@@ -17,7 +17,6 @@ import { CandidateComparatorModal } from './CandidateComparatorModal';
 import { EmployerCostCalculatorModal } from './EmployerCostCalculatorModal';
 import { JobiaAICandidateEvaluatorModal } from './JobiaAICandidateEvaluatorModal';
 import { CandidateTalentPool } from './CandidateTalentPool';
-import { JobiaSectionFooter } from '../JobiaSectionFooter';
 import { ModalPortal } from '../common/ModalPortal';
 import { useLanguage } from '../../context/LanguageContext';
 import {
@@ -1677,16 +1676,10 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
         </div>
       )}
 
-      {/* Dynamic Animated Section Footer with Job Intelligence & Automation */}
-      <JobiaSectionFooter 
-        extraTagline="İşəgötürənlər üçün rəqəmsal namizəd idarəetməsi, 7-pilləli AI müsahibə və iş təklifi ekosistemi"
-        showBackToTop={true}
-      />
-
       {/* Candidate CV & Review Drawer/Modal */}
       {selectedApplicant && (() => {
         const candidateChosenTemplate: CVTemplateType = selectedApplicant.cvTemplate || selectedApplicant.cvData?.template || 'modern-emerald';
-        const currentActiveTemplate: CVTemplateType = applicantViewerTemplate || candidateChosenTemplate;
+        const currentActiveTemplate: CVTemplateType = candidateChosenTemplate;
         const currentShowPhoto = selectedApplicant.showPhoto !== false && selectedApplicant.cvData?.showPhoto !== false;
         const currentTemplateMeta = CV_TEMPLATES.find((t) => t.id === currentActiveTemplate);
 
@@ -1971,36 +1964,14 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="text-[10px] font-bold text-blue-700 bg-blue-100 border border-blue-200 px-2.5 py-0.5 rounded-full flex items-center gap-1">
-                        <span>{language === 'en' ? 'Selected Design:' : language === 'ru' ? 'Шаблон:' : 'Namizədin Seçdiyi Dizayn:'}</span>
+                        <span>{language === 'en' ? 'Submitted Design:' : language === 'ru' ? 'Выбранный шаблон:' : 'Namizədin Göndərdiyi Şablon:'}</span>
                         <strong className="text-blue-900">{currentTemplateMeta?.name || 'Zümrüd'}</strong>
                       </span>
                       <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 border border-emerald-200 px-2.5 py-0.5 rounded-full flex items-center gap-1">
                         <CheckCircle className="w-3 h-3 text-emerald-600" />
-                        {language === 'en' ? 'Verified in System' : language === 'ru' ? 'Подтверждено' : 'Sistemdə Təsdiqlənib'}
+                        {language === 'en' ? 'Original Candidate Design' : language === 'ru' ? 'Оригинальный дизайн' : 'Orijinal Təsdiqlənmiş Dizayn'}
                       </span>
                     </div>
-                  </div>
-
-                  {/* Template Selector for Employer to review candidate in different designs */}
-                  <div className="flex flex-wrap items-center gap-1.5 bg-white p-2 rounded-lg border border-slate-200 text-xs">
-                    <span className="text-[11px] font-bold text-slate-500 mr-1">
-                      {language === 'en' ? 'Preview Template:' : language === 'ru' ? 'Шаблон просмотра:' : 'Baxış Şablonu:'}
-                    </span>
-                    {CV_TEMPLATES.slice(0, 8).map((t) => (
-                      <button
-                        key={t.id}
-                        type="button"
-                        onClick={() => setApplicantViewerTemplate(t.id)}
-                        className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition-all cursor-pointer ${
-                          currentActiveTemplate === t.id
-                            ? 'bg-blue-600 text-white shadow-2xs'
-                            : 'text-slate-600 hover:bg-slate-100'
-                        }`}
-                        title={t.description}
-                      >
-                        {t.name}
-                      </button>
-                    ))}
                   </div>
 
                   {/* Accurate Template CV Rendered identically to candidate CV creator */}

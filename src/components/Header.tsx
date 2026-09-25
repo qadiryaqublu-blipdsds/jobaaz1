@@ -12,9 +12,7 @@ import {
   User as UserIcon,
   Settings,
   Bell,
-  CheckCircle2,
-  ChevronLeft,
-  ChevronRight
+  CheckCircle2
 } from 'lucide-react';
 import { NotificationCenterOverlay } from './notifications/NotificationCenterOverlay';
 
@@ -87,12 +85,12 @@ export const Header: React.FC<HeaderProps> = ({
   }, [notifications]);
 
   // Robust company list compilation:
-  // Combines explicitly passed companies and any company with approved/published vacancies
+  // Strictly includes only real registered companies from database and companies with published vacancies
   // Every registered company is strictly unique (deduplicated by normalized name)
   const realCompaniesWithJobs = useMemo(() => {
     const map = new Map<string, Company>();
 
-    // 1. From companies prop
+    // 1. From real companies prop (Firestore database)
     if (Array.isArray(companies)) {
       for (const c of companies) {
         if (c && c.name && c.name.trim()) {
@@ -107,7 +105,7 @@ export const Header: React.FC<HeaderProps> = ({
       }
     }
 
-    // 2. From vacancies prop (ensures 100% visibility for companies with active vacancies)
+    // 2. From real vacancies prop (companies with active published vacancies)
     if (Array.isArray(vacancies)) {
       for (const v of vacancies) {
         if (v.isApproved !== false && (v.status === 'published' || !v.status) && v.companyName && v.companyName.trim()) {
@@ -125,7 +123,7 @@ export const Header: React.FC<HeaderProps> = ({
               description: `${v.companyName.trim()} rəsmi işəgötürəndir.`,
               employeeCount: '10-50',
               activeJobsCount: 1,
-              email: '',
+              email: (v as any).contactEmail || '',
             });
           }
         }
@@ -135,56 +133,18 @@ export const Header: React.FC<HeaderProps> = ({
     return Array.from(map.values());
   }, [companies, vacancies]);
 
-  // Display list: strictly unique real registered companies with jobs (NO duplicates)
+  // Display list: strictly unique real registered companies with jobs
   const displayCompanies = realCompaniesWithJobs;
 
-  // Ref for the smoothly scrolling companies container
-  const marqueeContainerRef = useRef<HTMLDivElement>(null);
-  const [isMarqueeHovered, setIsMarqueeHovered] = useState(false);
-
-  // Smooth continuous auto-scroll for real companies frames (pauses on hover)
-  useEffect(() => {
-    if (isMarqueeHovered || displayCompanies.length === 0) return;
-
-    const container = marqueeContainerRef.current;
-    if (!container) return;
-
-    let animationFrameId: number;
-    let forward = true;
-
-    const scrollStep = () => {
-      if (!container || isMarqueeHovered) return;
-
-      const maxScroll = container.scrollWidth - container.clientWidth;
-      if (maxScroll <= 0) return;
-
-      if (forward) {
-        container.scrollLeft += 0.6;
-        if (container.scrollLeft >= maxScroll - 1) {
-          forward = false;
-        }
-      } else {
-        container.scrollLeft -= 0.6;
-        if (container.scrollLeft <= 1) {
-          forward = true;
-        }
-      }
-
-      animationFrameId = requestAnimationFrame(scrollStep);
-    };
-
-    animationFrameId = requestAnimationFrame(scrollStep);
-
-    return () => {
-      cancelAnimationFrame(animationFrameId);
-    };
-  }, [isMarqueeHovered, displayCompanies.length]);
-
-  const handleScrollMarquee = (direction: 'left' | 'right') => {
-    if (!marqueeContainerRef.current) return;
-    const offset = direction === 'left' ? -220 : 220;
-    marqueeContainerRef.current.scrollBy({ left: offset, behavior: 'smooth' });
-  };
+  // Seamless looping marquee track for real companies only
+  const marqueeItems = useMemo(() => {
+    if (displayCompanies.length === 0) return [];
+    let base = [...displayCompanies];
+    while (base.length > 0 && base.length < 8) {
+      base = [...base, ...displayCompanies];
+    }
+    return [...base, ...base];
+  }, [displayCompanies]);
 
   const handleCompanyClick = (name: string) => {
     if (onRoleChange && currentRole !== 'candidate') {
@@ -228,55 +188,43 @@ export const Header: React.FC<HeaderProps> = ({
             </div>
           </div>
 
-          {/* MIDDLE: TOP REAL COMPANY STATUS / SMOOTH MOVING FRAMES BAR (Strictly real unique registered companies, NO repetitions) */}
-          <div 
-            className="flex-1 flex items-center min-w-0 px-1 sm:px-2 py-0.5 relative group/header-bar overflow-hidden"
-            onMouseEnter={() => setIsMarqueeHovered(true)}
-            onMouseLeave={() => setIsMarqueeHovered(false)}
-          >
-            {displayCompanies.length > 0 ? (
+          {/* MIDDLE: TOP REAL COMPANY STATUS / SLOW MOVING CONTINUOUS FRAMES BAR */}
+          <div className="flex-1 flex items-center min-w-0 px-1 sm:px-2 py-0.5 relative overflow-hidden">
+            {marqueeItems.length > 0 ? (
               <div className="flex-1 min-w-0 relative select-none flex items-center overflow-hidden">
-                {/* Left Scroll Navigation Button */}
-                <button
-                  type="button"
-                  onClick={() => handleScrollMarquee('left')}
-                  className="absolute left-0 z-20 p-1 rounded-full bg-white/95 border border-slate-200 text-slate-600 shadow-sm opacity-0 group-hover/header-bar:opacity-100 transition-opacity hover:bg-slate-100 hover:text-slate-900 cursor-pointer hidden sm:flex items-center justify-center -translate-x-1"
-                  title="Sola sürüşdür"
-                  aria-label="Sola sürüşdür"
-                >
-                  <ChevronLeft className="w-3.5 h-3.5" />
-                </button>
-
                 {/* Left Gradient Fade */}
                 <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-3 sm:w-6 bg-gradient-to-r from-white via-white/80 to-transparent z-10" />
 
                 {/* Right Gradient Fade */}
                 <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-3 sm:w-6 bg-gradient-to-l from-white via-white/80 to-transparent z-10" />
 
-                {/* Real Company Frames Track (Strictly UNIQUE real companies, NO repeats) */}
+                {/* Slow Continuous Moving Company Frames Track */}
                 <div 
-                  ref={marqueeContainerRef}
-                  className="flex items-center gap-2 sm:gap-2.5 py-1 px-1 overflow-x-auto scrollbar-none select-none scroll-smooth w-full"
+                  className="header-marquee-track flex items-center gap-2 sm:gap-2.5 py-1 px-1 select-none w-max"
+                  style={{
+                    animation: 'header-marquee-scroll 50s linear infinite',
+                    willChange: 'transform',
+                  }}
                 >
-                  {displayCompanies.map((company, idx) => {
+                  {marqueeItems.map((company, idx) => {
                     const isSelected = selectedCompany.toLowerCase() === company.name.toLowerCase() ||
                       (selectedCompany !== 'Hamısı' && company.name.toLowerCase().includes(selectedCompany.toLowerCase()));
                     const safeLogo = company.logo || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(company.name)}&backgroundColor=0284c7,16a34a,d97706,4f46e5`;
                     return (
                       <button
                         key={`real-company-${company.id || company.name}-${idx}`}
-                        id={`company-frame-${company.name.toLowerCase().replace(/[^a-z0-9]/g, '-')}`}
+                        id={`company-frame-${company.name.toLowerCase().replace(/[^a-z0-9]/g, '-')}-${idx}`}
                         type="button"
                         onClick={() => handleCompanyClick(company.name)}
-                        className={`group/cframe shrink-0 flex items-center gap-2 px-2.5 py-1 rounded-xl bg-slate-50/90 hover:bg-blue-50/90 border transition-all cursor-pointer select-none active:scale-95 ${
+                        className={`group/cframe shrink-0 flex items-center gap-2 px-2.5 py-1 rounded-xl transition-all duration-200 cursor-pointer select-none active:scale-95 ${
                           isSelected
-                            ? 'bg-blue-50 border-blue-500 shadow-xs ring-1 ring-blue-500'
-                            : 'border-slate-200/90 hover:border-blue-300 shadow-2xs'
+                            ? 'bg-blue-50 border border-blue-500 shadow-xs ring-1 ring-blue-500'
+                            : 'bg-slate-50/90 hover:bg-blue-50/90 border border-slate-200/90 hover:border-blue-300 shadow-2xs hover:shadow-xs'
                         }`}
                         title={`${company.name} (${language === 'en' ? 'Click to filter vacancies' : language === 'ru' ? 'Фильтровать вакансии' : 'Vakansiyaları süzgəcdən keçir'})`}
                       >
                         {/* Company Logo in sleek square frame */}
-                        <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg overflow-hidden bg-white border border-slate-200/90 p-0.5 aspect-square flex items-center justify-center shrink-0 shadow-2xs">
+                        <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg overflow-hidden bg-white border border-slate-200/90 p-0.5 aspect-square flex items-center justify-center shrink-0 shadow-2xs group-hover/cframe:scale-105 transition-transform">
                           <img
                             src={safeLogo}
                             alt={company.name}
@@ -303,17 +251,6 @@ export const Header: React.FC<HeaderProps> = ({
                     );
                   })}
                 </div>
-
-                {/* Right Scroll Navigation Button */}
-                <button
-                  type="button"
-                  onClick={() => handleScrollMarquee('right')}
-                  className="absolute right-0 z-20 p-1 rounded-full bg-white/95 border border-slate-200 text-slate-600 shadow-sm opacity-0 group-hover/header-bar:opacity-100 transition-opacity hover:bg-slate-100 hover:text-slate-900 cursor-pointer hidden sm:flex items-center justify-center translate-x-1"
-                  title="Sağa sürüşdür"
-                  aria-label="Sağa sürüşdür"
-                >
-                  <ChevronRight className="w-3.5 h-3.5" />
-                </button>
               </div>
             ) : (
               <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-50 border border-slate-200/80 text-xs text-slate-600 font-medium select-none truncate">

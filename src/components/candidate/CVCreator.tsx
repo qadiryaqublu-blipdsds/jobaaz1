@@ -11,6 +11,7 @@ import { CV_TEMPLATES, CVTemplateMeta } from '../cv-templates/templateRegistry';
 import { CVRenderer } from '../cv-templates/CVRenderer';
 import { downloadCVAsPDF } from '../../utils/pdfExport';
 import { saveCandidatePlatformCV } from '../../services/firestoreService';
+import { recordCreatedCVToRegistry } from '../../services/createdCVService';
 import { useLanguage } from '../../context/LanguageContext';
 
 // Extracted Clean Subcomponents
@@ -298,6 +299,7 @@ export const CVCreator: React.FC<CVCreatorProps> = ({
 
   // Modals state
   const [isAiModalOpen, setIsAiModalOpen] = useState(false);
+  const [isAiModalImageMode, setIsAiModalImageMode] = useState(false);
   const [isClearModalOpen, setIsClearModalOpen] = useState(false);
 
   // Full Preview Zoom Mode
@@ -384,6 +386,18 @@ export const CVCreator: React.FC<CVCreatorProps> = ({
 
       if (onSaveCandidateCV) {
         onSaveCandidateCV(updated);
+      }
+
+      // Record to Admin CV Registry (saves to Firestore and local registry)
+      if (updated.personalInfo?.fullName) {
+        recordCreatedCVToRegistry({
+          cvData: updated,
+          user: currentUser,
+          action: 'updated',
+          source: 'creator_studio'
+        }).catch((err) => {
+          console.warn('Record to registry notice:', err);
+        });
       }
 
       const timeStr = new Date().toLocaleTimeString('az-AZ', { hour: '2-digit', minute: '2-digit' });
@@ -491,6 +505,21 @@ export const CVCreator: React.FC<CVCreatorProps> = ({
       setPdfProgressText('Uğurla tamamlandı!');
       setPdfSuccess(true);
 
+      // Record download count to Admin CV Registry
+      if (cvData.personalInfo?.fullName) {
+        recordCreatedCVToRegistry({
+          cvData: {
+            ...cvData,
+            template: selectedTemplate,
+            showPhoto: showPhoto,
+            language: currentLanguage
+          },
+          user: currentUser,
+          action: 'downloaded',
+          source: 'creator_studio'
+        }).catch(() => {});
+      }
+
       setTimeout(() => {
         setIsDownloadingPdf(false);
         setShowPdfToast(true);
@@ -520,7 +549,14 @@ export const CVCreator: React.FC<CVCreatorProps> = ({
         }}
         onTranslateContent={() => handleTranslateContentWithAI(currentLanguage)}
         isTranslating={isTranslating}
-        onOpenAiModal={() => setIsAiModalOpen(true)}
+        onOpenAiModal={() => {
+          setIsAiModalImageMode(false);
+          setIsAiModalOpen(true);
+        }}
+        onOpenImageAiModal={() => {
+          setIsAiModalImageMode(true);
+          setIsAiModalOpen(true);
+        }}
         onOpenClearModal={() => setIsClearModalOpen(true)}
         onLoadSampleData={handleLoadSampleData}
         onSaveData={handleSaveData}
@@ -565,6 +601,14 @@ export const CVCreator: React.FC<CVCreatorProps> = ({
                   setCvData={setCvData}
                   showPhoto={showPhoto}
                   setShowPhoto={setShowPhoto}
+                  onOpenAiModal={() => {
+                    setIsAiModalImageMode(false);
+                    setIsAiModalOpen(true);
+                  }}
+                  onOpenImageAiModal={() => {
+                    setIsAiModalImageMode(true);
+                    setIsAiModalOpen(true);
+                  }}
                 />
 
                 {/* Mobile Quick Action to View Full Live Preview */}
@@ -773,6 +817,7 @@ export const CVCreator: React.FC<CVCreatorProps> = ({
           setActiveTab('editor');
         }}
         photoUrl={cvData.personalInfo.photoUrl}
+        autoTriggerImageUpload={isAiModalImageMode}
       />
 
       {/* Confirmation Modal to Clear Data */}

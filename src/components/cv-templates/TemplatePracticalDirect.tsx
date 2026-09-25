@@ -15,12 +15,6 @@ export const TemplatePracticalDirect: React.FC<TemplateProps> = ({ data, showPho
 
   return (
     <div id="cv-preview-practical-direct" className="bg-white text-slate-900 font-sans w-full max-w-[800px] mx-auto min-h-[1050px] border-2 border-amber-500">
-      {/* High-visibility Top Bar */}
-      <div className="bg-amber-500 text-slate-950 px-8 py-3 flex flex-wrap items-center justify-between text-xs font-bold uppercase tracking-wider">
-        <span>Peşəkar İşçi & Xidmət Sektoru Profili</span>
-        <span>İşə Başlamağa Hazırdır</span>
-      </div>
-
       <div className="p-8 space-y-6">
         {/* Contact & Identity Hero Header */}
         <div className="flex flex-row items-center justify-between gap-6 pb-6 border-b-2 border-slate-200">

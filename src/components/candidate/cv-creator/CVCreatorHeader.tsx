@@ -18,7 +18,8 @@ import {
   FileCheck2,
   ChevronDown,
   Globe,
-  CheckCircle2
+  CheckCircle2,
+  Camera
 } from 'lucide-react';
 
 interface CVCreatorHeaderProps {
@@ -29,6 +30,7 @@ interface CVCreatorHeaderProps {
   onTranslateContent: () => void;
   isTranslating: boolean;
   onOpenAiModal: () => void;
+  onOpenImageAiModal?: () => void;
   onOpenClearModal: () => void;
   onLoadSampleData: () => void;
   onSaveData: () => void;
@@ -55,6 +57,7 @@ export const CVCreatorHeader: React.FC<CVCreatorHeaderProps> = ({
   onTranslateContent,
   isTranslating,
   onOpenAiModal,
+  onOpenImageAiModal,
   onOpenClearModal,
   onLoadSampleData,
   onSaveData,
@@ -247,12 +250,25 @@ export const CVCreatorHeader: React.FC<CVCreatorHeaderProps> = ({
               )}
             </div>
 
-            {/* 2. Quick AI Fill Button */}
+            {/* 2. Quick AI Fill & Image OCR Buttons */}
             <button
+              id="btn-cv-header-image-ai"
+              type="button"
+              onClick={onOpenImageAiModal || onOpenAiModal}
+              className="inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-xs font-bold transition-all shadow-2xs cursor-pointer shrink-0"
+              title="Qalereyadan və ya sənəddən şəkil yükləyərək CV hazırla"
+            >
+              <Camera className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+              <span className="hidden sm:inline">Şəkildən Oxu</span>
+              <span className="sm:hidden text-[11px]">Şəkil</span>
+            </button>
+
+            <button
+              id="btn-cv-header-ai-fill"
               type="button"
               onClick={onOpenAiModal}
               className="inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 text-xs font-bold transition-all shadow-2xs cursor-pointer shrink-0"
-              title="Mətn yapışdırıb AI ilə avtomatik doldur"
+              title="Mətn yapışdırıb və ya səslə danışaraq AI ilə avtomatik doldur"
             >
               <Sparkles className="w-3.5 h-3.5 text-purple-600 shrink-0" />
               <span className="hidden sm:inline">AI ilə Doldur</span>

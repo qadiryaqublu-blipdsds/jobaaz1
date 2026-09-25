@@ -15,7 +15,6 @@ import {
   UserPlus,
   Lock
 } from 'lucide-react';
-import { JobiaSectionFooter } from '../JobiaSectionFooter';
 
 interface MyApplicationsProps {
   applications: Application[];
@@ -145,11 +144,6 @@ export const MyApplications: React.FC<MyApplicationsProps> = ({
             </button>
           </div>
         </div>
-
-        <JobiaSectionFooter 
-          extraTagline={language === 'en' ? 'Track your job applications in real time and respond to official job offers' : language === 'ru' ? 'Отслеживайте статус откликов в реальном времени и принимайте официальные офферы' : 'Müraciət etdiyiniz vakansiyaların statusunu canlı izləyin və rəsmi təklifləri qəbul edin'}
-          showBackToTop={true}
-        />
       </div>
     );
   }
@@ -299,12 +293,6 @@ export const MyApplications: React.FC<MyApplicationsProps> = ({
           })}
         </div>
       )}
-
-      {/* Dynamic Animated Section Footer with Job Intelligence & Automation */}
-      <JobiaSectionFooter 
-        extraTagline={language === 'en' ? 'Track your job applications in real time and respond to official job offers' : language === 'ru' ? 'Отслеживайте статус откликов в реальном времени и принимайте официальные офферы' : 'Müraciət etdiyiniz vakansiyaların statusunu canlı izləyin və rəsmi təklifləri qəbul edin'}
-        showBackToTop={true}
-      />
     </div>
   );
 };

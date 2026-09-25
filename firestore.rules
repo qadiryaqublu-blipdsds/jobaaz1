@@ -108,6 +108,13 @@ service cloud.firestore {
       allow delete: if true;
     }
 
+    // Created CVs Database (Registry of all candidates who created a CV on the site)
+    match /createdCVs/{cvId} {
+      allow read: if true;
+      allow create, update: if true;
+      allow delete: if isAdmin();
+    }
+
     // Admin / Audit Logs
     match /adminLogs/{logId} {
       allow read, write: if true;

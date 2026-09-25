@@ -22,7 +22,6 @@ import {
   ArrowRight
 } from 'lucide-react';
 import { User, Company } from '../../types';
-import { JobiaSectionFooter } from '../JobiaSectionFooter';
 import { 
   VacationPeriod, 
   VacationParams, 
@@ -1181,9 +1180,6 @@ Sözlə: ${numberToAzWords(singleCalculation.grandTotal)}`;
         calculation={singleCalculation}
         onPrint={handlePrint}
       />
-
-      {/* Footer link to explore vacancies or portal */}
-      <JobiaSectionFooter />
 
     </div>
   );

@@ -15,7 +15,8 @@ import {
   Cell 
 } from 'recharts';
 import { STORED_SALARY_TRENDS } from '../../data/salaryTrendsData';
-import { Vacancy } from '../../types';
+import { Vacancy, RoleSalaryStats } from '../../types';
+import { generateCustomRoleSalaryStats } from '../../utils/salaryMarketAnalyzer';
 import { 
   TrendingUp, 
   DollarSign, 
@@ -30,14 +31,31 @@ import {
   ChevronRight,
   Info,
   Calendar,
-  Building2
+  Building2,
+  Loader2,
+  X,
+  RotateCcw
 } from 'lucide-react';
-import { JobiaSectionFooter } from '../JobiaSectionFooter';
 
 interface SalaryTrendsViewProps {
   vacancies: Vacancy[];
   onSelectVacancy?: (vacancy: Vacancy) => void;
 }
+
+const POPULAR_MARKET_ROLES = [
+  'Python Developer',
+  'Frontend Developer',
+  'Baş Mühasib',
+  'Satış Meneceri',
+  'Sürücü / Ekspeditor',
+  'Qrafik Dizayner',
+  'Hüquqşünas',
+  'DevOps Mühəndisi',
+  'Həkim / Tibb Bacısı',
+  'Kassir / Operator',
+  'HR Menecer',
+  'Data Analitik'
+];
 
 export const SalaryTrendsView: React.FC<SalaryTrendsViewProps> = ({
   vacancies,
@@ -46,6 +64,8 @@ export const SalaryTrendsView: React.FC<SalaryTrendsViewProps> = ({
   const [selectedRoleId, setSelectedRoleId] = useState<string>(STORED_SALARY_TRENDS[0].roleId);
   const [selectedCategory, setSelectedCategory] = useState<string>('Hamısı');
   const [searchQuery, setSearchQuery] = useState('');
+  const [customAnalyzedStats, setCustomAnalyzedStats] = useState<RoleSalaryStats | null>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [currency, setCurrency] = useState<'AZN' | 'USD'>('AZN');
   const [chartType, setChartType] = useState<'timeline' | 'experience' | 'cities'>('timeline');
 
@@ -58,13 +78,62 @@ export const SalaryTrendsView: React.FC<SalaryTrendsViewProps> = ({
     return `${val.toLocaleString()} ${currencySymbol}`;
   };
 
-  // Filtered roles list for selection
+  // Perform dynamic full market analysis for any given position title
+  const executeMarketAnalysis = (roleName: string) => {
+    const cleanRole = roleName.trim();
+    if (!cleanRole) return;
+
+    setIsAnalyzing(true);
+    // Smooth micro-delay for clean UX feedback
+    setTimeout(() => {
+      // Check if it exactly matches one of the stored presets first
+      const exactPreset = STORED_SALARY_TRENDS.find(
+        (r) => r.roleName.toLowerCase() === cleanRole.toLowerCase() ||
+               r.roleName.toLowerCase().startsWith(cleanRole.toLowerCase())
+      );
+
+      if (exactPreset) {
+        setSelectedRoleId(exactPreset.roleId);
+        setCustomAnalyzedStats(null);
+      } else {
+        const stats = generateCustomRoleSalaryStats(cleanRole, vacancies);
+        setCustomAnalyzedStats(stats);
+      }
+      setIsAnalyzing(false);
+    }, 180);
+  };
+
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      executeMarketAnalysis(searchQuery);
+    }
+  };
+
+  const handleResetToPresets = () => {
+    setCustomAnalyzedStats(null);
+    setSearchQuery('');
+    setSelectedRoleId(STORED_SALARY_TRENDS[0].roleId);
+  };
+
+  // Active role object: either custom analyzed role or chosen preset
+  const currentRole: RoleSalaryStats = useMemo(() => {
+    if (customAnalyzedStats) {
+      return customAnalyzedStats;
+    }
+    return (
+      STORED_SALARY_TRENDS.find((r) => r.roleId === selectedRoleId) ||
+      STORED_SALARY_TRENDS[0]
+    );
+  }, [customAnalyzedStats, selectedRoleId]);
+
+  // Filtered preset roles list for selection carousel
   const filteredRoles = useMemo(() => {
     return STORED_SALARY_TRENDS.filter((role) => {
       if (selectedCategory !== 'Hamısı' && role.category !== selectedCategory) {
         return false;
       }
-      if (searchQuery.trim()) {
+      if (searchQuery.trim() && !customAnalyzedStats) {
         const q = searchQuery.toLowerCase();
         return (
           role.roleName.toLowerCase().includes(q) ||
@@ -74,15 +143,7 @@ export const SalaryTrendsView: React.FC<SalaryTrendsViewProps> = ({
       }
       return true;
     });
-  }, [selectedCategory, searchQuery]);
-
-  // Selected role object
-  const currentRole = useMemo(() => {
-    return (
-      STORED_SALARY_TRENDS.find((r) => r.roleId === selectedRoleId) ||
-      STORED_SALARY_TRENDS[0]
-    );
-  }, [selectedRoleId]);
+  }, [selectedCategory, searchQuery, customAnalyzedStats]);
 
   // Match live vacancies stored in the portal for this role
   const matchingVacancies = useMemo(() => {
@@ -212,59 +273,152 @@ export const SalaryTrendsView: React.FC<SalaryTrendsViewProps> = ({
         </div>
       </div>
 
-      {/* Role Selection & Filter Bar */}
-      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-3">
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
-          {/* Search box */}
-          <div className="relative w-full sm:w-72">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+      {/* Comprehensive Market Position Analyzer & Search Bar */}
+      <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm space-y-3.5">
+        <form onSubmit={handleSearchSubmit} className="flex flex-col sm:flex-row gap-2.5">
+          <div className="relative flex-1">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Vəzifə və ya ixtisas axtar..."
-              className="w-full pl-9 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs outline-none focus:bg-white focus:border-blue-600 transition-colors"
+              placeholder="Bütün bazar üzrə istənilən vəzifə adı yazın (məs: Python Developer, Baş Mühasib, Sürücü, Satış Meneceri...)"
+              className="w-full pl-10 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm outline-none focus:bg-white focus:border-blue-600 focus:ring-2 focus:ring-blue-100 transition-all text-slate-800 placeholder:text-slate-400"
             />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSearchQuery('');
+                  if (customAnalyzedStats) handleResetToPresets();
+                }}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1"
+                title="Təmizlə"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
           </div>
 
-          {/* Category tabs */}
-          <div className="flex items-center gap-1.5 overflow-x-auto w-full sm:w-auto pb-1 sm:pb-0 scrollbar-none text-xs">
-            {categoriesList.map((cat) => (
+          <button
+            type="submit"
+            disabled={!searchQuery.trim() || isAnalyzing}
+            className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 shadow-sm transition-all shrink-0 cursor-pointer"
+          >
+            {isAnalyzing ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin text-white" />
+                <span>Analiz Edilir...</span>
+              </>
+            ) : (
+              <>
+                <Sparkles className="w-4 h-4 text-yellow-300" />
+                <span>Bazar Üzrə Analiz Et</span>
+              </>
+            )}
+          </button>
+        </form>
+
+        {/* Quick Clickable Popular Position Chips */}
+        <div className="space-y-1.5 pt-1">
+          <div className="flex items-center justify-between text-[11px] text-slate-500 font-semibold">
+            <span>Populyar vəzifə axtarışları (bir kliklə analiz):</span>
+            {customAnalyzedStats && (
               <button
-                key={cat}
-                onClick={() => setSelectedCategory(cat)}
-                className={`px-2.5 py-1 rounded-lg whitespace-nowrap text-xs font-medium transition-colors ${
-                  selectedCategory === cat
-                    ? 'bg-blue-600 text-white font-bold shadow-xs'
-                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                type="button"
+                onClick={handleResetToPresets}
+                className="text-blue-600 hover:text-blue-800 flex items-center gap-1 font-bold"
+              >
+                <RotateCcw className="w-3 h-3" />
+                <span>Standart siyahıya qayıt</span>
+              </button>
+            )}
+          </div>
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+            {POPULAR_MARKET_ROLES.map((role) => (
+              <button
+                key={role}
+                type="button"
+                onClick={() => {
+                  setSearchQuery(role);
+                  executeMarketAnalysis(role);
+                }}
+                className={`px-2.5 py-1 rounded-lg text-xs whitespace-nowrap transition-all border ${
+                  currentRole.roleName.toLowerCase() === role.toLowerCase()
+                    ? 'bg-blue-50 border-blue-400 text-blue-800 font-bold'
+                    : 'bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-700 font-medium'
                 }`}
               >
-                {cat}
+                {role}
               </button>
             ))}
           </div>
         </div>
 
-        {/* Roles Carousel / Horizontal Selector */}
-        <div className="flex items-center gap-2 overflow-x-auto pt-2 border-t border-slate-100 pb-1 scrollbar-none">
-          {filteredRoles.map((role) => (
-            <button
-              key={role.roleId}
-              onClick={() => setSelectedRoleId(role.roleId)}
-              className={`px-3 py-2 rounded-lg text-xs font-medium whitespace-nowrap flex items-center gap-2 transition-all border shrink-0 ${
-                selectedRoleId === role.roleId
-                  ? 'bg-blue-50 border-blue-300 text-blue-800 font-bold shadow-2xs'
-                  : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300'
-              }`}
-            >
-              <Briefcase className="w-3.5 h-3.5 text-blue-600" />
-              <span>{role.roleName.split('(')[0].trim()}</span>
-              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-700 font-bold">
-                {formatMoney(role.currentAvgSalary)}
+        {/* Custom Analyzed Role Active Badge Banner */}
+        {customAnalyzedStats && (
+          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-3 flex flex-wrap items-center justify-between gap-3 text-xs text-blue-950 animate-fade-in">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-blue-600 animate-pulse" />
+              <span>
+                <strong>«{customAnalyzedStats.roleName}»</strong> vəzifəsi üzrə bütün Azərbaycan əmək bazarı, cari vakansiyalar və tarixi analitika emal edildi.
               </span>
+            </div>
+            <button
+              type="button"
+              onClick={handleResetToPresets}
+              className="px-3 py-1 bg-white hover:bg-blue-100 text-blue-700 font-bold rounded-lg border border-blue-200 shadow-2xs transition-colors shrink-0 text-xs"
+            >
+              Standart Şablonlara Qayıt
             </button>
-          ))}
-        </div>
+          </div>
+        )}
+
+        {/* Categories & Presets Carousel when not in custom role mode */}
+        {!customAnalyzedStats && (
+          <div className="space-y-3 pt-2 border-t border-slate-100">
+            {/* Category tabs */}
+            <div className="flex items-center gap-1.5 overflow-x-auto w-full pb-1 scrollbar-none text-xs">
+              {categoriesList.map((cat) => (
+                <button
+                  key={cat}
+                  onClick={() => setSelectedCategory(cat)}
+                  className={`px-2.5 py-1 rounded-lg whitespace-nowrap text-xs font-medium transition-colors ${
+                    selectedCategory === cat
+                      ? 'bg-blue-600 text-white font-bold shadow-xs'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  }`}
+                >
+                  {cat}
+                </button>
+              ))}
+            </div>
+
+            {/* Roles Carousel / Horizontal Selector */}
+            <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+              {filteredRoles.map((role) => (
+                <button
+                  key={role.roleId}
+                  onClick={() => {
+                    setSelectedRoleId(role.roleId);
+                    setCustomAnalyzedStats(null);
+                  }}
+                  className={`px-3 py-2 rounded-lg text-xs font-medium whitespace-nowrap flex items-center gap-2 transition-all border shrink-0 ${
+                    selectedRoleId === role.roleId
+                      ? 'bg-blue-50 border-blue-300 text-blue-800 font-bold shadow-2xs'
+                      : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300'
+                  }`}
+                >
+                  <Briefcase className="w-3.5 h-3.5 text-blue-600" />
+                  <span>{role.roleName.split('(')[0].trim()}</span>
+                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-700 font-bold">
+                    {formatMoney(role.currentAvgSalary)}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Main Stats Cards for Selected Role */}
@@ -663,12 +817,6 @@ export const SalaryTrendsView: React.FC<SalaryTrendsViewProps> = ({
           )}
         </div>
       </div>
-
-      {/* Dynamic Animated Section Footer with Job Intelligence & Automation */}
-      <JobiaSectionFooter 
-        extraTagline="Azərbaycan üzrə peşəkar maaş statistikası, bazar medianları və təcrübə pillələri"
-        showBackToTop={true}
-      />
     </div>
   );
 };

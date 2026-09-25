@@ -25,11 +25,7 @@ export const TemplateTech: React.FC<TemplateProps> = ({ data }) => {
             />
           )}
           <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2 text-cyan-400 text-xs font-semibold">
-              <Terminal className="w-4 h-4 shrink-0" />
-              <span>developer_profile.json</span>
-            </div>
-            <h1 className="text-3xl font-bold text-white tracking-tight mt-1 break-words">{personalInfo.fullName || 'Full Name'}</h1>
+            <h1 className="text-3xl font-bold text-white tracking-tight break-words">{personalInfo.fullName || 'Full Name'}</h1>
             <p className="text-cyan-300 text-sm font-medium break-words">{personalInfo.jobTitle || 'Full-Stack Developer'}</p>
           </div>
         </div>

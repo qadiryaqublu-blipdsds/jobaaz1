@@ -19,10 +19,6 @@ export const TemplatePrestigeExecutive: React.FC<TemplateProps> = ({ data, showP
       <div className="bg-slate-950 text-white p-8 border-b-4 border-amber-600">
         <div className="flex flex-row items-center justify-between gap-6">
           <div className="flex-1 min-w-0 text-left space-y-2 font-sans">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 text-[11px] font-bold tracking-widest uppercase border border-amber-500/30">
-              <ShieldCheck className="w-3.5 h-3.5 shrink-0" />
-              Executive Leadership & Board Level
-            </div>
             <h1 className="text-3xl font-black tracking-tight text-white font-serif break-words">
               {personalInfo.fullName || 'Ad Soyad'}
             </h1>
