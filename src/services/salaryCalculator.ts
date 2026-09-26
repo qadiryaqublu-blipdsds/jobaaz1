@@ -1,103 +1,41 @@
 /**
- * Calculia - Azerbaijan 2026 Advanced Salary and Tax Calculator Engine
- * Compliant with 2026 Tax Code of the Republic of Azerbaijan (AR Vergi Məcəlləsi)
- * and Compulsory Social & Health Insurance Regulations.
+ * Əmək Haqqı Hesablanması Kalkulyatoru | Gross ↔ Net
+ * AR 2026 Vergi Məcəlləsi və Sosial Sığorta Qanunvericiliyinə tam uyğun
  */
 
-export type SectorType = 'private' | 'state';
-export type WorkPlaceType = 'main' | 'extra';
+export type SectorType = 'private_non_oil' | 'private_oil' | 'public' | 'private' | 'state';
+export type CalculationBasis = 'gross' | 'net';
 export type CalculationDirection = 'gross' | 'net';
+export type WorkPlaceType = 'main' | 'extra';
 
-export interface TaxBenefitItem {
-  id: string;
-  amount: number;
-  label: string;
-  category?: string;
+export interface SalaryCalculatorParams {
+  sector: 'private_non_oil' | 'private_oil' | 'public' | string;
+  taxBenefit: number;
+  lifeInsurance?: number;
+  deductionEnabled?: boolean;
+  deduction?: number;
+  additionEnabled?: boolean;
+  addition?: number;
+  unionFee?: number;
 }
 
-export const TAX_BENEFITS_LIST: TaxBenefitItem[] = [
-  {
-    id: 'benefit-800-martyr',
-    amount: 800,
-    label: '800 ₼ — Şəhid statusu almış şəxslərin valideynləri, dul arvad/əri və övladları',
-  },
-  {
-    id: 'benefit-400-war-hero',
-    amount: 400,
-    label: '400 ₼ — Azərbaycan Respublikasının Vətən Müharibəsi Qəhrəmanı',
-  },
-  {
-    id: 'benefit-400-national-hero',
-    amount: 400,
-    label: '400 ₼ — Azərbaycanın Milli Qəhrəmanı',
-  },
-  {
-    id: 'benefit-400-soviet-hero',
-    amount: 400,
-    label: '400 ₼ — Sovet İttifaqı / Sosialist Əməyi Qəhrəmanı',
-  },
-  {
-    id: 'benefit-400-disabled-war',
-    amount: 400,
-    label: '400 ₼ — Müharibə ilə əlaqədar əlilliyi olan şəxs',
-  },
-  {
-    id: 'benefit-400-deceased-soldier',
-    amount: 400,
-    label: '400 ₼ — Həlak olmuş/vəfat etmiş döyüşçünün dul arvadı/əri və övladı',
-  },
-  {
-    id: 'benefit-400-rear-front',
-    amount: 400,
-    label: '400 ₼ — 1941–1945 arxa cəbhə orden/medal təltifli şəxs',
-  },
-  {
-    id: 'benefit-400-veteran',
-    amount: 400,
-    label: '400 ₼ — Qanunvericiliklə müəyyən edilmiş qaydada müharibə veteranı',
-  },
-  {
-    id: 'benefit-400-chernobyl',
-    amount: 400,
-    label: '400 ₼ — Çernobıl AES / radiasiya qəzaları nəticəsində xəstəliyi olan şəxs',
-  },
-  {
-    id: 'benefit-200-disability',
-    amount: 200,
-    label: '200 ₼ — 61–100% funksional pozuntu ilə əlilliyi olan şəxs və baxan valideyn',
-  },
-  {
-    id: 'benefit-100-parents',
-    amount: 100,
-    label: '100 ₼ — Həlak olmuş/vəfat etmiş döyüşçülərin və vəzifə başında həlak olmuş dövlət qulluqçularının valideynləri',
-  },
-  {
-    id: 'benefit-100-afghan',
-    amount: 100,
-    label: '100 ₼ — Əfqanıstana və döyüş əməliyyatlarına göndərilmiş hərbi qulluqçular',
-  },
-  {
-    id: 'benefit-100-idp',
-    amount: 100,
-    label: '100 ₼ — Məcburi köçkün və onlara bərabər tutulan şəxs',
-  },
-  {
-    id: 'benefit-50-dependents',
-    amount: 50,
-    label: '50 ₼ — Himayəsində azı 3 nəfər (23 yaşınadək tələbələr daxil) olan ər və ya arvad',
-  },
-];
-
-export interface CalculiaInput {
-  direction: CalculationDirection;
-  amount: number;
-  sector: SectorType;
-  workPlace: WorkPlaceType;
-  unionPercent: number;
-  selectedBenefitIds: string[];
-  customBenefitsAmount?: number;
+export interface SalaryCalculationResult {
+  gross: number;
+  taxableIncome: number;
+  benefit: number;
+  incomeTax: number;
+  employeeSocial: number;
+  employeeMedical: number;
+  employeeUnemployment: number;
+  otherDeductions: number;
+  net: number;
+  employerSocial: number;
+  employerMedical: number;
+  employerUnemployment: number;
+  employerCost: number;
 }
 
+// Backwards compatibility interface
 export interface CalculiaBreakdown {
   gross: number;
   net: number;
@@ -111,261 +49,304 @@ export interface CalculiaBreakdown {
   unionFee: number;
   totalEmployeeDeductions: number;
   effectiveTaxRate: number;
-  // Employer costs (Şirkət xərci)
   employerDsmf: number;
   employerHealthInsurance: number;
   employerUnemployment: number;
   totalEmployerCost: number;
 }
 
-/**
- * Calculates all taxes and deductions from a given Gross salary according to 2026 laws.
- */
-export function calculateFromGross(
-  gross: number,
-  sector: SectorType = 'private',
-  workPlace: WorkPlaceType = 'main',
-  unionPercent: number = 0,
-  selectedBenefitIds: string[] = [],
-  customBenefitsAmount: number = 0
-): CalculiaBreakdown {
-  const g = Math.max(0, Number(gross) || 0);
+/* =========================================================
+   KÖMƏKÇİ FUNKSİYALAR
+========================================================= */
 
-  if (g === 0) {
-    return {
-      gross: 0,
-      net: 0,
-      taxableIncome: 0,
-      generalAllowance: 0,
-      selectedBenefitsTotal: 0,
-      incomeTax: 0,
-      dsmf: 0,
-      unemployment: 0,
-      healthInsurance: 0,
-      unionFee: 0,
-      totalEmployeeDeductions: 0,
-      effectiveTaxRate: 0,
-      employerDsmf: 0,
-      employerHealthInsurance: 0,
-      employerUnemployment: 0,
-      totalEmployerCost: 0,
-    };
+export function money(value: number): string {
+  return Number(value || 0)
+    .toLocaleString("az-AZ", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    }) + " AZN";
+}
+
+export function formatAZN(amount: number): string {
+  return money(amount);
+}
+
+/* =========================================================
+   2026 GƏLİR VERGİSİ
+========================================================= */
+
+export function calculateIncomeTax(taxableIncome: number, sector: string): number {
+  taxableIncome = Math.max(0, taxableIncome);
+
+  /*
+      Qeyri-neft / qeyri-dövlət sektoru:
+      0 – 2500: 3%
+      2500 – 8000: 75 + 10% (2500-dən yuxarı hissə)
+      8000-dən yuxarı: 625 + 14% (8000-dən yuxarı hissə)
+  */
+  if (sector === "private_non_oil" || sector === "private") {
+    if (taxableIncome <= 2500) {
+      return taxableIncome * 0.03;
+    }
+    if (taxableIncome <= 8000) {
+      return 75 + (taxableIncome - 2500) * 0.10;
+    }
+    return 625 + (taxableIncome - 8000) * 0.14;
   }
 
-  // Calculate sum of selected tax benefits
-  let benefitsSum = customBenefitsAmount;
-  for (const bId of selectedBenefitIds) {
-    const found = TAX_BENEFITS_LIST.find((b) => b.id === bId);
-    if (found) {
-      benefitsSum += found.amount;
-    }
+  if (sector === "private_oil") {
+    return taxableIncome * 0.14;
   }
 
-  // 1. General allowance: Main work place gets 200 ₼ deduction if gross <= 2500 ₼
-  let generalAllowance = 0;
-  if (workPlace === 'main' && g <= 2500) {
-    generalAllowance = 200;
+  if (sector === "public" || sector === "state") {
+    return taxableIncome * 0.14;
   }
 
-  // Taxable income calculation
-  let taxable = Math.max(0, g - generalAllowance);
-  taxable = Math.max(0, taxable - benefitsSum);
+  return 0;
+}
 
-  let incomeTax = 0;
-  let dsmf = 0;
-  let healthInsurance = 0;
-  const unemployment = g * 0.005; // 0.5% for all sectors
+/* =========================================================
+   İŞÇİ SOSİAL SIĞORTASI
+========================================================= */
 
-  if (sector === 'private') {
-    // Qeyri-neft/qaz özəl sektor:
-    // Gəlir vergisi (2026):
-    // 2500-dək: 3%
-    // 2500 - 8000: 75 ₼ + (taxable - 2500) * 10%
-    // 8000-dən yuxarı: 625 ₼ + (taxable - 8000) * 14%
-    if (taxable <= 2500) {
-      incomeTax = taxable * 0.03;
-    } else if (taxable <= 8000) {
-      incomeTax = 75 + (taxable - 2500) * 0.10;
-    } else {
-      incomeTax = 625 + (taxable - 8000) * 0.14;
-    }
+export function employeeSocialInsurance(gross: number, sector: string): number {
+  gross = Math.max(0, gross);
 
-    // DSMF:
-    // <= 200: 3%
-    // 200 - 8000: 6 ₼ + (g - 200) * 10%
-    // > 8000: 786 ₼ + (g - 8000) * 10%
-    if (g <= 200) {
-      dsmf = g * 0.03;
-    } else if (g <= 8000) {
-      dsmf = 6 + (g - 200) * 0.10;
-    } else {
-      dsmf = 786 + (g - 8000) * 0.10;
+  if (sector === "private_non_oil" || sector === "private") {
+    if (gross <= 200) {
+      return gross * 0.03;
     }
-
-    // İTS (İcbari Tibbi Sığorta - 2026 dəqiqləşdirilmiş qayda):
-    // <= 2500: 2%
-    // > 2500: 50 ₼ + (g - 2500) * 0.5% (0.005)
-    if (g <= 2500) {
-      healthInsurance = g * 0.02;
-    } else {
-      healthInsurance = 50 + (g - 2500) * 0.005;
+    if (gross <= 8000) {
+      return 6 + (gross - 200) * 0.10;
     }
-  } else {
-    // Dövlət və Neft-qaz sektoru:
-    // Gəlir vergisi:
-    // <= 2500: 14%
-    // > 2500: 350 ₼ + (taxable - 2500) * 25%
-    if (taxable <= 2500) {
-      incomeTax = taxable * 0.14;
-    } else {
-      incomeTax = 350 + (taxable - 2500) * 0.25;
-    }
-
-    // DSMF:
-    // <= 200: 3%
-    // 200 - 8000: 6 ₼ + (g - 200) * 10%
-    // > 8000: 786 ₼ + (g - 8000) * 10%
-    if (g <= 200) {
-      dsmf = g * 0.03;
-    } else if (g <= 8000) {
-      dsmf = 6 + (g - 200) * 0.10;
-    } else {
-      dsmf = 786 + (g - 8000) * 0.10;
-    }
-
-    // İTS:
-    // <= 8000: 2%
-    // > 8000: 160 ₼ + (g - 8000) * 0.5%
-    if (g <= 8000) {
-      healthInsurance = g * 0.02;
-    } else {
-      healthInsurance = 160 + (g - 8000) * 0.005;
-    }
+    return 786 + (gross - 8000) * 0.10;
   }
 
-  // Həmkarlar ittifaqı haqqı
-  const validUnionPercent = Math.max(0, Number(unionPercent) || 0);
-  const unionFee = g * (validUnionPercent / 100);
+  return gross * 0.03;
+}
 
-  const totalEmployeeDeductions = incomeTax + dsmf + unemployment + healthInsurance + unionFee;
-  const net = Math.max(0, g - totalEmployeeDeductions);
+/* =========================================================
+   İŞƏGÖTÜRƏN SOSİAL SIĞORTASI
+========================================================= */
 
-  // Employer costs
-  // Employer DSMF:
-  // Private: <= 200: 22%, > 200: 44 ₼ + (g - 200) * 15%
-  // State: 22% of gross
-  let employerDsmf = 0;
-  if (sector === 'private') {
-    if (g <= 200) {
-      employerDsmf = g * 0.22;
-    } else {
-      employerDsmf = 44 + (g - 200) * 0.15;
+export function employerSocialInsurance(gross: number, sector: string): number {
+  gross = Math.max(0, gross);
+
+  if (sector === "private_non_oil" || sector === "private") {
+    if (gross <= 200) {
+      return gross * 0.22;
     }
-  } else {
-    employerDsmf = g * 0.22;
+    if (gross <= 8000) {
+      return 44 + (gross - 200) * 0.15;
+    }
+    return 1214 + (gross - 8000) * 0.11;
   }
 
-  // Employer Health Insurance:
-  // Private: <= 2500: 2%, > 2500: 50 ₼ + (g - 2500) * 0.5%
-  // State: <= 8000: 2%, > 8000: 160 ₼ + (g - 8000) * 0.5%
-  let employerHealthInsurance = 0;
-  if (sector === 'private') {
-    if (g <= 2500) {
-      employerHealthInsurance = g * 0.02;
-    } else {
-      employerHealthInsurance = 50 + (g - 2500) * 0.005;
-    }
-  } else {
-    if (g <= 8000) {
-      employerHealthInsurance = g * 0.02;
-    } else {
-      employerHealthInsurance = 160 + (g - 8000) * 0.005;
-    }
+  return gross * 0.22;
+}
+
+/* =========================================================
+   TİBBİ SIĞORTA
+========================================================= */
+
+export function employeeMedicalInsurance(gross: number): number {
+  gross = Math.max(0, gross);
+
+  if (gross <= 2500) {
+    return gross * 0.02;
   }
 
-  // Employer Unemployment: 0.5%
-  const employerUnemployment = g * 0.005;
+  return 2500 * 0.02 + (gross - 2500) * 0.005;
+}
 
-  const totalEmployerCost = g + employerDsmf + employerHealthInsurance + employerUnemployment;
-  const effectiveTaxRate = g > 0 ? (totalEmployeeDeductions / g) * 100 : 0;
+export function employerMedicalInsurance(gross: number): number {
+  return employeeMedicalInsurance(gross);
+}
+
+/* =========================================================
+   İŞSİZLİK SIĞORTASI
+========================================================= */
+
+export function employeeUnemploymentInsurance(gross: number): number {
+  return Math.max(0, gross) * 0.005;
+}
+
+export function employerUnemploymentInsurance(gross: number): number {
+  return Math.max(0, gross) * 0.005;
+}
+
+/* =========================================================
+   GROSS → NET
+========================================================= */
+
+export function calculateGrossToNet(gross: number, params: SalaryCalculatorParams): SalaryCalculationResult {
+  const sector = params.sector || "private_non_oil";
+  const benefit = Math.max(0, Number(params.taxBenefit) || 0);
+  const lifeInsurance = Math.max(0, Number(params.lifeInsurance) || 0);
+  const deduction = params.deductionEnabled ? Math.max(0, Number(params.deduction) || 0) : 0;
+  const addition = params.additionEnabled ? Math.max(0, Number(params.addition) || 0) : 0;
+  const unionFee = Math.max(0, Number(params.unionFee) || 0);
+
+  /*
+      ƏLAVƏLƏR
+      Əgər əlavə əmək haqqının bir hissəsidirsə, gross bazasına əlavə edilir.
+  */
+  const adjustedGross = gross + addition;
+
+  /*
+      ƏSAS MƏNTİQ:
+      Gross - güzəşt = vergiyə cəlb olunan gəlir
+  */
+  const taxableIncome = Math.max(0, adjustedGross - benefit);
+
+  const incomeTax = calculateIncomeTax(taxableIncome, sector);
+  const employeeSocial = employeeSocialInsurance(adjustedGross, sector);
+  const employeeMedical = employeeMedicalInsurance(adjustedGross);
+  const employeeUnemployment = employeeUnemploymentInsurance(adjustedGross);
+
+  /*
+      İşçinin digər tutulmaları
+  */
+  const otherDeductions = deduction + unionFee + lifeInsurance;
+
+  /*
+      NET
+  */
+  const net = adjustedGross - incomeTax - employeeSocial - employeeMedical - employeeUnemployment - otherDeductions;
+
+  /*
+      İŞƏGÖTÜRƏN
+  */
+  const employerSocial = employerSocialInsurance(adjustedGross, sector);
+  const employerMedical = employerMedicalInsurance(adjustedGross);
+  const employerUnemployment = employerUnemploymentInsurance(adjustedGross);
+  const employerCost = adjustedGross + employerSocial + employerMedical + employerUnemployment;
 
   return {
-    gross: Math.round(g * 100) / 100,
-    net: Math.round(net * 100) / 100,
-    taxableIncome: Math.round(taxable * 100) / 100,
-    generalAllowance,
-    selectedBenefitsTotal: Math.round(benefitsSum * 100) / 100,
-    incomeTax: Math.round(incomeTax * 100) / 100,
-    dsmf: Math.round(dsmf * 100) / 100,
-    unemployment: Math.round(unemployment * 100) / 100,
-    healthInsurance: Math.round(healthInsurance * 100) / 100,
-    unionFee: Math.round(unionFee * 100) / 100,
-    totalEmployeeDeductions: Math.round(totalEmployeeDeductions * 100) / 100,
-    effectiveTaxRate: Math.round(effectiveTaxRate * 10) / 10,
-    employerDsmf: Math.round(employerDsmf * 100) / 100,
-    employerHealthInsurance: Math.round(employerHealthInsurance * 100) / 100,
-    employerUnemployment: Math.round(employerUnemployment * 100) / 100,
-    totalEmployerCost: Math.round(totalEmployerCost * 100) / 100,
+    gross: adjustedGross,
+    taxableIncome,
+    benefit,
+    incomeTax,
+    employeeSocial,
+    employeeMedical,
+    employeeUnemployment,
+    otherDeductions,
+    net,
+    employerSocial,
+    employerMedical,
+    employerUnemployment,
+    employerCost
   };
 }
 
-/**
- * Calculates Gross and all deductions given a target NET salary using high precision binary search.
- */
-export function calculateFromNet(
-  targetNet: number,
-  sector: SectorType = 'private',
+/* =========================================================
+   NET → GROSS (Binary Search)
+========================================================= */
+
+export function calculateNetToGross(targetNet: number, params: SalaryCalculatorParams): SalaryCalculationResult {
+  let low = 0;
+  let high = Math.max(10000, targetNet * 3);
+
+  /*
+      Binary Search
+  */
+  for (let i = 0; i < 100; i++) {
+    const middle = (low + high) / 2;
+    const result = calculateGrossToNet(middle, params);
+
+    if (result.net < targetNet) {
+      low = middle;
+    } else {
+      high = middle;
+    }
+  }
+
+  const gross = (low + high) / 2;
+  return calculateGrossToNet(gross, params);
+}
+
+/* =========================================================
+   BACKWARDS COMPATIBILITY WRAPPERS
+========================================================= */
+
+export function calculateFromGross(
+  gross: number,
+  sector: SectorType = 'private_non_oil',
   workPlace: WorkPlaceType = 'main',
   unionPercent: number = 0,
   selectedBenefitIds: string[] = [],
   customBenefitsAmount: number = 0
 ): CalculiaBreakdown {
-  const target = Math.max(0, Number(targetNet) || 0);
+  const normSector = sector === 'state' ? 'public' : sector === 'private' ? 'private_non_oil' : sector;
+  const result = calculateGrossToNet(gross, {
+    sector: normSector,
+    taxBenefit: customBenefitsAmount,
+  });
 
-  if (target === 0) {
-    return calculateFromGross(0, sector, workPlace, unionPercent, selectedBenefitIds, customBenefitsAmount);
-  }
+  const totalEmployeeDeductions = result.incomeTax + result.employeeSocial + result.employeeMedical + result.employeeUnemployment + result.otherDeductions;
+  const effectiveTaxRate = result.gross > 0 ? (totalEmployeeDeductions / result.gross) * 100 : 0;
 
-  let lo = target;
-  let hi = Math.max(target * 3, 1000);
-
-  for (let i = 0; i < 100; i++) {
-    const mid = (lo + hi) / 2;
-    const r = calculateFromGross(mid, sector, workPlace, unionPercent, selectedBenefitIds, customBenefitsAmount);
-    if (Math.abs(r.net - target) < 0.005) {
-      return r;
-    }
-    if (r.net < target) {
-      lo = mid;
-    } else {
-      hi = mid;
-    }
-  }
-
-  return calculateFromGross((lo + hi) / 2, sector, workPlace, unionPercent, selectedBenefitIds, customBenefitsAmount);
+  return {
+    gross: result.gross,
+    net: result.net,
+    taxableIncome: result.taxableIncome,
+    generalAllowance: 0,
+    selectedBenefitsTotal: result.benefit,
+    incomeTax: result.incomeTax,
+    dsmf: result.employeeSocial,
+    unemployment: result.employeeUnemployment,
+    healthInsurance: result.employeeMedical,
+    unionFee: 0,
+    totalEmployeeDeductions,
+    effectiveTaxRate: Math.round(effectiveTaxRate * 10) / 10,
+    employerDsmf: result.employerSocial,
+    employerHealthInsurance: result.employerMedical,
+    employerUnemployment: result.employerUnemployment,
+    totalEmployerCost: result.employerCost
+  };
 }
 
-/**
- * Backwards compatibility helper
- */
+export function calculateFromNet(
+  targetNet: number,
+  sector: SectorType = 'private_non_oil',
+  workPlace: WorkPlaceType = 'main',
+  unionPercent: number = 0,
+  selectedBenefitIds: string[] = [],
+  customBenefitsAmount: number = 0
+): CalculiaBreakdown {
+  const normSector = sector === 'state' ? 'public' : sector === 'private' ? 'private_non_oil' : sector;
+  const result = calculateNetToGross(targetNet, {
+    sector: normSector,
+    taxBenefit: customBenefitsAmount,
+  });
+
+  const totalEmployeeDeductions = result.incomeTax + result.employeeSocial + result.employeeMedical + result.employeeUnemployment + result.otherDeductions;
+  const effectiveTaxRate = result.gross > 0 ? (totalEmployeeDeductions / result.gross) * 100 : 0;
+
+  return {
+    gross: result.gross,
+    net: result.net,
+    taxableIncome: result.taxableIncome,
+    generalAllowance: 0,
+    selectedBenefitsTotal: result.benefit,
+    incomeTax: result.incomeTax,
+    dsmf: result.employeeSocial,
+    unemployment: result.employeeUnemployment,
+    healthInsurance: result.employeeMedical,
+    unionFee: 0,
+    totalEmployeeDeductions,
+    effectiveTaxRate: Math.round(effectiveTaxRate * 10) / 10,
+    employerDsmf: result.employerSocial,
+    employerHealthInsurance: result.employerMedical,
+    employerUnemployment: result.employerUnemployment,
+    totalEmployerCost: result.employerCost
+  };
+}
+
 export function calculateNetSalary(gross: number) {
-  return calculateFromGross(gross, 'private', 'main', 0, []);
+  return calculateFromGross(gross, 'private_non_oil');
 }
 
-/**
- * Backwards compatibility helper to get gross from net as number
- */
 export function calculateGrossFromNet(net: number): number {
-  const result = calculateFromNet(net, 'private', 'main', 0, []);
-  return result.gross;
-}
-
-/**
- * Format number as Azerbaijani Manat (AZN) currency string
- */
-export function formatAZN(amount: number): string {
-  return new Intl.NumberFormat('az-AZ', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(Math.max(0, amount)) + ' ₼';
+  return calculateFromNet(net, 'private_non_oil').gross;
 }

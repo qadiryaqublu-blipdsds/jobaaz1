@@ -645,6 +645,14 @@ Platforma həm B2B (İşəgötürənlər), həm də B2C (Namizədlər) istiqamə
   5. **Canlı CV Baxışı və PDF Çapı:** İnzibatçı istənilən namizədin CV sənədini real şablonda canlı nəzərdən keçirə, şablonunu dəyişərək yoxlaya və rəsmi PDF yükləyə bilir; daxili qeydlər (note) və status təyin edə bilir.
 
 
+
+- [x] **2026 AR Vergi və Əmək Haqqı Kalkulyatorunun Tam Yenilənməsi (Gross ↔ Net Precision Salary Calculator):**
+  1. **Qanunvericiliyə Dəqiq Uyğunluq:** 2026-cı il üçün qeyri-neft/qaz özəl sektoru üzrə mütərəqqi gəlir vergisi dərəcələri (2500 AZN-dək 3%, 2500-8000 AZN aralığında 75 + 10%, 8000 AZN-dən yuxarı 625 + 14%), neft-qaz və dövlət sektoru üçün 14% dərəcəsi tətbiq edildi.
+  2. **İkiistiqamətli Hesablama (Gross ➔ Net və Net ➔ Gross):** İkili axtarış (Binary Search) alqoritmi ilə istənilən xalis Net məbləğindən tələb olunan Gross müqavilə məbləğinin anlıq hesablanması.
+  3. **Vergi Güzəştləri və Fərdi Tutulmalar:** 0, 200, 400 və 800 AZN vergi güzəşti kateqoriyaları, Həyatın Yığım Sığortası (HYS), maaş tutulması, maaş əlavəsi və həmkarlar ittifaqı haqları dəstəkləndi.
+  4. **Şirkət Xərcləri və İzahlı Düstur Bloku:** İşçidən tutulan DSMF, İTS və işsizlik sığortası ilə yanaşı, işəgötürən tərəfindən ödənilən sosial, tibbi və işsizlik sığortasının detallı hesabatı və şəffaf riyazi düstur izahı Jobia sayt dizaynına tam uyğunlaşdırıldı.
+
+
 ### 🔮 Növbəti Mərhələlər (Gələcək Planlar)
 - [ ] **Mobil Tətbiq (iOS & Android):** Namizədlər üçün anlıq bildirişlər və mobil iş axtarışı.
 - [ ] **WhatsApp & Telegram Bot İnteqrasiyası:** Yeni vakansiyalar haqqında namizədlərə anlıq çat bildirişləri.
