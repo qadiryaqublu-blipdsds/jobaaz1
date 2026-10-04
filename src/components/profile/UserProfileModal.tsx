@@ -1123,6 +1123,58 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
                     </div>
                   </div>
 
+                  {/* CARD 1.8: GIG WORKER & TUTOR EXCHANGE SHORTCUT */}
+                  <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-indigo-50/80 via-blue-50/50 to-purple-50/60 border border-indigo-200/90 shadow-2xs">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                      <div className="flex items-start gap-3.5">
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-600 to-purple-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+                          <Zap className="w-5 h-5 text-amber-300" />
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <h4 className="text-sm font-bold text-slate-900">
+                              Günlük / Saatlıq İşçi və ya Kurs Müəllimisiniz?
+                            </h4>
+                            <span className="text-[10px] font-black px-2 py-0.5 rounded-md bg-indigo-100 text-indigo-900 border border-indigo-300">
+                              YENİ BÖLMƏ
+                            </span>
+                          </div>
+                          <p className="text-xs text-slate-600 mt-1 leading-relaxed max-w-xl">
+                            Saatlıq personal (ziyafət ofisiantı, usta, kuryer, promouter) və ya fərdi kurs repetitoru kimi öz xidmətlərinizi elan edin, birbaşa WhatsApp ilə çağırışlar və sifarişlər qəbul edin.
+                          </p>
+                        </div>
+                      </div>
+
+                      {onNavigateToTab && (
+                        <div className="flex flex-wrap sm:flex-col gap-2 shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              onClose();
+                              onNavigateToTab('casual-workers');
+                            }}
+                            className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white text-xs font-black shadow-xs hover:shadow-md transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                          >
+                            <Zap className="w-3.5 h-3.5" />
+                            <span>⚡ Günlük İş ↗</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              onClose();
+                              onNavigateToTab('tutors');
+                            }}
+                            className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white text-xs font-black shadow-xs hover:shadow-md transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                          >
+                            <GraduationCap className="w-3.5 h-3.5" />
+                            <span>🎓 Repetitor Axtar ↗</span>
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
                   {/* CARD 2: EDITABLE CANDIDATE INFORMATION */}
                   <div className="p-4 sm:p-5 bg-white rounded-2xl border border-slate-200 shadow-2xs space-y-4">
                     <div className="flex items-center justify-between border-b border-slate-100 pb-3">

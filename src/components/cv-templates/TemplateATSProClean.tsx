@@ -69,17 +69,17 @@ export const TemplateATSProClean: React.FC<TemplateProps> = ({ data, showPhoto =
             <div className="space-y-3.5">
               {experiences.map((exp, idx) => (
                 <div key={exp.id || idx} className="space-y-1 text-xs">
-                  <div className="flex justify-between items-baseline font-bold text-slate-950">
-                    <span className="text-sm font-bold">{exp.position || exp.role}</span>
-                    <span className="text-slate-700 font-semibold">
+                  <div className="flex flex-wrap justify-between items-baseline gap-2 min-w-0 font-bold text-slate-950">
+                    <span className="text-sm font-bold flex-1 min-w-0 break-words">{exp.position || exp.role}</span>
+                    <span className="text-slate-700 font-semibold shrink-0 whitespace-nowrap">
                       {exp.period || `${exp.startDate} - ${exp.current ? terms.present : exp.endDate}`}
                     </span>
                   </div>
-                  <div className="font-semibold text-slate-800">
+                  <div className="font-semibold text-slate-800 break-words">
                     {exp.company} {exp.location && `• ${exp.location}`}
                   </div>
                   {exp.description && (
-                    <p className="text-slate-700 leading-relaxed whitespace-pre-line pt-0.5">
+                    <p className="text-slate-700 leading-relaxed whitespace-pre-line pt-0.5 break-words">
                       {exp.description}
                     </p>
                   )}
@@ -97,12 +97,12 @@ export const TemplateATSProClean: React.FC<TemplateProps> = ({ data, showPhoto =
             </h2>
             <div className="space-y-2 text-xs">
               {education.map((edu, idx) => (
-                <div key={edu.id || idx} className="flex justify-between items-baseline">
-                  <div>
+                <div key={edu.id || idx} className="flex flex-wrap justify-between items-baseline gap-2 min-w-0">
+                  <div className="flex-1 min-w-0 break-words">
                     <span className="font-bold text-slate-900">{edu.institution || edu.school}</span>
                     <span className="text-slate-700 ml-1">— {edu.degree} {edu.fieldOfStudy && `(${edu.fieldOfStudy})`}</span>
                   </div>
-                  <span className="font-semibold text-slate-700">
+                  <span className="font-semibold text-slate-700 shrink-0 whitespace-nowrap">
                     {edu.graduationYear || edu.endDate || (edu.current ? terms.present : '')}
                   </span>
                 </div>

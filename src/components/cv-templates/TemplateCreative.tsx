@@ -135,20 +135,20 @@ export const TemplateCreative: React.FC<TemplateProps> = ({ data, showPhoto = tr
               <div className="grid grid-cols-2 gap-3">
                 {projects.map((proj) => (
                   <div key={proj.id} className="p-3 rounded-xl border border-slate-200 bg-slate-50 hover:bg-orange-50/30 transition-colors">
-                    <div className="flex justify-between items-start gap-1 mb-1">
-                      <h3 className="text-xs font-bold text-slate-900">{proj.title}</h3>
+                    <div className="flex flex-wrap justify-between items-start gap-1.5 mb-1 min-w-0">
+                      <h3 className="text-xs font-bold text-slate-900 flex-1 min-w-0 break-words">{proj.title}</h3>
                       {proj.link && (
                         <a
                           href={proj.link}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-[10px] text-orange-600 font-bold hover:underline"
+                          className="text-[10px] text-orange-600 font-bold hover:underline shrink-0"
                         >
                           Link ↗
                         </a>
                       )}
                     </div>
-                    <p className="text-[10px] text-slate-600 line-clamp-3 mb-2">{proj.description}</p>
+                    <p className="text-[10px] text-slate-600 leading-relaxed break-words mb-2">{proj.description}</p>
                     {proj.technologies && (
                       <div className="flex flex-wrap gap-1">
                         {proj.technologies.map((t, idx) => (

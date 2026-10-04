@@ -31,6 +31,7 @@ interface CVCreatorHeaderProps {
   isTranslating: boolean;
   onOpenAiModal: () => void;
   onOpenImageAiModal?: () => void;
+  onOpenSocialModal?: () => void;
   onOpenClearModal: () => void;
   onLoadSampleData: () => void;
   onSaveData: () => void;
@@ -41,6 +42,7 @@ interface CVCreatorHeaderProps {
   pdfProgressText: string;
   pdfProgressPercent?: number;
   pdfSuccess?: boolean;
+  hasPaidForPDF?: boolean;
   onOpenATSAnalyzer?: () => void;
   onBackToPortal?: () => void;
   cvTitle: string;
@@ -58,6 +60,7 @@ export const CVCreatorHeader: React.FC<CVCreatorHeaderProps> = ({
   isTranslating,
   onOpenAiModal,
   onOpenImageAiModal,
+  onOpenSocialModal,
   onOpenClearModal,
   onLoadSampleData,
   onSaveData,
@@ -68,6 +71,7 @@ export const CVCreatorHeader: React.FC<CVCreatorHeaderProps> = ({
   pdfProgressText,
   pdfProgressPercent = 0,
   pdfSuccess = false,
+  hasPaidForPDF = false,
   onOpenATSAnalyzer,
   onBackToPortal,
   cvTitle,
@@ -250,7 +254,19 @@ export const CVCreatorHeader: React.FC<CVCreatorHeaderProps> = ({
               )}
             </div>
 
-            {/* 2. Quick AI Fill & Image OCR Buttons */}
+            {/* 2. Quick AI Fill, LinkedIn/FB & Image OCR Buttons */}
+            <button
+              id="btn-cv-header-social-ai"
+              type="button"
+              onClick={onOpenSocialModal || onOpenAiModal}
+              className="inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 text-xs font-bold transition-all shadow-2xs cursor-pointer shrink-0"
+              title="LinkedIn və ya Facebook profil linkinizlə dərhal CV yaradın"
+            >
+              <Globe className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+              <span className="hidden sm:inline">LinkedIn / FB ilə</span>
+              <span className="sm:hidden text-[11px]">Sosial</span>
+            </button>
+
             <button
               id="btn-cv-header-image-ai"
               type="button"
@@ -318,6 +334,15 @@ export const CVCreatorHeader: React.FC<CVCreatorHeaderProps> = ({
                     <FileDown className="w-3.5 h-3.5 shrink-0" />
                     <span className="hidden sm:inline">PDF Endir</span>
                     <span className="sm:hidden text-[11px]">PDF</span>
+                    {!hasPaidForPDF ? (
+                      <span className="px-1.5 py-0.2 rounded-md bg-emerald-700/90 text-white text-[10px] font-black border border-emerald-400/40 tracking-tight">
+                        2 ₼
+                      </span>
+                    ) : (
+                      <span className="px-1.5 py-0.2 rounded-md bg-emerald-800/80 text-emerald-200 text-[10px] font-bold">
+                        Ödənildi
+                      </span>
+                    )}
                   </>
                 )}
               </span>

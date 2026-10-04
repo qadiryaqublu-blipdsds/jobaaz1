@@ -19,7 +19,10 @@ import {
   Square,
   Users,
   Building2,
-  FileText
+  FileText,
+  Star,
+  Video,
+  GripVertical
 } from 'lucide-react';
 
 interface CandidateKanbanBoardProps {
@@ -32,6 +35,8 @@ interface CandidateKanbanBoardProps {
   selectedCandidateIds: string[];
   onToggleCandidateSelection: (candidateId: string) => void;
   onOpenJobiaAIEvaluation: (applicant: Application) => void;
+  onOpenInterviewScheduler?: (app: Application) => void;
+  onOpenScorecard?: (app: Application) => void;
 }
 
 interface ColumnConfig {
@@ -132,6 +137,8 @@ export const CandidateKanbanBoard: React.FC<CandidateKanbanBoardProps> = ({
   selectedCandidateIds,
   onToggleCandidateSelection,
   onOpenJobiaAIEvaluation,
+  onOpenInterviewScheduler,
+  onOpenScorecard,
 }) => {
   const { language } = useLanguage();
   const [searchFilter, setSearchFilter] = useState('');
@@ -209,7 +216,18 @@ export const CandidateKanbanBoard: React.FC<CandidateKanbanBoardProps> = ({
             return (
               <div
                 key={col.status}
-                className={`flex-1 min-w-[260px] max-w-[320px] bg-slate-100/70 rounded-xl p-3 border ${col.color} flex flex-col min-h-[460px] max-h-[750px] shadow-2xs`}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  e.dataTransfer.dropEffect = 'move';
+                }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  const droppedAppId = e.dataTransfer.getData('text/plain');
+                  if (droppedAppId) {
+                    onUpdateApplicationStatus(droppedAppId, col.status);
+                  }
+                }}
+                className={`flex-1 min-w-[260px] max-w-[320px] bg-slate-100/70 rounded-xl p-3 border ${col.color} flex flex-col min-h-[460px] max-h-[750px] shadow-2xs transition-colors`}
               >
                 {/* Column Header */}
                 <div className="flex items-center justify-between pb-2.5 mb-2.5 border-b border-slate-200/80">
@@ -232,10 +250,10 @@ export const CandidateKanbanBoard: React.FC<CandidateKanbanBoardProps> = ({
                     <div className="h-32 rounded-lg border-2 border-dashed border-slate-200 flex flex-col items-center justify-center text-slate-400 text-xs p-3 text-center">
                       <span>
                         {language === 'en'
-                          ? 'No candidates in this stage'
+                          ? 'Drag candidates here or move via arrows'
                           : language === 'ru'
-                          ? 'Нет соискателей на этом этапе'
-                          : 'Bu mərhələdə namizəd yoxdur'}
+                          ? 'Перетащите соискателей сюда'
+                          : 'Namizədləri bura sürükləyin'}
                       </span>
                     </div>
                   ) : (
@@ -250,7 +268,12 @@ export const CandidateKanbanBoard: React.FC<CandidateKanbanBoardProps> = ({
                       return (
                         <div
                           key={app.id}
-                          className={`bg-white p-3 rounded-xl border transition-all shadow-2xs hover:shadow-sm space-y-2 ${
+                          draggable
+                          onDragStart={(e) => {
+                            e.dataTransfer.setData('text/plain', app.id);
+                            e.dataTransfer.effectAllowed = 'move';
+                          }}
+                          className={`bg-white p-3 rounded-xl border transition-all shadow-2xs hover:shadow-sm space-y-2 cursor-grab active:cursor-grabbing ${
                             isSelected ? 'border-blue-500 ring-2 ring-blue-200' : 'border-slate-200 hover:border-slate-300'
                           }`}
                         >
@@ -317,6 +340,30 @@ export const CandidateKanbanBoard: React.FC<CandidateKanbanBoardProps> = ({
                             </span>
 
                             <div className="flex items-center gap-1">
+                              {/* Interview Scheduler button */}
+                              {onOpenInterviewScheduler && (
+                                <button
+                                  type="button"
+                                  onClick={() => onOpenInterviewScheduler(app)}
+                                  className="p-1 rounded text-amber-600 hover:bg-amber-50 transition-colors cursor-pointer"
+                                  title="Müsahibə Təqvim Dəvəti Göndər"
+                                >
+                                  <Video className="w-3.5 h-3.5" />
+                                </button>
+                              )}
+
+                              {/* Internal Scorecard button */}
+                              {onOpenScorecard && (
+                                <button
+                                  type="button"
+                                  onClick={() => onOpenScorecard(app)}
+                                  className="p-1 rounded text-purple-600 hover:bg-purple-50 transition-colors cursor-pointer"
+                                  title="Daxili Qiymətləndirmə (Scorecard)"
+                                >
+                                  <Star className="w-3.5 h-3.5" />
+                                </button>
+                              )}
+
                               {/* Jobia AI Evaluation trigger */}
                               <button
                                 type="button"

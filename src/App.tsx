@@ -1138,6 +1138,17 @@ export default function App() {
     setTimeout(() => setToastMessage(null), 3500);
   };
 
+  useEffect(() => {
+    const handleGlobalToast = (e: Event) => {
+      const customEvent = e as CustomEvent<{ message: string }>;
+      if (customEvent.detail?.message) {
+        showToast(customEvent.detail.message);
+      }
+    };
+    window.addEventListener('jobia-toast', handleGlobalToast);
+    return () => window.removeEventListener('jobia-toast', handleGlobalToast);
+  }, []);
+
   // Trigger Paywall helper
   const triggerPaywall = (requiredTier: string, featureTitle: string, featureDescription?: string) => {
     setPaywallProps({
@@ -2182,12 +2193,14 @@ export default function App() {
 
       {/* Main Content Column */}
       <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
-        {/* Platform Header (Frozen at top) */}
+        {/* Platform Header (Frozen at top with horizontal navigation row) */}
         <Header
           currentRole={currentRole}
           onRoleChange={handleRoleChangeWithRBAC}
           candidateTab={candidateTab}
           onCandidateTabChange={(tab) => setCandidateTab(tab)}
+          businessTab={businessTab}
+          onBusinessTabChange={(tab) => setBusinessTab(tab)}
           companies={verifiedCompanies}
           vacancies={publishedVacancies}
           selectedCompany={selectedCompanyFilter}
@@ -2197,9 +2210,11 @@ export default function App() {
             if (candidateTab !== 'jobs') setCandidateTab('jobs');
           }}
           applicationsCount={roleApplicationsCount}
+          offersCount={jobOffers.length}
           savedJobsCount={savedJobIds.length}
           activeVacanciesCount={publishedVacancies.length}
           pendingApprovalsCount={vacancies.filter((v) => v.isApproved !== true || v.status !== 'published').length}
+          onOpenJobAlerts={() => setIsGlobalJobAlertModalOpen(true)}
           onOpenGoogleChat={() => {
             if (currentRole === 'candidate') {
               setCandidateTab('google-chat');

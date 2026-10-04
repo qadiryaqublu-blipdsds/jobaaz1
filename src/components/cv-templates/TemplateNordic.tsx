@@ -176,11 +176,11 @@ export const TemplateNordic: React.FC<TemplateProps> = ({ data, showPhoto = true
             <div className="space-y-2.5">
               {education.map((edu) => (
                 <div key={edu.id} className="text-xs p-2.5 rounded-lg bg-teal-50/40 border border-teal-100">
-                  <div className="flex justify-between items-baseline">
-                    <h3 className="font-bold text-slate-900 text-[11px]">{edu.degree} — {edu.fieldOfStudy}</h3>
-                    <span className="text-[10px] text-slate-500">{edu.startDate} – {edu.endDate}</span>
+                  <div className="flex flex-wrap justify-between items-baseline gap-2 min-w-0">
+                    <h3 className="font-bold text-slate-900 text-[11px] flex-1 min-w-0 break-words">{edu.degree} — {edu.fieldOfStudy}</h3>
+                    <span className="text-[10px] text-slate-500 shrink-0 whitespace-nowrap">{edu.startDate} – {edu.endDate}</span>
                   </div>
-                  <div className="text-[10px] text-teal-800 mt-0.5">
+                  <div className="text-[10px] text-teal-800 mt-0.5 break-words">
                     {edu.institution} {edu.gpa ? `(GPA: ${edu.gpa})` : ''}
                   </div>
                 </div>
@@ -198,15 +198,15 @@ export const TemplateNordic: React.FC<TemplateProps> = ({ data, showPhoto = true
             <div className="space-y-2 text-xs">
               {projects.map((p) => (
                 <div key={p.id} className="p-2.5 rounded-lg border border-slate-200">
-                  <div className="flex justify-between items-center">
-                    <h3 className="font-bold text-slate-900 text-[11px]">{p.title}</h3>
+                  <div className="flex flex-wrap justify-between items-center gap-1.5 min-w-0">
+                    <h3 className="font-bold text-slate-900 text-[11px] flex-1 min-w-0 break-words">{p.title}</h3>
                     {p.link && (
-                      <a href={p.link} target="_blank" rel="noopener noreferrer" className="text-[10px] text-teal-600 font-semibold hover:underline">
+                      <a href={p.link} target="_blank" rel="noopener noreferrer" className="text-[10px] text-teal-600 font-semibold hover:underline shrink-0">
                         Keçid ↗
                       </a>
                     )}
                   </div>
-                  <p className="text-[10px] text-slate-600 mt-0.5">{p.description}</p>
+                  <p className="text-[10px] text-slate-600 mt-0.5 leading-relaxed break-words">{p.description}</p>
                   {p.technologies && p.technologies.length > 0 && (
                     <div className="flex flex-wrap gap-1 mt-1.5">
                       {p.technologies.map((t, i) => (

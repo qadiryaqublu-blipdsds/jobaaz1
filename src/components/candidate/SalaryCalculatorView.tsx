@@ -98,7 +98,7 @@ Sektor: ${
     }
 Müqavilə (Gross) Məbləği: ${money(result.gross)}
 Vergiyə Cəlb Olunan Məbləğ: ${money(result.taxableIncome)} (Güzəşt: ${money(result.benefit)})
-Xalis Ələ Çatan (Net) Maaş: ${money(result.net)}
+Xalis Net Maaş: ${money(result.net)}
 
 İşçidən Tutulmalar:
 - Gəlir Vergisi: ${money(result.incomeTax)}

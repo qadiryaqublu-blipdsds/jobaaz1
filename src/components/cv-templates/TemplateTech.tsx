@@ -106,11 +106,11 @@ export const TemplateTech: React.FC<TemplateProps> = ({ data }) => {
             <div className="space-y-2.5">
               {projects.map((p) => (
                 <div key={p.id} className="bg-slate-800/40 p-2.5 rounded border border-slate-700/60 text-xs font-sans">
-                  <div className="font-bold text-white flex items-center justify-between">
-                    <span>{p.title}</span>
-                    {p.link && <Link className="w-3 h-3 text-cyan-400" />}
+                  <div className="font-bold text-white flex flex-wrap items-center justify-between gap-1.5 min-w-0">
+                    <span className="flex-1 min-w-0 break-words">{p.title}</span>
+                    {p.link && <Link className="w-3 h-3 text-cyan-400 shrink-0" />}
                   </div>
-                  <p className="text-[11px] text-slate-400 mt-1">{p.description}</p>
+                  <p className="text-[11px] text-slate-400 mt-1 leading-relaxed break-words">{p.description}</p>
                 </div>
               ))}
             </div>

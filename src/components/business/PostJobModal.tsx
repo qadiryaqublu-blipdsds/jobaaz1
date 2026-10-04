@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import { ModalBottomLogo } from '../ModalBottomLogo';
 import { safeFetchJson } from '../../utils/apiHelper';
+import { safeAlert } from '../../utils/dialogHelper';
 
 interface PostJobModalProps {
   company: Company;
@@ -171,7 +172,7 @@ export const PostJobModal: React.FC<PostJobModalProps> = ({
   // Detect GPS coordinates
   const handleDetectGPS = () => {
     if (!navigator.geolocation) {
-      alert('Brauzeriniz geolokasiya xüsusiyyətini dəstəkləmir.');
+      safeAlert('Brauzeriniz geolokasiya xüsusiyyətini dəstəkləmir.');
       return;
     }
     setIsLocatingGPS(true);
@@ -183,7 +184,7 @@ export const PostJobModal: React.FC<PostJobModalProps> = ({
       },
       (err) => {
         console.error(err);
-        alert('Məkan icazəsi alınmadı. Koordinatları əl ilə və ya şəhər seçimi ilə təyin edə bilərsiniz.');
+        safeAlert('Məkan icazəsi alınmadı. Koordinatları əl ilə və ya şəhər seçimi ilə təyin edə bilərsiniz.');
         setIsLocatingGPS(false);
       },
       { enableHighAccuracy: true }
@@ -193,7 +194,7 @@ export const PostJobModal: React.FC<PostJobModalProps> = ({
   // AI Job Description Generator
   const handleAIGenerateJob = async () => {
     if (!title.trim()) {
-      alert('Zəhmət olmasa əvvəlcə vəzifə adını daxil edin (məs: Senior React Developer).');
+      safeAlert('Zəhmət olmasa əvvəlcə vəzifə adını daxil edin (məs: Senior React Developer).');
       return;
     }
 
@@ -230,7 +231,7 @@ export const PostJobModal: React.FC<PostJobModalProps> = ({
   // Handle Admin inline company creation
   const handleCreateCompanyInline = async () => {
     if (!newCompName.trim()) {
-      alert('Zəhmət olmasa şirkətin adını daxil edin.');
+      safeAlert('Zəhmət olmasa şirkətin adını daxil edin.');
       return;
     }
     setIsCreatingCompany(true);
@@ -274,7 +275,7 @@ export const PostJobModal: React.FC<PostJobModalProps> = ({
       setNewCompName('');
     } catch (e) {
       console.error(e);
-      alert('Şirkət yaradılarkən xəta baş verdi.');
+      safeAlert('Şirkət yaradılarkən xəta baş verdi.');
     } finally {
       setIsCreatingCompany(false);
     }
@@ -292,12 +293,12 @@ export const PostJobModal: React.FC<PostJobModalProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isEditLimitReached) {
-      alert('Bu vakansiya üzrə 1 dəfəlik redaktə hüququnuzdan artıq istifadə etmisiniz.');
+      safeAlert('Bu vakansiya üzrə 1 dəfəlik redaktə hüququnuzdan artıq istifadə etmisiniz.');
       return;
     }
 
     if (!title.trim() || !description.trim()) {
-      alert('Zəhmət olmasa vəzifə başlığını və təsvirini doldurun.');
+      safeAlert('Zəhmət olmasa vəzifə başlığını və təsvirini doldurun.');
       return;
     }
 

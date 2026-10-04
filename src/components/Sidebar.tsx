@@ -289,7 +289,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       id: 'talent-pool' as any,
       label: language === 'en' ? 'Candidate Pool' : language === 'ru' ? 'База кадров' : 'Kadr Bankı',
       icon: UserCheck,
-      badge: null,
+      badge: 'PRO',
       color: 'blue',
       onClick: () => {
         onRoleChange('business');
@@ -340,16 +340,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
         />
       )}
 
-      {/* Main Left Vertical Sidebar with dynamic width */}
+      {/* Mobile Drawer (Left sidebar for mobile screens only; desktop navigation is now arranged horizontally next to the logo in Header) */}
       <aside
         id="app-left-sidebar"
-        style={{
-          width: isOpenMobile ? undefined : (isCollapsed ? '80px' : `${sidebarWidth}px`),
-        }}
-        className={`fixed top-0 bottom-0 left-0 z-50 bg-white border-r border-slate-200 flex flex-col justify-between shadow-lg lg:shadow-none lg:sticky lg:top-0 lg:h-screen lg:shrink-0 ${
-          isDragging ? 'transition-none select-none' : 'transition-[width] duration-200 ease-in-out'
-        } ${
-          isOpenMobile ? 'translate-x-0 !w-72' : '-translate-x-full lg:translate-x-0'
+        className={`fixed top-0 bottom-0 left-0 z-50 bg-white border-r border-slate-200 flex flex-col justify-between shadow-xl lg:hidden transition-transform duration-200 ease-in-out !w-72 ${
+          isOpenMobile ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
         {/* Right Vertical Resizing Splitter (Desktop Only) */}
@@ -977,7 +972,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       <span className="truncate">{language === 'en' ? 'Candidate Pool' : language === 'ru' ? 'База кадров' : 'Kadr Bankı'}</span>
                     </div>
                     <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md ${businessTab === 'talent-pool' ? 'bg-white/20 text-white' : 'bg-emerald-50 text-emerald-800 border border-emerald-200/80'}`}>
-                      TOP
+                      PRO
                     </span>
                   </button>
 

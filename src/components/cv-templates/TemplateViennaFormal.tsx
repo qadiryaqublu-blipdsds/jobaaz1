@@ -66,9 +66,9 @@ export const TemplateViennaFormal: React.FC<TemplateProps> = ({ data, showPhoto 
             <div className="space-y-4">
               {experiences.map((exp) => (
                 <div key={exp.id} className="space-y-1">
-                  <div className="flex justify-between items-baseline gap-2">
-                    <span className="font-bold text-stone-900 text-xs font-serif">{exp.position}</span>
-                    <span className="text-[11px] text-stone-600 italic">
+                  <div className="flex flex-wrap justify-between items-baseline gap-2 min-w-0">
+                    <span className="font-bold text-stone-900 text-xs font-serif flex-1 min-w-0 break-words">{exp.position}</span>
+                    <span className="text-[11px] text-stone-600 italic shrink-0 whitespace-nowrap">
                       {exp.startDate} – {exp.current ? terms.present : exp.endDate}
                     </span>
                   </div>

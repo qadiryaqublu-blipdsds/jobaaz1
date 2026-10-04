@@ -1,19 +1,21 @@
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Manrope:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400;1,600&family=Sora:wght@300;400;500;600;700;800&family=Urbanist:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Onest:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
 @import "tailwindcss";
 
 @theme {
-  --font-sans: 'Plus Jakarta Sans', 'Manrope', system-ui, -apple-system, sans-serif;
-  --font-display: 'Sora', 'Plus Jakarta Sans', sans-serif;
-  --font-heading: 'Sora', 'Plus Jakarta Sans', sans-serif;
-  --font-sora: 'Sora', sans-serif;
-  --font-jakarta: 'Plus Jakarta Sans', sans-serif;
-  --font-urbanist: 'Urbanist', sans-serif;
-  --font-manrope: 'Manrope', sans-serif;
+  --font-sans: 'Inter', 'Onest', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-display: 'Inter', 'Onest', system-ui, -apple-system, sans-serif;
+  --font-heading: 'Inter', 'Onest', system-ui, -apple-system, sans-serif;
+  --font-inter: 'Inter', sans-serif;
+  --font-onest: 'Onest', sans-serif;
+  --font-sora: 'Inter', sans-serif;
+  --font-jakarta: 'Inter', sans-serif;
+  --font-urbanist: 'Inter', sans-serif;
+  --font-manrope: 'Inter', sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
 
 :root {
-  font-family: 'Plus Jakarta Sans', 'Manrope', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: 'Inter', 'Onest', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
 *, *::before, *::after {
@@ -60,10 +62,15 @@
   }
 }
  
-/* Global layout and responsive overflow constraints */
+/* Global layout and responsive overflow constraints (hrx.az style) */
 html, body {
-  font-family: 'Plus Jakarta Sans', 'Manrope', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+  font-family: 'Inter', 'Onest', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
   background-color: #f8fafc;
+  background-image: 
+    radial-gradient(at 0% 0%, rgba(0, 168, 89, 0.035) 0px, transparent 50%),
+    radial-gradient(at 100% 0%, rgba(59, 130, 246, 0.025) 0px, transparent 50%),
+    radial-gradient(at 50% 100%, rgba(16, 185, 129, 0.02) 0px, transparent 50%);
+  background-attachment: fixed;
   color: #0f172a;
   overflow-x: hidden !important;
   max-width: 100vw !important;
@@ -74,21 +81,21 @@ html, body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
-  letter-spacing: -0.012em;
+  letter-spacing: -0.015em;
 }
 
 h1, h2, h3, h4, h5, h6, .font-heading, .font-display {
-  font-family: 'Sora', 'Plus Jakarta Sans', sans-serif !important;
-  letter-spacing: -0.025em;
+  font-family: 'Inter', 'Onest', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+  letter-spacing: -0.024em;
 }
 
 strong, b, [class*="font-black"], [class*="font-extrabold"] {
-  font-family: 'Sora', 'Plus Jakarta Sans', sans-serif;
-  letter-spacing: -0.02em;
+  font-family: 'Inter', 'Onest', system-ui, -apple-system, sans-serif;
+  letter-spacing: -0.018em;
 }
 
 button, input, select, textarea, label {
-  font-family: 'Plus Jakarta Sans', 'Manrope', system-ui, -apple-system, sans-serif;
+  font-family: 'Inter', 'Onest', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
 #main-content-scroll {
@@ -358,5 +365,182 @@ button, input, select, textarea, label {
 .scrollbar-none {
   -ms-overflow-style: none;
   scrollbar-width: none;
+}
+
+/* ==========================================================================
+   Universal CV Typography & Anti-Line-Collision Architecture
+   Guarantees that no line of text ever overlaps another line, regardless
+   of text length, template chosen, or language complexity.
+   ========================================================================== */
+.cv-template-root,
+#cv-document-export,
+#cv-live-creator-export,
+#cv-live-creator-preview,
+#cv-live-creator-preview-fullscreen,
+#modal-submitted-cv-export,
+#applicant-cv-export,
+[id^="cv-preview-"] {
+  overflow-wrap: break-word !important;
+  word-break: break-word !important;
+  text-rendering: optimizeLegibility !important;
+  -webkit-font-smoothing: antialiased;
+}
+
+.cv-template-root *,
+#cv-document-export *,
+#cv-live-creator-export *,
+#cv-live-creator-preview *,
+#cv-live-creator-preview-fullscreen *,
+#modal-submitted-cv-export *,
+#applicant-cv-export *,
+[id^="cv-preview-"] * {
+  box-sizing: border-box !important;
+  min-height: 0;
+}
+
+/* Strict safe line-heights so multi-line text and titles never collide */
+.cv-template-root h1,
+.cv-template-root h2,
+.cv-template-root h3,
+.cv-template-root h4,
+.cv-template-root h5,
+.cv-template-root h6,
+[id^="cv-preview-"] h1,
+[id^="cv-preview-"] h2,
+[id^="cv-preview-"] h3,
+[id^="cv-preview-"] h4,
+[id^="cv-preview-"] h5,
+[id^="cv-preview-"] h6 {
+  line-height: 1.35 !important;
+  margin-top: 0 !important;
+  overflow-wrap: break-word !important;
+  word-break: break-word !important;
+}
+
+.cv-template-root p,
+[id^="cv-preview-"] p {
+  line-height: 1.55 !important;
+  overflow-wrap: break-word !important;
+  word-break: break-word !important;
+}
+
+.cv-template-root span,
+.cv-template-root div,
+.cv-template-root li,
+[id^="cv-preview-"] span,
+[id^="cv-preview-"] div,
+[id^="cv-preview-"] li {
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+/* Flex items containment: prevent flex children from blowing out or overlapping */
+.cv-template-root .flex,
+[id^="cv-preview-"] .flex {
+  min-width: 0;
+}
+
+.cv-template-root .flex > *,
+[id^="cv-preview-"] .flex > * {
+  min-width: 0;
+}
+
+/* Grid columns containment: prevent long text from breaching column bounds */
+.cv-template-root .grid,
+[id^="cv-preview-"] .grid {
+  min-width: 0;
+}
+
+.cv-template-root .grid > *,
+[id^="cv-preview-"] .grid > * {
+  min-width: 0;
+}
+
+/* Prevent vertical collision when items-baseline is used */
+.cv-template-root .items-baseline,
+[id^="cv-preview-"] .items-baseline {
+  row-gap: 0.25rem;
+}
+
+/* Guarantee horizontal clearance between spread items */
+.cv-template-root .justify-between,
+[id^="cv-preview-"] .justify-between {
+  gap: 0.5rem;
+}
+
+/* Prevent any long unbroken words from ever breaking layouts */
+.cv-template-root .break-words,
+[id^="cv-preview-"] .break-words {
+  overflow-wrap: anywhere !important;
+  word-break: break-word !important;
+}
+
+/* ========================================================================= */
+/* JOBIA SIGNATURE LOGO GREEN STYLING (#00a859)                              */
+/* Harmonizes all buttons across the application with the site's logo green   */
+/* ========================================================================= */
+:root {
+  --jobia-brand-green: #00a859;
+  --jobia-brand-green-hover: #00914c;
+  --jobia-brand-green-active: #007a40;
+  --jobia-brand-green-light: #ecfdf5;
+  --jobia-brand-green-border: #a7f3d0;
+}
+
+/* Ensure blue button utilities render in signature logo green (#00a859) */
+.bg-blue-600,
+.bg-blue-700,
+.bg-blue-500 {
+  background-color: #00a859 !important;
+}
+
+.hover\:bg-blue-700:hover,
+.hover\:bg-blue-600:hover {
+  background-color: #00914c !important;
+}
+
+.text-blue-600,
+.text-blue-700 {
+  color: #00a859 !important;
+}
+
+.border-blue-600,
+.border-blue-500 {
+  border-color: #00a859 !important;
+}
+
+.focus\:border-blue-600:focus,
+.focus\:border-blue-500:focus {
+  border-color: #00a859 !important;
+}
+
+.ring-blue-600,
+.ring-blue-500,
+.ring-blue-400 {
+  --tw-ring-color: #00a859 !important;
+}
+
+.bg-blue-50,
+.bg-blue-50\/70,
+.bg-blue-50\/80,
+.bg-blue-50\/90 {
+  background-color: #f0fdf4 !important;
+}
+
+.hover\:bg-blue-100:hover,
+.hover\:bg-blue-100\/90:hover {
+  background-color: #dcfce7 !important;
+}
+
+.text-blue-800,
+.text-blue-900 {
+  color: #065f46 !important;
+}
+
+.border-blue-200,
+.border-blue-300,
+.border-blue-200\/80,
+.border-blue-200\/90 {
+  border-color: #a7f3d0 !important;
 }
 

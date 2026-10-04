@@ -310,7 +310,13 @@ Yalnız etibarlı JSON qaytar. JSON xaricində heç bir ön və ya son söz, iza
       const errMsg = err?.message || String(err);
 
       // If quota or rate limit, try next model before failing
-      const isQuotaOrRateLimit = errMsg.includes('429') || errMsg.includes('RESOURCE_EXHAUSTED') || errMsg.includes('quota');
+      const isQuotaOrRateLimit =
+        errMsg.includes('429') ||
+        errMsg.includes('402') ||
+        errMsg.includes('depleted') ||
+        errMsg.includes('prepayment') ||
+        errMsg.includes('RESOURCE_EXHAUSTED') ||
+        errMsg.includes('quota');
       if (isQuotaOrRateLimit && i < candidateModels.length - 1) {
         await new Promise(r => setTimeout(r, 400));
         continue;

@@ -23,6 +23,7 @@ export const DeepCVAnalyzerView: React.FC<DeepCVAnalyzerViewProps> = ({ initialC
     mimeType?: string;
     fileName?: string;
     jobDescription?: string;
+    linkedinUrl?: string;
   }) => {
     setIsLoading(true);
     setError(null);

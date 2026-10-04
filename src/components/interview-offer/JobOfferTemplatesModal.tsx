@@ -3,6 +3,7 @@ import { JobOfferTemplate } from '../../types';
 import { DEFAULT_OFFER_TEMPLATES, saveOfferTemplates } from '../../services/offerTemplateService';
 import { X, Plus, Trash2, Edit3, Check, RotateCcw, FileText, Sparkles } from 'lucide-react';
 import { ModalBottomLogo } from '../ModalBottomLogo';
+import { safeAlert, safeConfirm } from '../../utils/dialogHelper';
 
 interface JobOfferTemplatesModalProps {
   templates: JobOfferTemplate[];
@@ -76,7 +77,7 @@ export const JobOfferTemplatesModal: React.FC<JobOfferTemplatesModalProps> = ({
 
   const handleDelete = (id: string) => {
     if (templates.length <= 1) {
-      alert('Ən azı 1 şablon qalmalıdır.');
+      safeAlert('Ən azı 1 şablon qalmalıdır.');
       return;
     }
     const updated = templates.filter((t) => t.id !== id);
@@ -86,7 +87,7 @@ export const JobOfferTemplatesModal: React.FC<JobOfferTemplatesModalProps> = ({
   };
 
   const handleResetDefaults = () => {
-    if (window.confirm('Bütün şablonları ilkin standart vəziyyətə qaytarmaq istədiyinizdən əminsiniz?')) {
+    if (safeConfirm('Bütün şablonları ilkin standart vəziyyətə qaytarmaq istədiyinizdən əminsiniz?')) {
       onUpdateTemplates(DEFAULT_OFFER_TEMPLATES);
       saveOfferTemplates(DEFAULT_OFFER_TEMPLATES);
       handleSelect(DEFAULT_OFFER_TEMPLATES[0]);

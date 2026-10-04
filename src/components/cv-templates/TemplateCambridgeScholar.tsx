@@ -121,13 +121,13 @@ export const TemplateCambridgeScholar: React.FC<TemplateProps> = ({ data, showPh
           <div className="space-y-2.5 text-xs">
             {projects.map((proj) => (
               <div key={proj.id}>
-                <div className="flex justify-between items-baseline">
-                  <span className="font-bold text-slate-950">{proj.title}</span>
+                <div className="flex flex-wrap justify-between items-baseline gap-2 min-w-0">
+                  <span className="font-bold text-slate-950 flex-1 min-w-0 break-words">{proj.title}</span>
                   {proj.link && (
-                    <span className="text-[11px] text-slate-600 underline font-sans">{proj.link.replace(/^https?:\/\//, '')}</span>
+                    <span className="text-[11px] text-slate-600 underline font-sans shrink-0 max-w-[200px] truncate">{proj.link.replace(/^https?:\/\//, '')}</span>
                   )}
                 </div>
-                {proj.description && <p className="text-slate-700 mt-0.5">{proj.description}</p>}
+                {proj.description && <p className="text-slate-700 mt-0.5 leading-relaxed break-words">{proj.description}</p>}
               </div>
             ))}
           </div>

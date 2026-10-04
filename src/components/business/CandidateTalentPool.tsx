@@ -31,7 +31,15 @@ import {
   Globe,
   Layers,
   RotateCcw,
-  Loader2
+  Loader2,
+  CreditCard,
+  AlertCircle,
+  Check,
+  Zap,
+  ShieldAlert,
+  LogIn,
+  UserPlus,
+  ArrowRight
 } from 'lucide-react';
 import { CandidateProfile, User, Company } from '../../types';
 import {
@@ -47,7 +55,14 @@ import {
   getEmployerUnlockedCandidateIds,
   unlockCandidateForEmployer
 } from '../../services/firestoreService';
-import { checkFeatureAccess, getUserActiveSubscription } from '../../services/subscriptionService';
+import { 
+  checkFeatureAccess, 
+  getUserActiveSubscription, 
+  applySubscriptionUpgrade, 
+  SUBSCRIPTION_PLANS,
+  formatPrice 
+} from '../../services/subscriptionService';
+import { formatCardNumber } from '../../services/paymentService';
 import { CVRenderer } from '../cv-templates/CVRenderer';
 import { downloadCVAsPDF } from '../../utils/pdfExport';
 import { usePDFDownload } from '../../hooks/usePDFDownload';
@@ -99,16 +114,114 @@ export const CandidateTalentPool: React.FC<CandidateTalentPoolProps> = ({
     dismissToast: dismissTalentPdfToast
   } = usePDFDownload();
 
-  // Check if current employer has subscription feature access
-  const subscriptionAccess = useMemo(() => {
-    const sub = getUserActiveSubscription(currentUser?.id, 'business', currentUser?.email);
-    return checkFeatureAccess(sub, 'canSearchCandidateDatabase');
-  }, [currentUser]);
+  // Check if current user is an employer
+  const isEmployerUser = Boolean(currentUser && currentUser.role === 'business');
 
-  const hasGlobalSubscription = Boolean(
-    activeCompany?.subscriptionPlan === 'BUSINESS' ||
-    subscriptionAccess.allowed
+  // Employer subscription status
+  const [activeSub, setActiveSub] = useState(() => 
+    getUserActiveSubscription(currentUser?.id, 'business', currentUser?.email)
   );
+
+  // Local storage quick unlock flag for this company
+  const [localUnlocked, setLocalUnlocked] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    const cid = activeCompany?.id || currentUser?.id;
+    return cid ? localStorage.getItem(`jobia_kadr_bank_unlocked_${cid}`) === 'true' : false;
+  });
+
+  // Strict check: ONLY an employer who has made payment can open the talent bank!
+  const isKadrBankUnlocked = useMemo(() => {
+    if (!isEmployerUser) return false;
+    if (localUnlocked) return true;
+    if (activeCompany?.subscriptionPlan === 'BUSINESS' || activeCompany?.subscriptionPlan === 'PRO') {
+      return true;
+    }
+    if (activeSub && activeSub.status === 'ACTIVE' && activeSub.tier !== 'FREE') {
+      if (activeSub.amount > 0 || checkFeatureAccess(activeSub, 'canSearchCandidateDatabase').allowed) {
+        return true;
+      }
+    }
+    return false;
+  }, [isEmployerUser, localUnlocked, activeCompany, activeSub]);
+
+  const hasGlobalSubscription = isKadrBankUnlocked;
+
+  // Payment form states for Kadr Banki checkout
+  const [payTier, setPayTier] = useState<'PRO' | 'BUSINESS'>('PRO');
+  const [payCycle, setPayCycle] = useState<'monthly' | 'yearly'>('monthly');
+  const [payCardNumber, setPayCardNumber] = useState('');
+  const [payCardHolder, setPayCardHolder] = useState(currentUser?.fullName || activeCompany?.name || 'Müəssisə Rəhbəri');
+  const [payExpiry, setPayExpiry] = useState('12/28');
+  const [payCvv, setPayCvv] = useState('');
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+  const [paymentError, setPaymentError] = useState<string | null>(null);
+  const [paymentSuccessNotice, setPaymentSuccessNotice] = useState<string | null>(null);
+
+  const handleFillDemoCard = () => {
+    setPayCardNumber('4128 5543 8921 4242');
+    setPayCardHolder(currentUser?.fullName || activeCompany?.name || 'Müəssisə Rəhbəri');
+    setPayExpiry('12/28');
+    setPayCvv('789');
+    setPaymentError(null);
+  };
+
+  const handleCardNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const formatted = formatCardNumber(e.target.value);
+    if (formatted.length <= 19) {
+      setPayCardNumber(formatted);
+    }
+  };
+
+  const handleProcessPayment = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!currentUser || currentUser.role !== 'business') {
+      if (onRequireAuth) onRequireAuth();
+      return;
+    }
+
+    const cleanCard = payCardNumber.replace(/\s+/g, '');
+    if (cleanCard.length < 15 && cleanCard !== '4128554389214242') {
+      setPaymentError('Zəhmət olmasa düzgün 16 rəqəmli bank kart nömrəsi daxil edin və ya "Sınaq Kartını Doldur" düyməsindən istifadə edin.');
+      return;
+    }
+
+    setIsProcessingPayment(true);
+    setPaymentError(null);
+
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 450));
+
+      const planId = payTier === 'PRO' ? 'plan-employer-pro' : 'plan-employer-business';
+      const result = applySubscriptionUpgrade({
+        userId: currentUser.id,
+        userEmail: currentUser.email,
+        userName: currentUser.fullName || activeCompany.name || 'İşəgötürən',
+        role: 'business',
+        planId,
+        billingCycle: payCycle,
+        cardLast4: cleanCard.slice(-4) || '4242',
+        paymentMethod: 'Bank Kartı (Onlayn Ödəniş - Kadr Bankı)'
+      });
+
+      const cid = activeCompany?.id || currentUser?.id;
+      if (cid) {
+        localStorage.setItem(`jobia_kadr_bank_unlocked_${cid}`, 'true');
+      }
+      if (activeCompany) {
+        activeCompany.subscriptionPlan = payTier;
+      }
+
+      setLocalUnlocked(true);
+      setActiveSub(result.subscription);
+      setPaymentSuccessNotice(`🎉 Təbriklər! ${payTier === 'PRO' ? 'Pro Recruiter' : 'Enterprise'} planı aktivləşdirildi və Kadr Bankı tam açıldı!`);
+      setTimeout(() => setPaymentSuccessNotice(null), 6000);
+    } catch (err: any) {
+      console.error('Payment failed:', err);
+      setPaymentError(err.message || 'Ödəniş zamanı xəta baş verdi. Zəhmət olmasa yenidən cəhd edin.');
+    } finally {
+      setIsProcessingPayment(false);
+    }
+  };
 
   // Load candidate profiles and unlocked states
   useEffect(() => {
@@ -246,6 +359,428 @@ export const CandidateTalentPool: React.FC<CandidateTalentPoolProps> = ({
     return `${maskedName}@${parts[1]}`;
   };
 
+  if (!isKadrBankUnlocked) {
+    const unitPrice = payCycle === 'yearly' ? (payTier === 'PRO' ? 39 : 99) : (payTier === 'PRO' ? 49 : 129);
+    const totalAmount = payCycle === 'yearly' ? unitPrice * 12 : unitPrice;
+
+    return (
+      <div className="space-y-6 animate-fade-in text-left max-w-5xl mx-auto py-2">
+        {/* Main Paywall Card */}
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          {/* Header Banner */}
+          <div className="bg-gradient-to-r from-[#0b1b2b] via-[#102a45] to-[#0b1b2b] text-white p-6 sm:p-8 relative overflow-hidden">
+            <div className="absolute right-0 top-0 translate-x-12 -translate-y-12 w-64 h-64 bg-[#00a859]/10 rounded-full blur-2xl pointer-events-none" />
+            <div className="relative z-10 max-w-3xl space-y-3">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-400/30 text-xs font-bold">
+                <Lock className="w-3.5 h-3.5 text-amber-400" />
+                <span>Yalnız Ödənişli İşəgötürənlər Üçün Açıqdır</span>
+              </div>
+              <h1 className="text-xl sm:text-3xl font-black tracking-tight text-white">
+                Kadr Bankına Giriş Bağlıdır
+              </h1>
+              <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+                Hörmətli işəgötürən, Kadr Bankı xidmətindən istifadə etmək və Azərbaycanın ən zəngin namizəd bazasını açmaq üçün ödəniş tələb olunur. Ödəniş təsdiqləndikdən sonra 1 500+ təsdiqlənmiş namizədin canlı CV-ləri, birbaşa əlaqə vasitələri (telefon, e-poçt, WhatsApp), region xəritəsi və PDF yükləmə imkanları dərhal açılacaqdır.
+              </p>
+            </div>
+          </div>
+
+          {/* Body Content */}
+          <div className="p-6 sm:p-8 space-y-8">
+            {/* If user is NOT logged in or NOT business */}
+            {!isEmployerUser ? (
+              <div className="bg-amber-50 border border-amber-200 rounded-2xl p-6 sm:p-8 text-center space-y-4">
+                <div className="w-14 h-14 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center mx-auto shadow-xs">
+                  <Building2 className="w-7 h-7" />
+                </div>
+                <div className="max-w-md mx-auto space-y-1.5">
+                  <h3 className="text-base sm:text-lg font-bold text-amber-950">
+                    İşəgötürən Şirkət Hesabı Tələb Olunur
+                  </h3>
+                  <p className="text-xs sm:text-sm text-amber-800/90 leading-relaxed">
+                    Kadr Bankı yalnız rəsmi qeydiyyatdan keçmiş şirkətlər və işəgötürənlər üçün nəzərdə tutulub. Giriş əldə etmək üçün əvvəlcə işəgötürən kimi daxil olun və ya yeni şirkət profili yaradın.
+                  </p>
+                </div>
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => onRequireAuth?.()}
+                    className="w-full sm:w-auto px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs sm:text-sm flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer"
+                  >
+                    <LogIn className="w-4 h-4" />
+                    <span>İşəgötürən Kimi Giriş Et</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onRequireAuth?.()}
+                    className="w-full sm:w-auto px-6 py-2.5 bg-white hover:bg-slate-50 text-slate-700 font-bold rounded-xl text-xs sm:text-sm border border-slate-300 flex items-center justify-center gap-2 transition-all cursor-pointer"
+                  >
+                    <UserPlus className="w-4 h-4 text-slate-400" />
+                    <span>Yeni Müəssisə Qeydiyyatı</span>
+                  </button>
+                </div>
+              </div>
+            ) : (
+              /* Employer is logged in -> Show Plan Selection & Instant Payment Form */
+              <div className="space-y-8">
+                {paymentSuccessNotice && (
+                  <div className="p-4 bg-emerald-50 border border-emerald-300 rounded-xl text-emerald-900 text-xs sm:text-sm font-bold flex items-center gap-2.5 animate-fade-in shadow-xs">
+                    <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+                    <span>{paymentSuccessNotice}</span>
+                  </div>
+                )}
+
+                {paymentError && (
+                  <div className="p-4 bg-rose-50 border border-rose-200 rounded-xl text-rose-800 text-xs sm:text-sm flex items-center gap-2.5 animate-fade-in">
+                    <AlertCircle className="w-5 h-5 text-rose-600 shrink-0" />
+                    <span>{paymentError}</span>
+                  </div>
+                )}
+
+                {/* Step 1: Choose Employer Plan */}
+                <div className="space-y-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div>
+                      <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                        <span className="w-6 h-6 rounded-full bg-[#00a859] text-white flex items-center justify-center text-xs font-black">1</span>
+                        <span>İşəgötürən Paketini Seçin</span>
+                      </h3>
+                      <p className="text-xs text-slate-500 mt-0.5">
+                        Kadr Bankını dərhal açmaq üçün uyğun paketi seçin.
+                      </p>
+                    </div>
+
+                    {/* Cycle Toggle */}
+                    <div className="bg-slate-100 p-1 rounded-xl border border-slate-200 flex items-center gap-1 self-start sm:self-auto text-xs font-semibold">
+                      <button
+                        type="button"
+                        onClick={() => setPayCycle('monthly')}
+                        className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+                          payCycle === 'monthly'
+                            ? 'bg-white text-slate-900 shadow-2xs font-bold'
+                            : 'text-slate-600 hover:text-slate-900'
+                        }`}
+                      >
+                        Aylıq
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setPayCycle('yearly')}
+                        className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
+                          payCycle === 'yearly'
+                            ? 'bg-white text-[#00a859] shadow-2xs font-bold'
+                            : 'text-slate-600 hover:text-slate-900'
+                        }`}
+                      >
+                        <span>İllik</span>
+                        <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-[#00a859]/10 text-[#00a859] font-black">
+                          -20%
+                        </span>
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Option 1: Pro Recruiter */}
+                    <div
+                      onClick={() => setPayTier('PRO')}
+                      className={`p-5 rounded-2xl border-2 transition-all cursor-pointer relative flex flex-col justify-between ${
+                        payTier === 'PRO'
+                          ? 'border-[#00a859] bg-[#00a859]/5 ring-2 ring-[#00a859]/20 shadow-sm'
+                          : 'border-slate-200 bg-white hover:border-slate-300'
+                      }`}
+                    >
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-blue-100 text-blue-800">
+                            Populyar Seçim
+                          </span>
+                          <div className={`w-5 h-5 rounded-full border flex items-center justify-center ${payTier === 'PRO' ? 'border-[#00a859] bg-[#00a859] text-white' : 'border-slate-300'}`}>
+                            {payTier === 'PRO' && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+                          </div>
+                        </div>
+
+                        <div>
+                          <h4 className="text-lg font-black text-slate-900">Pro Recruiter</h4>
+                          <p className="text-xs text-slate-500 mt-0.5">
+                            Aktiv işçi axtaran və namizəd bazasını açmaq istəyən şirkətlər üçün.
+                          </p>
+                        </div>
+
+                        <div className="pt-2">
+                          <span className="text-3xl font-black text-slate-900">
+                            {payCycle === 'yearly' ? '39' : '49'} ₼
+                          </span>
+                          <span className="text-xs text-slate-500 font-medium"> / ay</span>
+                          {payCycle === 'yearly' && (
+                            <span className="block text-[11px] text-[#00a859] font-bold mt-0.5">
+                              İllik hesablaşma: 468 ₼ (120 ₼ qənaət)
+                            </span>
+                          )}
+                        </div>
+
+                        <ul className="space-y-2 pt-2 border-t border-slate-100 text-xs text-slate-700">
+                          <li className="flex items-center gap-2 font-bold text-slate-900">
+                            <CheckCircle2 className="w-4 h-4 text-[#00a859] shrink-0" />
+                            <span>Kadr Bankına TAM Giriş (Bütün Namizədlər)</span>
+                          </li>
+                          <li className="flex items-center gap-2">
+                            <CheckCircle2 className="w-4 h-4 text-[#00a859] shrink-0" />
+                            <span>Telefon, E-poçt və WhatsApp əlaqələrinə baxış</span>
+                          </li>
+                          <li className="flex items-center gap-2">
+                            <CheckCircle2 className="w-4 h-4 text-[#00a859] shrink-0" />
+                            <span>5 aktiv vakansiya elanı</span>
+                          </li>
+                          <li className="flex items-center gap-2">
+                            <CheckCircle2 className="w-4 h-4 text-[#00a859] shrink-0" />
+                            <span>Rəsmi A4 PDF CV yükləmə & çap</span>
+                          </li>
+                          <li className="flex items-center gap-2">
+                            <CheckCircle2 className="w-4 h-4 text-[#00a859] shrink-0" />
+                            <span>AI Namizəd Uyğunluq Skoru & Smart Offer</span>
+                          </li>
+                        </ul>
+                      </div>
+                    </div>
+
+                    {/* Option 2: Enterprise / Business */}
+                    <div
+                      onClick={() => setPayTier('BUSINESS')}
+                      className={`p-5 rounded-2xl border-2 transition-all cursor-pointer relative flex flex-col justify-between ${
+                        payTier === 'BUSINESS'
+                          ? 'border-blue-600 bg-blue-50/40 ring-2 ring-blue-600/20 shadow-sm'
+                          : 'border-slate-200 bg-white hover:border-slate-300'
+                      }`}
+                    >
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-purple-100 text-purple-800">
+                            Limitsiz Korporativ
+                          </span>
+                          <div className={`w-5 h-5 rounded-full border flex items-center justify-center ${payTier === 'BUSINESS' ? 'border-blue-600 bg-blue-600 text-white' : 'border-slate-300'}`}>
+                            {payTier === 'BUSINESS' && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+                          </div>
+                        </div>
+
+                        <div>
+                          <h4 className="text-lg font-black text-slate-900">Enterprise / Business</h4>
+                          <p className="text-xs text-slate-500 mt-0.5">
+                            Böyük şirkətlər, holdinqlər və limitsiz işə qəbul üçün.
+                          </p>
+                        </div>
+
+                        <div className="pt-2">
+                          <span className="text-3xl font-black text-slate-900">
+                            {payCycle === 'yearly' ? '99' : '129'} ₼
+                          </span>
+                          <span className="text-xs text-slate-500 font-medium"> / ay</span>
+                          {payCycle === 'yearly' && (
+                            <span className="block text-[11px] text-blue-600 font-bold mt-0.5">
+                              İllik hesablaşma: 1 188 ₼ (360 ₼ qənaət)
+                            </span>
+                          )}
+                        </div>
+
+                        <ul className="space-y-2 pt-2 border-t border-slate-100 text-xs text-slate-700">
+                          <li className="flex items-center gap-2 font-bold text-slate-900">
+                            <CheckCircle2 className="w-4 h-4 text-blue-600 shrink-0" />
+                            <span>Limitsiz Kadr Bankı və VIP Axtarış</span>
+                          </li>
+                          <li className="flex items-center gap-2">
+                            <CheckCircle2 className="w-4 h-4 text-blue-600 shrink-0" />
+                            <span>Limitsiz aktiv vakansiya elanları</span>
+                          </li>
+                          <li className="flex items-center gap-2">
+                            <CheckCircle2 className="w-4 h-4 text-blue-600 shrink-0" />
+                            <span>Bütün AI Alətləri (ATS, Müsahibə xülasəsi)</span>
+                          </li>
+                          <li className="flex items-center gap-2">
+                            <CheckCircle2 className="w-4 h-4 text-blue-600 shrink-0" />
+                            <span>Komanda HR menecerləri idarəetməsi</span>
+                          </li>
+                          <li className="flex items-center gap-2">
+                            <CheckCircle2 className="w-4 h-4 text-blue-600 shrink-0" />
+                            <span>7/24 Şəxsi HR Menecer & VIP Dəstək</span>
+                          </li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Step 2: Instant Card Checkout Form */}
+                <form onSubmit={handleProcessPayment} className="bg-slate-50 border border-slate-200 rounded-2xl p-5 sm:p-6 space-y-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200 pb-3">
+                    <div className="flex items-center gap-2">
+                      <span className="w-6 h-6 rounded-full bg-[#00a859] text-white flex items-center justify-center text-xs font-black">2</span>
+                      <h3 className="text-sm sm:text-base font-bold text-slate-900">
+                        Təhlükəsiz Onlayn Ödəniş və Kadr Bankının Açılması
+                      </h3>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={handleFillDemoCard}
+                      className="px-2.5 py-1 bg-white hover:bg-slate-100 text-purple-700 text-xs font-bold rounded-lg border border-purple-200 flex items-center gap-1.5 transition-colors cursor-pointer self-start sm:self-auto shadow-2xs"
+                    >
+                      <Sparkles className="w-3.5 h-3.5 text-purple-600" />
+                      <span>Sınaq Kartını Doldur (Test)</span>
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-1.5 sm:col-span-2">
+                      <label className="text-xs font-bold text-slate-700">Kart Nömrəsi</label>
+                      <div className="relative">
+                        <CreditCard className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                        <input
+                          type="text"
+                          required
+                          value={payCardNumber}
+                          onChange={handleCardNumberChange}
+                          placeholder="4128 •••• •••• 4242"
+                          maxLength={19}
+                          className="w-full pl-10 pr-4 py-2 bg-white border border-slate-300 rounded-xl text-xs sm:text-sm font-semibold text-slate-900 outline-none focus:border-[#00a859] focus:ring-2 focus:ring-[#00a859]/20"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-slate-700">Kart Sahibi</label>
+                      <input
+                        type="text"
+                        required
+                        value={payCardHolder}
+                        onChange={(e) => setPayCardHolder(e.target.value)}
+                        placeholder="Şirkət nümayəndəsinin adı"
+                        className="w-full px-3.5 py-2 bg-white border border-slate-300 rounded-xl text-xs sm:text-sm font-semibold text-slate-900 outline-none focus:border-[#00a859] focus:ring-2 focus:ring-[#00a859]/20"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-bold text-slate-700">Bitmə Tarixi</label>
+                        <input
+                          type="text"
+                          required
+                          value={payExpiry}
+                          onChange={(e) => setPayExpiry(e.target.value)}
+                          placeholder="12/28"
+                          maxLength={5}
+                          className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs sm:text-sm font-semibold text-slate-900 outline-none focus:border-[#00a859] focus:ring-2 focus:ring-[#00a859]/20 text-center"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-bold text-slate-700">CVV</label>
+                        <input
+                          type="password"
+                          required
+                          value={payCvv}
+                          onChange={(e) => setPayCvv(e.target.value)}
+                          placeholder="•••"
+                          maxLength={4}
+                          className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs sm:text-sm font-semibold text-slate-900 outline-none focus:border-[#00a859] focus:ring-2 focus:ring-[#00a859]/20 text-center"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-3 border-t border-slate-200">
+                    <div className="flex items-center gap-3 text-slate-500 text-xs">
+                      <ShieldCheck className="w-5 h-5 text-[#00a859]" />
+                      <span>256-bit SSL Təhlükəsiz Ödəniş • Visa / MasterCard / Birbank</span>
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={isProcessingPayment}
+                      className="w-full sm:w-auto px-8 py-3 bg-[#00a859] hover:bg-[#00924c] disabled:opacity-50 text-white font-black rounded-xl text-sm flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer"
+                    >
+                      {isProcessingPayment ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin text-white" />
+                          <span>Ödəniş Təsdiqlənir...</span>
+                        </>
+                      ) : (
+                        <>
+                          <CheckCircle2 className="w-4 h-4" />
+                          <span>{totalAmount} ₼ Ödə və Kadr Bankını Aç</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            )}
+
+            {/* Teaser Preview: 3 Blurred Candidate Cards */}
+            <div className="space-y-3 pt-4 border-t border-slate-100">
+              <div className="flex items-center justify-between text-xs text-slate-500">
+                <span className="font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+                  <Eye className="w-4 h-4 text-blue-600" />
+                  <span>Kadr Bankında Sizi Gözləyən Namizədlər (İlkin Baxış)</span>
+                </span>
+                <span className="text-[11px] font-bold text-slate-400">
+                  Cəmi: 1 500+ peşəkar
+                </span>
+              </div>
+
+              <div className="relative">
+                {/* Overlay Lock Banner */}
+                <div className="absolute inset-0 z-10 bg-slate-900/40 backdrop-blur-[2px] rounded-2xl flex flex-col items-center justify-center p-6 text-center text-white">
+                  <div className="w-12 h-12 rounded-2xl bg-white text-slate-900 flex items-center justify-center mb-3 shadow-lg">
+                    <Lock className="w-6 h-6 text-amber-500" />
+                  </div>
+                  <h4 className="text-base sm:text-lg font-black tracking-tight">
+                    Namizədlərin Canlı CV-ləri və Əlaqələri Kilidlidir
+                  </h4>
+                  <p className="text-xs text-slate-200 mt-1 max-w-md">
+                    Bütün namizədlərin birbaşa telefon nömrələri, e-poçtları və tam təcrübə sənədləri ödənişdən sonra tam açılır.
+                  </p>
+                </div>
+
+                {/* 3 Sample Dummy / Blurred Cards */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 filter blur-[1.5px] pointer-events-none select-none opacity-50">
+                  {[
+                    { name: 'Rauf Əliyev', title: 'Senior Full Stack Developer', city: 'Bakı', exp: '6 il', skills: ['React', 'Node.js', 'PostgreSQL'] },
+                    { name: 'Leyla Qasımova', title: 'Baş Mühasib / Maliyyə Meneceri', city: 'Bakı', exp: '8 il', skills: ['1C 8.3', 'Vergi', 'IFRS'] },
+                    { name: 'Tural Məmmədov', title: 'B2B Satış və Əməliyyat Direktoru', city: 'Sumqayıt', exp: '5 il', skills: ['B2B Sales', 'CRM', 'Tərəfdaşlıq'] },
+                  ].map((cand, idx) => (
+                    <div key={idx} className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs space-y-2 text-left">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center font-bold text-slate-600">
+                          {cand.name.charAt(0)}
+                        </div>
+                        <div>
+                          <div className="font-bold text-xs text-slate-900">{cand.name}</div>
+                          <div className="text-[11px] text-slate-500">{cand.title}</div>
+                        </div>
+                      </div>
+                      <div className="text-[10px] text-slate-400 flex items-center gap-2">
+                        <span>📍 {cand.city}</span>
+                        <span>•</span>
+                        <span>💼 {cand.exp} təcrübə</span>
+                      </div>
+                      <div className="flex gap-1 flex-wrap pt-1">
+                        {cand.skills.map((s, i) => (
+                          <span key={i} className="px-1.5 py-0.5 rounded bg-slate-100 text-[10px] text-slate-600 font-medium">
+                            {s}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <SectionBottomLogo />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-2.5 animate-fade-in text-left">
       {/* Top Header & Search Bar styled with Jobia logo colors */}
@@ -264,17 +799,10 @@ export const CandidateTalentPool: React.FC<CandidateTalentPoolProps> = ({
           </div>
 
           <div className="flex items-center gap-2">
-            {hasGlobalSubscription ? (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-[#00a859]/10 text-[#00a859] text-[10px] font-bold border border-[#00a859]/20">
-                <CheckCircle2 className="w-3 h-3 text-[#00a859]" />
-                Limitsiz Giriş
-              </span>
-            ) : (
-              <span className="hidden sm:inline-flex items-center gap-1 text-[10px] text-slate-400">
-                <Lock className="w-2.5 h-2.5" />
-                Əlaqələr qorunur
-              </span>
-            )}
+            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-[#00a859]/10 text-[#00a859] text-[11px] font-bold border border-[#00a859]/20">
+              <CheckCircle2 className="w-3.5 h-3.5 text-[#00a859]" />
+              Ödənişli Giriş: Limitsiz Kadr Bankı
+            </span>
 
             <button
               type="button"
@@ -435,7 +963,7 @@ export const CandidateTalentPool: React.FC<CandidateTalentPoolProps> = ({
           </button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-2.5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-2.5">
           {filteredCandidates.map((candidate) => {
             const isUnlocked = isCandidateUnlocked(candidate.id);
 

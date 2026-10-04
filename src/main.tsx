@@ -6,6 +6,15 @@ import { ErrorBoundary } from './components/ErrorBoundary.tsx';
 import 'leaflet/dist/leaflet.css';
 import './index.css';
 
+// Register PWA Service Worker safely
+if ('serviceWorker' in navigator && process.env.NODE_ENV === 'production') {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(() => {
+      // SW registration fallback
+    });
+  });
+}
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <ErrorBoundary>

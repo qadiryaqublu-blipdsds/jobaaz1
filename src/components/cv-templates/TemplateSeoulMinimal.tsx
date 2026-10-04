@@ -67,12 +67,12 @@ export const TemplateSeoulMinimal: React.FC<TemplateProps> = ({ data, showPhoto 
                   {exp.startDate} – {exp.current ? terms.present : exp.endDate}
                 </div>
                 <div className="col-span-9 space-y-1">
-                  <div className="flex justify-between items-baseline">
-                    <span className="text-xs font-medium text-slate-900">{exp.position}</span>
-                    <span className="text-[11px] text-slate-500 font-light">{exp.company}</span>
+                  <div className="flex flex-wrap justify-between items-baseline gap-2 min-w-0">
+                    <span className="text-xs font-medium text-slate-900 flex-1 min-w-0 break-words">{exp.position}</span>
+                    <span className="text-[11px] text-slate-500 font-light shrink-0 whitespace-nowrap">{exp.company}</span>
                   </div>
                   {exp.description && (
-                    <p className="text-[11px] text-slate-600 leading-relaxed whitespace-pre-line font-light">
+                    <p className="text-[11px] text-slate-600 leading-relaxed whitespace-pre-line font-light break-words">
                       {exp.description}
                     </p>
                   )}
@@ -91,13 +91,13 @@ export const TemplateSeoulMinimal: React.FC<TemplateProps> = ({ data, showPhoto 
           </div>
           <div className="space-y-2.5">
             {education.map((edu) => (
-              <div key={edu.id} className="grid grid-cols-12 gap-4 items-baseline">
+              <div key={edu.id} className="grid grid-cols-12 gap-4 items-baseline min-w-0">
                 <div className="col-span-3 text-[11px] font-light text-slate-400">
                   {edu.startDate} – {edu.endDate}
                 </div>
-                <div className="col-span-9">
-                  <div className="text-xs font-medium text-slate-900">{edu.institution}</div>
-                  <div className="text-[11px] text-slate-500 font-light">{edu.degree} · {edu.fieldOfStudy}</div>
+                <div className="col-span-9 min-w-0">
+                  <div className="text-xs font-medium text-slate-900 break-words">{edu.institution}</div>
+                  <div className="text-[11px] text-slate-500 font-light break-words">{edu.degree} · {edu.fieldOfStudy}</div>
                 </div>
               </div>
             ))}

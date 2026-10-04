@@ -3,6 +3,7 @@ import { Vacancy, CVData, Company } from '../../types';
 import { JOB_CATEGORIES, CITIES, SAMPLE_COMPANIES } from '../../data/mockData';
 import { useLanguage } from '../../context/LanguageContext';
 import { safeFetchJson } from '../../utils/apiHelper';
+import { safeOpenLink } from '../../utils/dialogHelper';
 import { 
   Search, 
   MapPin, 
@@ -1442,7 +1443,7 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
     const text = encodeURIComponent(
       `Salam! jobia.az portalında yerləşdirdiyiniz "${job.title}" (${job.companyName}) vakansiyası ilə maraqlanıram. Zəhmət olmasa əlavə məlumat verərdiniz.`
     );
-    window.open(`https://wa.me/${phone.replace(/[^0-9]/g, '')}?text=${text}`, '_blank');
+    safeOpenLink(`https://wa.me/${phone.replace(/[^0-9]/g, '')}?text=${text}`, '_blank');
   };
 
   // Handle Simple Quick Apply Submission

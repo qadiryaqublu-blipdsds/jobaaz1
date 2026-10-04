@@ -909,7 +909,7 @@ export const InterviewModal: React.FC<InterviewModalProps> = ({
 
                   <div className="bg-white p-3 rounded-lg border border-blue-200">
                     <label className="block font-bold text-emerald-800 mb-1">
-                      Xalis Əməkhaqqı (Net Salary - Ələ Çatan) - AZN
+                      Xalis Əməkhaqqı (Net Salary) - AZN
                     </label>
                     <input
                       type="number"

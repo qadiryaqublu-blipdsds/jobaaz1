@@ -5,6 +5,8 @@ import {
   UserRole,
   PlanTier,
   BillingCycle,
+  OneOffServiceItem,
+  AICreditPackage
 } from '../types';
 import { 
   saveUserSubscriptionToFirestore, 
@@ -15,10 +17,10 @@ import {
 const SUBSCRIPTION_STORAGE_KEY = 'jobia_subscriptions_db';
 const TRANSACTIONS_STORAGE_KEY = 'jobia_transactions_db';
 
-// Master Plans Catalog
+// Master Plans Catalog (TRS Section 8.2 & 8.3)
 export const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
   // -------------------------------------------------------------
-  // EMPLOYER / BUSINESS PLANS
+  // EMPLOYER / BUSINESS PLANS (TRS Section 8.3)
   // -------------------------------------------------------------
   {
     id: 'plan-employer-free',
@@ -30,9 +32,8 @@ export const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
     priceYearly: 0,
     features: [
       '1 aktiv vakansiya elanı',
-      'Standart namizəd müraciətlərini qəbul etmə',
-      'Əsas namizəd CV baxışı',
-      'Namizəd müraciət statuslarını dəyişmə',
+      'Standart müraciətlərin qəbul edilməsi və idarə edilməsi',
+      'Əsas namizəd CV baxışı və status dəyişmə',
       'Standart e-poçt dəstəyi',
     ],
     limits: {
@@ -52,32 +53,30 @@ export const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
     },
   },
   {
-    id: 'plan-employer-pro',
+    id: 'plan-employer-starter',
     role: 'business',
-    tier: 'PRO',
-    name: 'Pro Recruiter',
-    tagline: 'Aktiv işçi axtaran və işə qəbul prosesini sürətləndirən şirkətlər üçün.',
+    tier: 'STARTER',
+    name: 'Starter',
+    tagline: '3 aktiv vakansiya və AI alətləri ilə sürətli işə qəbul başlanğıcı.',
     priceMonthly: 49,
     priceYearly: 39,
-    badge: 'Ən Populyar',
-    isPopular: true,
+    badge: 'Sürətli Başlanğıc',
     features: [
-      '5 aktiv vakansiya elanı',
-      'AI Namizəd Uyğunluq Skoru və Açar söz təhlili',
-      'Shortlist və Namizəd qeydləri',
-      'AI Müsahibə Dəyərləndirməsi & Avtomat Xülasə',
-      'AI ilə Rəsmi İş Təklifi (Job Offer) və 1-kliklə göndəriş',
-      'Rəsmi A4 PDF Təklif sənədi və Namizəd Portalı',
-      'Prioritet HR Texniki Dəstəyi',
+      '3 aktiv vakansiya elanı',
+      'AI alətləri üçün 10 başlanğıc krediti',
+      'AI Vakansiya Mətni Generatoru (1 kredit / elan)',
+      'Kadr Bankına giriş və namizəd profilləri',
+      'Namizəd qeydləri və shortlist sistemi',
+      'Prioritet texniki dəstək',
     ],
     limits: {
-      maxActiveJobs: 5,
+      maxActiveJobs: 3,
       canUseAICandidateMatching: true,
       canUseAIInterviewSummary: true,
       canGenerateJobOffers: true,
-      canSearchCandidateDatabase: false,
+      canSearchCandidateDatabase: true,
       canExportCandidateData: true,
-      hasPriorityListing: true,
+      hasPriorityListing: false,
       hasTeamMembers: false,
       canUseAIATSAnalysis: false,
       canUseAIInterviewPrep: false,
@@ -90,19 +89,56 @@ export const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
     id: 'plan-employer-business',
     role: 'business',
     tier: 'BUSINESS',
-    name: 'Enterprise / Business',
-    tagline: 'Böyük holdinqlər, korporasiyalar və limitsiz işə qəbul komandaları üçün.',
-    priceMonthly: 129,
-    priceYearly: 99,
-    badge: 'Limitsiz İmkanlar',
+    name: 'Business',
+    tagline: '10 aktiv vakansiya, genişləndirilmiş AI imkanları və kadr analitikası.',
+    priceMonthly: 99,
+    priceYearly: 79,
+    badge: 'Ən Populyar',
+    isPopular: true,
     features: [
-      'Limitsiz aktiv vakansiya elanları',
-      'Tam Namizəd və CV Bazası axtarışı (Bütün namizədlər)',
+      '10 aktiv vakansiya elanı',
+      'Genişləndirilmiş AI imkanları (30 AI krediti)',
+      'AI ilə Rəsmi Vəzifə Təlimatı Hazırlanması (12 bölməli)',
+      'AI Namizəd Uyğunluq Skoru və Açar söz təhlili',
+      'Elektron İş Təklifləri (Job Offer) və A4 PDF təsdiqi',
+      'Kadr Bankı və qabaqcıl namizəd filtrləməsi',
+      'Vakansiyaların önə çıxarılması (Featured)',
+      'İşə qəbul analitikası və hesabatlar',
+    ],
+    limits: {
+      maxActiveJobs: 10,
+      canUseAICandidateMatching: true,
+      canUseAIInterviewSummary: true,
+      canGenerateJobOffers: true,
+      canSearchCandidateDatabase: true,
+      canExportCandidateData: true,
+      hasPriorityListing: true,
+      hasTeamMembers: false,
+      canUseAIATSAnalysis: false,
+      canUseAIInterviewPrep: false,
+      hasAllCVTemplates: false,
+      hasPriorityApplicationBadge: false,
+      canUseSalaryTrendsIntelligence: false,
+    },
+  },
+  {
+    id: 'plan-employer-corporate',
+    role: 'business',
+    tier: 'CORPORATE',
+    name: 'Corporate',
+    tagline: 'Çoxsaylı vakansiyalar, komanda üzvləri və fərdi prioritet dəstək.',
+    priceMonthly: 199,
+    priceYearly: 159,
+    badge: 'Korporativ Lider',
+    features: [
+      'Çoxsaylı (25+) aktiv vakansiya elanı',
+      'Komanda üzvləri üçün çoxistifadəçili giriş (Multi-user ATS)',
+      '100 AI Krediti (bütün alətlər üçün limitsiz güc)',
+      'Limitsiz Kadr Bankı və birbaşa namizəd dəvətləri',
+      'AI Vəzifə Təlimatları və Şirkət xüsusi HR şablonları',
       'Toplu (Bulk) namizəd idarəetməsi və Excel/PDF ixracı',
-      'Bütün AI Funksiyaları (Matching, Interview AI, Smart Offer)',
-      'Vakansiyaların axtarışda ƏN ÖNDƏ görünməsi (Featured)',
-      'Komanda HR menecerləri və rol bölüşdürülməsi',
-      '7/24 Şəxsi HR Menecer & VIP Dəstək',
+      'Vakansiyaların axtarışda ƏN ÖNDƏ yerləşdirilməsi',
+      '7/24 Şəxsi HR Menecer & VIP Dəstək xətti',
     ],
     limits: {
       maxActiveJobs: 9999,
@@ -122,7 +158,7 @@ export const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
   },
 
   // -------------------------------------------------------------
-  // CANDIDATE PLANS
+  // CANDIDATE PLANS (TRS Section 8.2)
   // -------------------------------------------------------------
   {
     id: 'plan-candidate-free',
@@ -133,11 +169,11 @@ export const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
     priceMonthly: 0,
     priceYearly: 0,
     features: [
+      'Standart CV Yaradılması (Pulsuz)',
       'Peşəkar Onlayn CV Profili',
-      'CV Generator (Klassik Zümrüd şablonu)',
-      'Bütün vakansiyalara 1 kliklə müraciət',
+      'Bütün vakansiyalara 1 kliklə limitsiz müraciət',
       'CV-ni PDF kimi birbaşa yükləmə',
-      'Müraciət statusları və bildirişlər',
+      'Müraciət statusları və anlıq bildirişlər',
       'İş Təkliflərini Onlayn Portaldan cavablama',
     ],
     limits: {
@@ -163,12 +199,13 @@ export const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
     name: 'Candidate Premium AI',
     tagline: 'Müsahibələrdən 3 qat daha tez keçmək və arzuladığı işi tapmaq istəyənlər üçün.',
     priceMonthly: 9,
-    priceYearly: 7, // 7 AZN/ay (İllik ödənişdə 84 AZN, təmiz yuvarlaq rəqəmlər)
+    priceYearly: 7, // 7 AZN/ay (illik ödənişdə 84 AZN)
     badge: 'Karyera Sürətləndirici',
     isPopular: true,
     features: [
-      '4 Müasir Dizaynda Premium CV Şablonu (Modern, Corporate, Minimal, Tech)',
-      'AI ATS CV Analizi, Uyğunluq Skoru və Təkmilləşdirmə Məsləhətləri',
+      'Bütün Premium CV Şablonları (Modern, Corporate, Minimal, Tech)',
+      'Limitsiz AI ATS CV Analizi və Uyğunluq Skoru',
+      'Vakansiyaya uyğun CV optimallaşdırılması',
       'AI Müsahibə Simulyatoru və Vakansiyaya Özəl Sual-Cavablar',
       'İşəgötürənin müraciət siyahısında "Premium Namizəd" nişanı',
       'Dərinləşdirilmiş Maaş Trendləri və Şirkət İnsights',
@@ -190,6 +227,154 @@ export const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
       canUseSalaryTrendsIntelligence: true,
     },
   },
+];
+
+// -------------------------------------------------------------
+// ONE-OFF PAY-AS-YOU-GO SERVICES (TRS Section 8.4)
+// -------------------------------------------------------------
+export const ONE_OFF_EMPLOYER_SERVICES: OneOffServiceItem[] = [
+  {
+    id: 'srv-premium-job',
+    name: 'Premium Vakansiya',
+    price: 20,
+    unit: 'elan',
+    description: 'Vakansiyanın 30 gün boyunca axtarış nəticələrində xüsusi VIP nişanla ən üst pillələrdə yerləşməsi.',
+    category: 'employer'
+  },
+  {
+    id: 'srv-ai-vacancy-generation',
+    name: 'AI ilə Vakansiya Hazırlanması',
+    price: 5,
+    unit: 'elan',
+    description: 'Yalnız vəzifə adını daxil etməklə 1-kliklə peşəkar, cəlbedici və ATS-standartlı elan mətni.',
+    category: 'employer',
+    creditsCost: 1
+  },
+  {
+    id: 'srv-ai-job-description',
+    name: 'AI ilə Rəsmi Vəzifə Təlimatının Hazırlanması',
+    price: 10,
+    unit: 'sənəd',
+    description: 'Azərbaycan Əmək Məcəlləsinə tam uyğun 12-bəndlik rəsmi korporativ vəzifə təlimatı və Word/PDF ixracı.',
+    category: 'employer',
+    creditsCost: 2
+  },
+  {
+    id: 'srv-candidate-deep-cv-analysis',
+    name: 'Genişləndirilmiş CV Analizi',
+    price: 1,
+    unit: 'CV',
+    description: 'Namizədin təqdim etdiyi CV-nin 10 ATS meyarı və faktual dəqiqlik üzrə dərindən auditi.',
+    category: 'employer',
+    creditsCost: 1
+  },
+  {
+    id: 'srv-ai-match-candidate',
+    name: 'AI ilə Namizəd Uyğunluğunun Təhlili',
+    price: 1,
+    unit: 'namizəd',
+    description: 'Namizədin bacarıq və təcrübəsinin konkret vakansiyanın tələbləri ilə 7-faktorlu dəqiq müqayisəsi.',
+    category: 'employer',
+    creditsCost: 1
+  },
+  {
+    id: 'srv-boost-vacancy',
+    name: 'Vakansiyanın Önə Çıxarılması',
+    price: 15,
+    unit: 'həftə',
+    description: 'Vakansiyanın ana səhifədə və kateqoriyalarda "Seçilmiş Elan" rəngli çərçivəsində göstərilməsi.',
+    category: 'employer'
+  },
+  {
+    id: 'srv-custom-hr-doc',
+    name: 'Şirkət üçün Xüsusi HR Sənədi Hazırlanması',
+    price: 0,
+    unit: 'fərdi',
+    description: 'Daxili nizamnamələr, ştat cədvəli və xüsusi daxili qaydalar üzrə fərdi hüquqi HR layihələndirilməsi.',
+    category: 'employer'
+  }
+];
+
+// -------------------------------------------------------------
+// CANDIDATE MICRO-SERVICES & CREDIT PACKAGES (TRS Section 8.2)
+// -------------------------------------------------------------
+export const CANDIDATE_MICRO_SERVICES: OneOffServiceItem[] = [
+  {
+    id: 'cand-standard-cv',
+    name: 'Standart CV Yaradılması',
+    price: 0,
+    unit: 'CV',
+    description: 'Müasir onlayn CV redaktoru və klassik şablon ilə tam pulsuz peşəkar CV hazırlama.',
+    category: 'candidate'
+  },
+  {
+    id: 'cand-basic-ats-analysis',
+    name: 'Əsas AI CV Analizi',
+    price: 1,
+    unit: 'analiz',
+    description: 'CV-nin əsas ATS uyğunluq balı, format və struktur qiymətləndirməsi.',
+    category: 'candidate',
+    creditsCost: 1
+  },
+  {
+    id: 'cand-deep-ats-analysis',
+    name: 'Genişləndirilmiş AI CV Analizi',
+    price: 3,
+    unit: 'analiz',
+    description: '10 ATS meyarı, 23 bölməli faktual hesabat, orfoqrafik yoxlama və peşəkar düzəliş məsləhətləri.',
+    category: 'candidate',
+    creditsCost: 2
+  },
+  {
+    id: 'cand-vacancy-cv-optimizer',
+    name: 'Vakansiyaya Uyğun CV Optimallaşdırılması',
+    price: 2,
+    unit: 'optimallaşdırma',
+    description: 'Müraciət etmək istədiyiniz vakansiya elanına uyğun olaraq CV-dəki açar sözlərin AI ilə uyğunlaşdırılması.',
+    category: 'candidate',
+    creditsCost: 1
+  },
+  {
+    id: 'cand-premium-cv-templates',
+    name: 'Premium CV Şablonları',
+    price: 2,
+    unit: 'şablon',
+    description: 'İsveçrə, Zümrüd, Texnoloji və Korporativ beynəlxalq dizayn şablonları.',
+    category: 'candidate'
+  }
+];
+
+// -------------------------------------------------------------
+// AI CREDIT PACKAGES (TRS Section 8.2 & 8.5)
+// -------------------------------------------------------------
+export const AI_CREDIT_PACKAGES: AICreditPackage[] = [
+  {
+    id: 'credit-pkg-5',
+    credits: 5,
+    price: 5,
+    badge: 'Baza Paket',
+    description: '5 AI Əməliyyat Krediti (1 kredit = 1 AZN). CV analizi və ya vakansiya mətni üçün ideal.',
+    savings: 'Standart Tarif'
+  },
+  {
+    id: 'credit-pkg-15',
+    credits: 15,
+    price: 10,
+    badge: '33% Qənaət',
+    description: '15 AI Əməliyyat Krediti (Hər kredit cəmi 0.66 AZN). Vəzifə təlimatları və dərin analizlər üçün sərfəli.',
+    savings: '5 AZN Qənaət'
+  }
+];
+
+// -------------------------------------------------------------
+// AI CREDIT USAGE RULES (TRS Section 8.5)
+// -------------------------------------------------------------
+export const AI_CREDIT_RULES = [
+  { service: 'AI Vakansiya Mətni', cost: '1 kredit', icon: 'Briefcase' },
+  { service: 'AI Vəzifə Təlimatı (12 bölməli rəsmi sənəd)', cost: '2 kredit', icon: 'FileText' },
+  { service: 'Əsas CV Analizi', cost: '1 kredit', icon: 'CheckCircle' },
+  { service: 'Genişləndirilmiş Faktual CV Analizi', cost: '2 kredit', icon: 'Sparkles' },
+  { service: 'Vakansiyaya Uyğunluq Analizi (Matching)', cost: '1 kredit', icon: 'Target' },
 ];
 
 export function formatPrice(amount: number): string {
@@ -326,8 +511,10 @@ export function checkFeatureAccess(
   const isAllowed = Boolean(plan.limits[feature]);
   if (!isAllowed) {
     let requiredPlan = 'PRO';
-    if (feature === 'canSearchCandidateDatabase' || feature === 'hasTeamMembers') {
+    if (feature === 'hasTeamMembers') {
       requiredPlan = 'BUSINESS';
+    } else if (feature === 'canSearchCandidateDatabase') {
+      requiredPlan = 'PRO';
     } else if (feature === 'canUseAIATSAnalysis' || feature === 'canUseAIInterviewPrep' || feature === 'hasAllCVTemplates') {
       requiredPlan = 'PREMIUM';
     }

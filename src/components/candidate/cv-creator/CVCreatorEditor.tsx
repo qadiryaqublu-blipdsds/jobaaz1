@@ -31,6 +31,7 @@ import {
   HelpCircle,
   Mic
 } from 'lucide-react';
+import { safeAlert } from '../../../utils/dialogHelper';
 
 interface CVCreatorEditorProps {
   cvData: CVData;
@@ -39,6 +40,8 @@ interface CVCreatorEditorProps {
   setShowPhoto: (show: boolean) => void;
   onOpenAiModal?: () => void;
   onOpenImageAiModal?: () => void;
+  onOpenSocialModal?: () => void;
+  onApplyCvData?: (data: CVData) => void;
 }
 
 export const CVCreatorEditor: React.FC<CVCreatorEditorProps> = ({
@@ -47,8 +50,57 @@ export const CVCreatorEditor: React.FC<CVCreatorEditorProps> = ({
   showPhoto,
   setShowPhoto,
   onOpenAiModal,
-  onOpenImageAiModal
+  onOpenImageAiModal,
+  onOpenSocialModal,
+  onApplyCvData
 }) => {
+  // Quick Social Profile CV Generation (LinkedIn / Facebook)
+  const [socialPlatform, setSocialPlatform] = useState<'linkedin' | 'facebook'>('linkedin');
+  const [quickSocialUrl, setQuickSocialUrl] = useState('');
+  const [isSocialGenerating, setIsSocialGenerating] = useState(false);
+  const [socialSuccessMsg, setSocialSuccessMsg] = useState('');
+  const [socialErrorMsg, setSocialErrorMsg] = useState('');
+
+  const handleQuickSocialGenerate = async () => {
+    const trimmed = quickSocialUrl.trim();
+    if (!trimmed || trimmed.length < 5) {
+      setSocialErrorMsg('Zəhmət olmasa LinkedIn və ya Facebook profil linkini daxil edin.');
+      return;
+    }
+    setSocialErrorMsg('');
+    setSocialSuccessMsg('');
+    setIsSocialGenerating(true);
+    try {
+      const detectedPlatform = trimmed.includes('facebook') ? 'facebook' : socialPlatform;
+      const res = await fetch('/api/ai/generate-cv-from-social', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          profileUrl: trimmed,
+          platform: detectedPlatform,
+          photoUrl: cvData.personalInfo?.photoUrl
+        })
+      });
+      const data = await res.json();
+      if (data && data.cvData) {
+        if (onApplyCvData) {
+          onApplyCvData(data.cvData);
+        } else {
+          setCvData(data.cvData);
+        }
+        setSocialSuccessMsg('🎉 Profil məlumatları əsasında CV uğurla yaradıldı və bütün bölmələr dolduruldu!');
+        setTimeout(() => setSocialSuccessMsg(''), 5000);
+      } else {
+        throw new Error(data.error || 'Profil məlumatları emal edilə bilmədi.');
+      }
+    } catch (err: any) {
+      console.error('Quick social CV error', err);
+      setSocialErrorMsg(err?.message || 'Profil məlumatları çıxarılarkən xəta baş verdi. Zəhmət olmasa linki yoxlayın.');
+    } finally {
+      setIsSocialGenerating(false);
+    }
+  };
+
   // Accordion state
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
     personal: true,
@@ -134,11 +186,11 @@ export const CVCreatorEditor: React.FC<CVCreatorEditorProps> = ({
     if (!file) return;
 
     if (!file.type.startsWith('image/')) {
-      alert('Zəhmət olmasa şəkil formatında fayl seçin.');
+      safeAlert('Zəhmət olmasa şəkil formatında fayl seçin.');
       return;
     }
     if (file.size > 5 * 1024 * 1024) {
-      alert('Şəkil ölçüsü maksimum 5MB ola bilər.');
+      safeAlert('Şəkil ölçüsü maksimum 5MB ola bilər.');
       return;
     }
 
@@ -383,6 +435,156 @@ export const CVCreatorEditor: React.FC<CVCreatorEditorProps> = ({
               <Sparkles className="w-3.5 h-3.5 text-purple-600" />
               <span>AI ilə Doldur</span>
             </button>
+          )}
+        </div>
+      </div>
+
+      {/* 🚀 Feature: LinkedIn və ya Facebook Linki ilə Avtomatik CV Yarat */}
+      <div className="bg-gradient-to-br from-blue-50/90 via-sky-50/50 to-indigo-50/80 rounded-2xl border border-blue-200/90 p-4 sm:p-5 shadow-xs space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-blue-100/80 pb-3">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#0077b5] to-blue-700 text-white flex items-center justify-center shadow-xs font-black text-sm">
+              in
+            </div>
+            <div>
+              <h4 className="text-xs sm:text-sm font-extrabold text-slate-900 flex items-center gap-1.5 flex-wrap">
+                <span>LinkedIn və ya Facebook Linki ilə CV Yarat</span>
+                <span className="px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 text-[10px] font-black border border-blue-200">
+                  1-Kliklə Hazırla
+                </span>
+              </h4>
+              <p className="text-[11px] text-slate-600 mt-0.5">
+                Profil linkinizi daxil edin — Jobia AI ad, təhsil, iş yerləri və bacarıqlarınızı dərhal beynəlxalq CV formatına çevirsin.
+              </p>
+            </div>
+          </div>
+
+          {onOpenSocialModal && (
+            <button
+              type="button"
+              onClick={onOpenSocialModal}
+              className="text-[11px] font-bold text-blue-700 hover:text-blue-900 underline self-start sm:self-auto cursor-pointer"
+            >
+              Ətraflı Qeydlər Əlavə Et ↗
+            </button>
+          )}
+        </div>
+
+        {/* Platform Selector & Input Strip */}
+        <div className="space-y-2.5">
+          <div className="flex items-center justify-between gap-2 flex-wrap text-xs">
+            <div className="inline-flex p-0.5 bg-slate-200/80 rounded-lg">
+              <button
+                type="button"
+                onClick={() => {
+                  setSocialPlatform('linkedin');
+                  if (!quickSocialUrl || quickSocialUrl.includes('facebook')) {
+                    setQuickSocialUrl('https://linkedin.com/in/');
+                  }
+                }}
+                className={`px-3 py-1 rounded-md text-xs font-bold transition-all cursor-pointer ${
+                  socialPlatform === 'linkedin'
+                    ? 'bg-white text-[#0077b5] shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                LinkedIn Profili
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setSocialPlatform('facebook');
+                  if (!quickSocialUrl || quickSocialUrl.includes('linkedin')) {
+                    setQuickSocialUrl('https://facebook.com/');
+                  }
+                }}
+                className={`px-3 py-1 rounded-md text-xs font-bold transition-all cursor-pointer ${
+                  socialPlatform === 'facebook'
+                    ? 'bg-white text-[#1877f2] shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                Facebook Profili
+              </button>
+            </div>
+
+            {/* Quick Sample Links */}
+            <div className="flex items-center gap-1.5 text-[11px] text-slate-500">
+              <span className="text-slate-400">Nümunə:</span>
+              <button
+                type="button"
+                onClick={() => setQuickSocialUrl(socialPlatform === 'linkedin' ? 'https://linkedin.com/in/farid-hasanov' : 'https://facebook.com/farid.hasanov')}
+                className="text-blue-600 hover:underline font-semibold"
+              >
+                farid-hasanov
+              </button>
+              <span className="text-slate-300">·</span>
+              <button
+                type="button"
+                onClick={() => setQuickSocialUrl(socialPlatform === 'linkedin' ? 'https://linkedin.com/in/elmir-qasimov' : 'https://facebook.com/elmir.qasimov')}
+                className="text-blue-600 hover:underline font-semibold"
+              >
+                elmir-qasimov
+              </button>
+            </div>
+          </div>
+
+          {/* Action Row: Input + Submit Button */}
+          <div className="flex flex-col sm:flex-row gap-2">
+            <div className="relative flex-1">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                <LinkIcon className="w-4 h-4 text-blue-600" />
+              </div>
+              <input
+                type="url"
+                value={quickSocialUrl}
+                onChange={(e) => {
+                  setQuickSocialUrl(e.target.value);
+                  setSocialErrorMsg('');
+                }}
+                placeholder={
+                  socialPlatform === 'linkedin'
+                    ? 'https://www.linkedin.com/in/ad-soyad/'
+                    : 'https://www.facebook.com/ad.soyad'
+                }
+                className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-blue-200 bg-white text-xs sm:text-sm font-mono text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-2xs placeholder:text-slate-400"
+              />
+            </div>
+
+            <button
+              id="btn-editor-quick-social-generate"
+              type="button"
+              disabled={isSocialGenerating || !quickSocialUrl.trim()}
+              onClick={handleQuickSocialGenerate}
+              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 hover:from-blue-700 hover:to-indigo-700 text-white text-xs font-bold shadow-sm transition-all cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed shrink-0"
+            >
+              {isSocialGenerating ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin text-white" />
+                  <span>CV Hazırlanır...</span>
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-4 h-4 text-cyan-200" />
+                  <span>1-Kliklə CV Yarat</span>
+                </>
+              )}
+            </button>
+          </div>
+
+          {/* Success or Error messages */}
+          {socialSuccessMsg && (
+            <div className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold flex items-center gap-2 animate-in fade-in-50">
+              <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+              <span>{socialSuccessMsg}</span>
+            </div>
+          )}
+
+          {socialErrorMsg && (
+            <div className="p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold flex items-center gap-2 animate-in fade-in-50">
+              <span className="text-rose-600 font-bold shrink-0">✕</span>
+              <span>{socialErrorMsg}</span>
+            </div>
           )}
         </div>
       </div>

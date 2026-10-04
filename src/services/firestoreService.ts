@@ -27,7 +27,8 @@ import {
   UserEmailPreferences, 
   AdminAuditLog, 
   JobAlertSubscription,
-  CVData
+  CVData,
+  PlanTier
 } from '../types';
 import { buildActiveCandidateCV } from '../utils/applicationCVHelper';
 
@@ -2626,7 +2627,7 @@ export interface FirestoreSubscriptionRecord {
   userName: string;
   role: 'candidate' | 'business' | 'admin';
   planId: string;
-  tier: 'FREE' | 'PRO' | 'BUSINESS' | 'PREMIUM';
+  tier: PlanTier | 'FREE' | 'PRO' | 'BUSINESS' | 'PREMIUM' | 'STARTER' | 'CORPORATE' | string;
   status: 'ACTIVE' | 'CANCELLED' | 'EXPIRED' | 'PAST_DUE' | 'PENDING';
   billingCycle: 'monthly' | 'yearly';
   startDate: string;

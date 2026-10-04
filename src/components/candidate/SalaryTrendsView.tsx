@@ -7,6 +7,8 @@ import {
   Line, 
   BarChart, 
   Bar, 
+  ComposedChart,
+  ReferenceLine,
   XAxis, 
   YAxis, 
   CartesianGrid, 
@@ -17,6 +19,7 @@ import {
 import { STORED_SALARY_TRENDS } from '../../data/salaryTrendsData';
 import { Vacancy, RoleSalaryStats } from '../../types';
 import { generateCustomRoleSalaryStats } from '../../utils/salaryMarketAnalyzer';
+import { D3SalaryExpectationChart } from './D3SalaryExpectationChart';
 import { 
   TrendingUp, 
   DollarSign, 
@@ -34,7 +37,16 @@ import {
   Building2,
   Loader2,
   X,
-  RotateCcw
+  RotateCcw,
+  Target,
+  Sliders,
+  Zap,
+  BarChart3,
+  ArrowRight,
+  Minus,
+  Plus,
+  HelpCircle,
+  Percent
 } from 'lucide-react';
 
 interface SalaryTrendsViewProps {
@@ -67,7 +79,9 @@ export const SalaryTrendsView: React.FC<SalaryTrendsViewProps> = ({
   const [customAnalyzedStats, setCustomAnalyzedStats] = useState<RoleSalaryStats | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [currency, setCurrency] = useState<'AZN' | 'USD'>('AZN');
-  const [chartType, setChartType] = useState<'timeline' | 'experience' | 'cities'>('timeline');
+  const [chartType, setChartType] = useState<'d3_benchmark' | 'timeline' | 'experience' | 'cities' | 'expectation'>('d3_benchmark');
+  const [userExpectationAZN, setUserExpectationAZN] = useState<number>(2500);
+  const [expectationScope, setExpectationScope] = useState<'category_roles' | 'experience_levels' | 'market_spread'>('category_roles');
 
   // Conversion rate (1 USD = 1.7 AZN)
   const rate = currency === 'USD' ? 1 / 1.7 : 1;
@@ -206,23 +220,252 @@ export const SalaryTrendsView: React.FC<SalaryTrendsViewProps> = ({
 
   const categoriesList = ['Hamısı', ...Array.from(new Set(STORED_SALARY_TRENDS.map((r) => r.category)))];
 
+  // Active Category Name (derived from selected category or current role)
+  const activeCategory = selectedCategory !== 'Hamısı' ? selectedCategory : currentRole.category;
+
+  // Aggregate market salary data for the active category
+  const categoryMarketStats = useMemo(() => {
+    // Find all preset roles in this category
+    const rolesInCategory = STORED_SALARY_TRENDS.filter((r) => r.category === activeCategory);
+    
+    // Fallback if none found or custom role analyzed
+    if (rolesInCategory.length === 0) {
+      return {
+        categoryName: activeCategory,
+        roles: [currentRole],
+        minSalary: currentRole.currentMinSalary,
+        avgSalary: currentRole.currentAvgSalary,
+        maxSalary: currentRole.currentMaxSalary,
+        experienceBreakdown: currentRole.experienceBreakdown,
+        yearlyGrowth: currentRole.yearlyGrowthPct,
+        topSkills: currentRole.topSkillsValue,
+      };
+    }
+
+    const minSalary = Math.min(...rolesInCategory.map((r) => r.currentMinSalary));
+    const maxSalary = Math.max(...rolesInCategory.map((r) => r.currentMaxSalary));
+    const avgSalary = Math.round(
+      rolesInCategory.reduce((acc, r) => acc + r.currentAvgSalary, 0) / rolesInCategory.length
+    );
+
+    // Aggregate experience levels across all roles in this category
+    const standardLevels = ['Junior (0-1 il)', 'Mid-level (1-3 il)', 'Senior (3-5+ il)', 'Lead / Rəhbər (5+ il)'];
+    const experienceBreakdown = standardLevels.map((lvlName, idx) => {
+      const expList = rolesInCategory
+        .map((r) => r.experienceBreakdown[idx])
+        .filter(Boolean);
+
+      if (expList.length === 0) {
+        return {
+          level: lvlName,
+          minSalary: Math.round(minSalary * (0.6 + idx * 0.2)),
+          avgSalary: Math.round(avgSalary * (0.65 + idx * 0.22)),
+          maxSalary: Math.round(maxSalary * (0.65 + idx * 0.22)),
+          sampleSize: 20
+        };
+      }
+
+      return {
+        level: lvlName,
+        minSalary: Math.min(...expList.map((e) => e.minSalary)),
+        avgSalary: Math.round(expList.reduce((acc, e) => acc + e.avgSalary, 0) / expList.length),
+        maxSalary: Math.max(...expList.map((e) => e.maxSalary)),
+        sampleSize: expList.reduce((acc, e) => acc + e.sampleSize, 0)
+      };
+    });
+
+    const yearlyGrowth = +(
+      rolesInCategory.reduce((acc, r) => acc + r.yearlyGrowthPct, 0) / rolesInCategory.length
+    ).toFixed(1);
+
+    return {
+      categoryName: activeCategory,
+      roles: rolesInCategory,
+      minSalary,
+      avgSalary,
+      maxSalary,
+      experienceBreakdown,
+      yearlyGrowth,
+      topSkills: rolesInCategory[0]?.topSkillsValue || currentRole.topSkillsValue,
+    };
+  }, [activeCategory, currentRole]);
+
+  // Scaled values based on active currency
+  const userExpectationScaled = Math.round(userExpectationAZN * rate);
+  const categoryAvgScaled = Math.round(categoryMarketStats.avgSalary * rate);
+  const categoryMinScaled = Math.round(categoryMarketStats.minSalary * rate);
+  const categoryMaxScaled = Math.round(categoryMarketStats.maxSalary * rate);
+
+  // Delta calculations
+  const salaryDifference = userExpectationAZN - categoryMarketStats.avgSalary;
+  const salaryDiffPercent = Math.round(
+    ((userExpectationAZN - categoryMarketStats.avgSalary) / categoryMarketStats.avgSalary) * 100
+  );
+
+  // Percentile within category range (clamped between 0% and 100%)
+  const marketPercentile = useMemo(() => {
+    const range = categoryMarketStats.maxSalary - categoryMarketStats.minSalary;
+    if (range <= 0) return 50;
+    const p = Math.round(
+      ((userExpectationAZN - categoryMarketStats.minSalary) / range) * 100
+    );
+    return Math.max(0, Math.min(100, p));
+  }, [userExpectationAZN, categoryMarketStats]);
+
+  // Vacancies meeting or exceeding user expectation
+  const vacanciesMeetingExpectation = useMemo(() => {
+    return matchingVacancies.filter((v) => {
+      if (v.hideSalary) return false;
+      const effectiveMax = v.maxSalary || v.minSalary || 0;
+      return effectiveMax >= userExpectationAZN;
+    });
+  }, [matchingVacancies, userExpectationAZN]);
+
+  // Diagnostic status & recommendations
+  const expectationStatus = useMemo(() => {
+    if (userExpectationAZN < categoryMarketStats.minSalary) {
+      return {
+        badge: 'Bazar Minimumundan Aşağı',
+        color: 'text-amber-700 bg-amber-50 border-amber-200',
+        badgeBg: 'bg-amber-100 text-amber-800',
+        title: 'Maaş gözləntiniz bazar minimumundan azdır',
+        desc: 'Bu rəqəm işəgötürənlər üçün çox cəlbedici olsa da, bazar dəyərinizdən aşağı əmək haqqı almaq riskiniz var. Əmək haqqı danışıqlarında daha cəsarətli tələb irəli sürə bilərsiniz.',
+        advice: `Müsahibələrdə minimum ${formatMoney(categoryMarketStats.minSalary)} və ya kateqoriya ortalaması olan ${formatMoney(categoryMarketStats.avgSalary)} məbləğini hədəfləməyiniz tövsiyə edilir.`,
+        levelMatch: 'Təcrübəçi / İlkin Başlanğıc (Junior)',
+        percentDiffText: `${Math.abs(salaryDiffPercent)}% bazar ortalamasından aşağı`,
+        statusType: 'below_min'
+      };
+    }
+    if (userExpectationAZN < categoryMarketStats.avgSalary * 0.9) {
+      return {
+        badge: 'Bazar Ortalamasından Aşağı',
+        color: 'text-blue-700 bg-blue-50 border-blue-200',
+        badgeBg: 'bg-blue-100 text-blue-800',
+        title: 'Gözləntiniz orta bazar səviyyəsindən bir qədər aşağıdır',
+        desc: 'Şirkətlərin büdcəsinə çox asan uyğunlaşır və iş təklifi alma şansınız yüksəkdir. Danışıqlarda orta həddə yaxınlaşmaq mümkündür.',
+        advice: `Portfelinizi və nailiyyətlərinizi təqdim edərək ${formatMoney(categoryMarketStats.avgSalary)} tələb edə bilərsiniz.`,
+        levelMatch: 'Junior+ / Mid-level başlanğıcı',
+        percentDiffText: `${Math.abs(salaryDiffPercent)}% bazar ortalamasından aşağı`,
+        statusType: 'below_avg'
+      };
+    }
+    if (userExpectationAZN <= categoryMarketStats.avgSalary * 1.15) {
+      return {
+        badge: 'Bazarın Qızıl Ortası (Optimal)',
+        color: 'text-emerald-700 bg-emerald-50 border-emerald-200',
+        badgeBg: 'bg-emerald-100 text-emerald-800',
+        title: 'Gözləntiniz bazar ortalaması ilə tam balanslaşdırılıb',
+        desc: 'Mükəmməl rəqabətədavamlı mövqedəsiniz! Həm yerli şirkətlər, həm də holdinqlər üçün ən optimal və real büdcə aralığıdır.',
+        advice: 'Tələb olunan bacarıqları göstərərək müsahibələrdə bu məbləği asanlıqla təsdiqlədə bilərsiniz.',
+        levelMatch: 'Təcrübəli Mid-level / Güclü Mütəxəssis',
+        percentDiffText: salaryDiffPercent >= 0 ? `+${salaryDiffPercent}% bazar ortalaması ilə eyni` : `${Math.abs(salaryDiffPercent)}% bazar ortalaması ilə eyni`,
+        statusType: 'optimal'
+      };
+    }
+    if (userExpectationAZN <= categoryMarketStats.maxSalary) {
+      return {
+        badge: 'Senior & İxtisaslaşmış Səviyyə',
+        color: 'text-purple-700 bg-purple-50 border-purple-200',
+        badgeBg: 'bg-purple-100 text-purple-800',
+        title: 'Gözləntiniz bazar ortalamasından yüksəkdir (Senior)',
+        desc: 'Bu maaş səviyyəsi dərin texniki təcrübə, layihə rəhbərliyi və ya xüsusi çətin bacarıqlar tələb edir.',
+        advice: `Bu gözləntini əsaslandırmaq üçün CV-nizdə ölçülə bilən nəticələri və ${categoryMarketStats.topSkills[0]?.skill || 'liderlik bacarıqlarını'} qabardın.`,
+        levelMatch: 'Senior / Aparıcı Mütəxəssis (3-5+ il)',
+        percentDiffText: `+${salaryDiffPercent}% bazar ortalamasından yuxarı`,
+        statusType: 'senior'
+      };
+    }
+    return {
+      badge: 'Bazar Maksimumunu Üstələyir (Top / Qlobal)',
+      color: 'text-indigo-700 bg-indigo-50 border-indigo-200',
+      badgeBg: 'bg-indigo-100 text-indigo-800',
+      title: 'Gözləntiniz yerli bazar maksimumunu aşır',
+      desc: 'Bu gəlir səviyyəsi yerli bazar standartlarından yüksəkdir. Əsasən xarici şirkətlərə distant (remote) iş, beynəlxalq layihələr və ya C-level rəhbər vəzifələr üçün xarakterikdir.',
+      advice: 'Xarici remote vakansiyalara müraciət edin və ingilis dilli beynəlxalq layihələrdə iştirakınızı təqdim edin.',
+      levelMatch: 'Lead / Principal / Beynəlxalq Remote',
+      percentDiffText: `+${salaryDiffPercent}% yerli bazar həddindən yuxarı`,
+      statusType: 'global'
+    };
+  }, [userExpectationAZN, categoryMarketStats, salaryDiffPercent, rate]);
+
+  // Chart datasets for Expectation comparison
+  // 1. Roles in this category vs User Expectation
+  const categoryRolesExpectationData = useMemo(() => {
+    return categoryMarketStats.roles.map((r) => ({
+      roleName: r.roleName.split('(')[0].trim(),
+      fullName: r.roleName,
+      'Bazar Minimumu': Math.round(r.currentMinSalary * rate),
+      'Bazar Ortalaması': Math.round(r.currentAvgSalary * rate),
+      'Bazar Maksimumu': Math.round(r.currentMaxSalary * rate),
+      'Sizin Gözləntiniz': userExpectationScaled,
+    }));
+  }, [categoryMarketStats, rate, userExpectationScaled]);
+
+  // 2. Experience levels in this category vs User Expectation
+  const experienceExpectationData = useMemo(() => {
+    return categoryMarketStats.experienceBreakdown.map((exp) => ({
+      level: exp.level,
+      'Bazar Minimumu': Math.round(exp.minSalary * rate),
+      'Bazar Ortalaması': Math.round(exp.avgSalary * rate),
+      'Bazar Maksimumu': Math.round(exp.maxSalary * rate),
+      'Sizin Gözləntiniz': userExpectationScaled,
+      sampleSize: exp.sampleSize,
+    }));
+  }, [categoryMarketStats, rate, userExpectationScaled]);
+
+  // 3. Market Range Spread Breakdown
+  const marketSpreadData = useMemo(() => {
+    return [
+      {
+        dimension: 'Bazar Minimumu',
+        amount: categoryMinScaled,
+        fill: '#94a3b8',
+        desc: 'Bu kateqoriyada ən aşağı qeydə alınan hədd'
+      },
+      {
+        dimension: 'Bazar Ortalaması',
+        amount: categoryAvgScaled,
+        fill: '#2563eb',
+        desc: 'Bazar üzrə ümumi orta əmək haqqı'
+      },
+      {
+        dimension: 'Sizin Gözləntiniz',
+        amount: userExpectationScaled,
+        fill: '#7c3aed',
+        desc: 'Tələb etdiyiniz hədəf maaş'
+      },
+      {
+        dimension: 'Bazar Maksimumu',
+        amount: categoryMaxScaled,
+        fill: '#10b981',
+        desc: 'Bu kateqoriyada ən yüksək təklif olunan hədd'
+      }
+    ];
+  }, [categoryMinScaled, categoryAvgScaled, userExpectationScaled, categoryMaxScaled]);
+
   // Custom tooltip for Sleek theme
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
       return (
         <div className="bg-slate-900 text-white p-3 rounded-lg shadow-xl border border-slate-700 text-xs space-y-1.5 min-w-[170px]">
           <p className="font-bold text-slate-200 border-b border-slate-800 pb-1">{label}</p>
-          {payload.map((entry: any, index: number) => (
-            <div key={`item-${index}`} className="flex items-center justify-between gap-3">
-              <span className="flex items-center gap-1.5 text-slate-300">
-                <span className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color }} />
-                {entry.name}:
-              </span>
-              <span className="font-bold text-white">
-                {entry.name === 'Vakansiya Sayı' ? `${entry.value} elan` : `${entry.value.toLocaleString()} ${currencySymbol}`}
-              </span>
-            </div>
-          ))}
+          {payload.map((entry: any, index: number) => {
+            const isExpectation = entry.name === 'Sizin Gözləntiniz';
+            return (
+              <div 
+                key={`item-${index}`} 
+                className={`flex items-center justify-between gap-3 ${isExpectation ? 'bg-purple-950/60 px-1.5 py-0.5 rounded font-bold text-purple-200 border border-purple-800/60' : ''}`}
+              >
+                <span className="flex items-center gap-1.5 text-slate-300">
+                  <span className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color || entry.fill }} />
+                  {entry.name}:
+                </span>
+                <span className={`font-bold ${isExpectation ? 'text-purple-300' : 'text-white'}`}>
+                  {entry.name === 'Vakansiya Sayı' ? `${entry.value} elan` : `${entry.value.toLocaleString()} ${currencySymbol}`}
+                </span>
+              </div>
+            );
+          })}
         </div>
       );
     }
@@ -484,6 +727,46 @@ export const SalaryTrendsView: React.FC<SalaryTrendsViewProps> = ({
         </div>
       </div>
 
+      {/* Interactive Quick Benchmark & Expectation Launch Bar */}
+      <div className="bg-gradient-to-r from-purple-50 via-indigo-50 to-blue-50 border border-purple-200/80 p-4 rounded-xl shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-3 animate-fade-in">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-purple-600 text-white flex items-center justify-center shrink-0 shadow-sm">
+            <Target className="w-5 h-5" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-xs font-bold text-slate-900">
+                Gözləntiniz: <strong className="text-purple-700">{formatMoney(userExpectationAZN)}</strong>
+              </span>
+              <span className="text-slate-300">•</span>
+              <span className="text-xs text-slate-600">
+                «{categoryMarketStats.categoryName}» Ortalaması: <strong className="text-blue-700">{formatMoney(categoryMarketStats.avgSalary)}</strong>
+              </span>
+              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${expectationStatus.color}`}>
+                {expectationStatus.badge}
+              </span>
+            </div>
+            <p className="text-[11px] text-slate-500 mt-0.5">
+              Kateqoriya üzrə bazar aralığı: {formatMoney(categoryMarketStats.minSalary)} - {formatMoney(categoryMarketStats.maxSalary)} ({marketPercentile}-ci persentil)
+            </p>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setChartType('d3_benchmark')}
+          className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-xs shrink-0 self-start md:self-auto ${
+            chartType === 'd3_benchmark'
+              ? 'bg-purple-700 text-white shadow-purple-200'
+              : 'bg-white hover:bg-purple-600 hover:text-white text-purple-700 border border-purple-300'
+          }`}
+        >
+          <Sparkles className="w-3.5 h-3.5 text-yellow-300" />
+          <span>{chartType === 'd3_benchmark' ? 'D3.js Qrafik Açıqdır' : 'D3.js İnteraktiv Qrafikdə Müqayisə Et'}</span>
+          <ArrowRight className="w-3.5 h-3.5" />
+        </button>
+      </div>
+
       {/* Main Visualization Interactive Section */}
       <div className="bg-white p-5 sm:p-6 rounded-xl border border-slate-200 shadow-sm space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
@@ -497,6 +780,17 @@ export const SalaryTrendsView: React.FC<SalaryTrendsViewProps> = ({
 
           {/* Chart View Switcher */}
           <div className="bg-slate-100 p-1 rounded-lg border border-slate-200 flex items-center gap-1 text-xs font-medium w-full sm:w-auto overflow-x-auto scrollbar-none">
+            <button
+              onClick={() => setChartType('d3_benchmark')}
+              className={`px-3 py-1.5 rounded-md whitespace-nowrap transition-all cursor-pointer flex items-center gap-1.5 ${
+                chartType === 'd3_benchmark'
+                  ? 'bg-purple-600 text-white font-bold shadow-xs'
+                  : 'text-purple-700 bg-purple-50 hover:bg-purple-100 border border-purple-200/80 font-bold'
+              }`}
+            >
+              <Sparkles className="w-3.5 h-3.5 text-yellow-300" />
+              <span>D3.js Real Bazar & Gözlənti</span>
+            </button>
             <button
               onClick={() => setChartType('timeline')}
               className={`px-3 py-1.5 rounded-md whitespace-nowrap transition-all cursor-pointer ${
@@ -527,8 +821,39 @@ export const SalaryTrendsView: React.FC<SalaryTrendsViewProps> = ({
             >
               Şəhər & Remote
             </button>
+            <button
+              onClick={() => setChartType('expectation')}
+              className={`px-3 py-1.5 rounded-md whitespace-nowrap transition-all cursor-pointer flex items-center gap-1.5 ${
+                chartType === 'expectation'
+                  ? 'bg-blue-600 text-white font-bold shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900 font-medium'
+              }`}
+            >
+              <Target className="w-3.5 h-3.5" />
+              <span>Maaş Cədvəli & Recharts</span>
+            </button>
           </div>
         </div>
+
+        {/* 0. D3.JS INTERACTIVE MARKET SALARY BENCHMARK & USER EXPECTATION CHART */}
+        {chartType === 'd3_benchmark' && (
+          <div className="space-y-4">
+            <D3SalaryExpectationChart
+              roleName={currentRole.roleName}
+              category={currentRole.category}
+              minSalary={currentRole.currentMinSalary}
+              avgSalary={currentRole.currentAvgSalary}
+              maxSalary={currentRole.currentMaxSalary}
+              experienceBreakdown={currentRole.experienceBreakdown}
+              matchingVacancies={matchingVacancies}
+              userExpectationAZN={userExpectationAZN}
+              onUpdateUserExpectation={setUserExpectationAZN}
+              currency={currency}
+              rate={rate}
+              onSelectVacancy={onSelectVacancy}
+            />
+          </div>
+        )}
 
         {/* 1. TIMELINE RECHARTS VISUALIZATION */}
         {chartType === 'timeline' && (
@@ -710,6 +1035,478 @@ export const SalaryTrendsView: React.FC<SalaryTrendsViewProps> = ({
               <span>
                 💡 <strong>Distant (Remote) İş İmkanları:</strong> Xarici və beynəlxalq şirkətlərə uzaqdan çalışan Azərbaycanlı mütəxəssislər orta hesabla <strong>{formatMoney(currentRole.cityComparison.find(c => c.city.includes('Remote'))?.avgSalary || 0)}</strong> qazanırlar.
               </span>
+            </div>
+          </div>
+        )}
+
+        {/* 4. INTERACTIVE EXPECTATION VS MARKET SALARY RANGE RECHARTS COMPARISON */}
+        {chartType === 'expectation' && (
+          <div className="space-y-6 animate-fade-in">
+            {/* Interactive Expectation Controls Card */}
+            <div className="bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 text-white p-5 sm:p-6 rounded-2xl shadow-lg border border-blue-900/50 space-y-5">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-4">
+                <div>
+                  <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-400/30 text-xs font-semibold mb-2">
+                    <Target className="w-3.5 h-3.5 text-purple-400" />
+                    <span>İnteraktiv Maaş Müqayisəsi & Qrafik</span>
+                  </div>
+                  <h4 className="text-lg font-bold text-white tracking-tight flex items-center gap-2">
+                    <span>Maaş Gözləntiniz vs Bazar Diapazonu</span>
+                    <span className="text-xs font-medium text-blue-300 px-2.5 py-0.5 rounded-full bg-blue-900/60 border border-blue-700/60">
+                      {categoryMarketStats.categoryName}
+                    </span>
+                  </h4>
+                  <p className="text-xs text-slate-300 mt-1 max-w-2xl">
+                    Aylıq arzuladığınız maaş məbləğini daxil edin və ya sürüşdürücüdən istifadə edərək bu kateqoriya üzrə bazarın minimum, orta və maksimum hədləri ilə canlı müqayisə edin.
+                  </p>
+                </div>
+
+                {/* Status Badge */}
+                <div className="flex flex-col items-start md:items-end gap-1.5 shrink-0">
+                  <span className={`px-3 py-1 rounded-full text-xs font-bold border ${expectationStatus.color}`}>
+                    {expectationStatus.badge}
+                  </span>
+                  <span className="text-[11px] text-slate-300">
+                    Bazar Ortalamasından: <strong className={salaryDifference >= 0 ? 'text-green-400' : 'text-amber-400'}>
+                      {salaryDifference >= 0 ? '+' : ''}{salaryDiffPercent}% ({salaryDifference >= 0 ? '+' : ''}{formatMoney(salaryDifference)})
+                    </strong>
+                  </span>
+                </div>
+              </div>
+
+              {/* Slider & Quick Input Row */}
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-center">
+                {/* Left: Input & Stepper Buttons */}
+                <div className="lg:col-span-5 space-y-2">
+                  <label className="text-xs font-semibold text-slate-300 flex items-center justify-between">
+                    <span>Aylıq Əmək Haqqı Gözləntiniz:</span>
+                    <span className="text-[11px] text-purple-300 font-bold">
+                      {formatMoney(userExpectationAZN)}
+                    </span>
+                  </label>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setUserExpectationAZN((prev) => Math.max(300, prev - 250))}
+                      className="w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 text-white flex items-center justify-center font-bold border border-slate-700 transition-colors cursor-pointer shrink-0"
+                      title="-250 ₼"
+                    >
+                      <Minus className="w-4 h-4" />
+                    </button>
+
+                    <div className="relative flex-1">
+                      <input
+                        type="number"
+                        min="300"
+                        max="25000"
+                        step="50"
+                        value={userExpectationScaled}
+                        onChange={(e) => {
+                          const val = Number(e.target.value) || 0;
+                          setUserExpectationAZN(Math.round(val / rate));
+                        }}
+                        className="w-full bg-slate-800/90 text-white font-bold text-base sm:text-lg px-4 py-2 rounded-xl border border-slate-700 focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 outline-none text-center"
+                      />
+                      <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">
+                        {currencySymbol}
+                      </span>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => setUserExpectationAZN((prev) => Math.min(25000, prev + 250))}
+                      className="w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 text-white flex items-center justify-center font-bold border border-slate-700 transition-colors cursor-pointer shrink-0"
+                      title="+250 ₼"
+                    >
+                      <Plus className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  {/* Quick Preset Buttons */}
+                  <div className="flex items-center gap-1.5 flex-wrap pt-1">
+                    <span className="text-[10px] text-slate-400 font-medium">Sürətli seçimlər:</span>
+                    {[1000, 1800, 2500, 3500, 5000, 7000].map((amt) => (
+                      <button
+                        key={amt}
+                        type="button"
+                        onClick={() => setUserExpectationAZN(amt)}
+                        className={`px-2 py-0.5 rounded-md text-[11px] font-medium transition-all border ${
+                          userExpectationAZN === amt
+                            ? 'bg-purple-600 text-white border-purple-400 font-bold'
+                            : 'bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-700'
+                        }`}
+                      >
+                        {formatMoney(amt)}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Right: Interactive Range Slider & Category Presets */}
+                <div className="lg:col-span-7 space-y-3.5 bg-slate-800/40 p-4 rounded-xl border border-slate-800">
+                  <div className="flex items-center justify-between text-xs text-slate-300 font-medium">
+                    <span>İnteraktiv diapazon sürüşdürücüsü:</span>
+                    <span className="text-purple-300 font-bold">
+                      Bazarın {marketPercentile}-ci persentili
+                    </span>
+                  </div>
+
+                  <div className="relative">
+                    <input
+                      type="range"
+                      min="500"
+                      max="10000"
+                      step="50"
+                      value={userExpectationAZN}
+                      onChange={(e) => setUserExpectationAZN(Number(e.target.value))}
+                      className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-purple-500"
+                    />
+                    <div className="flex justify-between text-[10px] text-slate-400 mt-1.5 font-medium">
+                      <span>500 ₼</span>
+                      <span>Kateqoriya Ortalaması: {formatMoney(categoryMarketStats.avgSalary)}</span>
+                      <span>10 000 ₼+</span>
+                    </div>
+                  </div>
+
+                  {/* One-click alignment buttons */}
+                  <div className="flex items-center gap-2 flex-wrap text-xs pt-1">
+                    <button
+                      type="button"
+                      onClick={() => setUserExpectationAZN(categoryMarketStats.avgSalary)}
+                      className="px-2.5 py-1 bg-blue-900/60 hover:bg-blue-800 text-blue-200 rounded-lg border border-blue-700/60 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+                    >
+                      <Zap className="w-3 h-3 text-yellow-400" />
+                      <span>Kateqoriya Ortasına Bərabərləşdir ({formatMoney(categoryMarketStats.avgSalary)})</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setUserExpectationAZN(currentRole.currentAvgSalary)}
+                      className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg border border-slate-700 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+                    >
+                      <Briefcase className="w-3 h-3 text-blue-400" />
+                      <span>{currentRole.roleName.split('(')[0].trim()} ({formatMoney(currentRole.currentAvgSalary)})</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Visual Spectrum / Horizontal Range Bar */}
+              <div className="space-y-2 pt-2 border-t border-slate-800/80">
+                <div className="flex items-center justify-between text-xs text-slate-300">
+                  <span className="font-semibold flex items-center gap-1.5">
+                    <Sliders className="w-3.5 h-3.5 text-purple-400" />
+                    <span>«{categoryMarketStats.categoryName}» Kateqoriyasının Bazar Spektri:</span>
+                  </span>
+                  <span className="text-[11px] text-slate-400">
+                    Bazar Aralığı: {formatMoney(categoryMarketStats.minSalary)} - {formatMoney(categoryMarketStats.maxSalary)}
+                  </span>
+                </div>
+
+                {/* Progress bar with markers */}
+                <div className="relative pt-6 pb-2">
+                  <div className="h-4 w-full bg-slate-800 rounded-full overflow-hidden flex relative border border-slate-700">
+                    <div className="w-1/3 bg-slate-600/70 h-full border-r border-slate-800/60" title="Aşağı Diapazon" />
+                    <div className="w-1/3 bg-blue-600/70 h-full border-r border-slate-800/60" title="Orta Bazar Aralığı" />
+                    <div className="w-1/3 bg-emerald-600/70 h-full" title="Yüksək Bazar Aralığı" />
+                  </div>
+
+                  {/* Marker Pin for User Expectation */}
+                  <div 
+                    className="absolute top-0 -translate-x-1/2 flex flex-col items-center pointer-events-none transition-all duration-300"
+                    style={{ left: `${Math.max(5, Math.min(95, marketPercentile))}%` }}
+                  >
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-500 text-white shadow-md border border-purple-300 whitespace-nowrap">
+                      Sizin Gözlənti: {formatMoney(userExpectationAZN)}
+                    </span>
+                    <div className="w-0.5 h-3 bg-purple-400" />
+                    <div className="w-2.5 h-2.5 rounded-full bg-purple-400 ring-2 ring-purple-200" />
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between text-[11px] text-slate-400 px-1">
+                  <span>Minimum: <strong className="text-slate-200">{formatMoney(categoryMarketStats.minSalary)}</strong></span>
+                  <span>Orta Bazar: <strong className="text-blue-300">{formatMoney(categoryMarketStats.avgSalary)}</strong></span>
+                  <span>Maksimum: <strong className="text-emerald-300">{formatMoney(categoryMarketStats.maxSalary)}</strong></span>
+                </div>
+              </div>
+            </div>
+
+            {/* Scope Switcher & Category Quick Selector */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">
+              {/* Category Quick Filter Pills */}
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none text-xs">
+                <span className="text-[11px] font-semibold text-slate-500 shrink-0 mr-1">Kateqoriya:</span>
+                {categoriesList.filter(c => c !== 'Hamısı').map((cat) => (
+                  <button
+                    key={cat}
+                    onClick={() => {
+                      setSelectedCategory(cat);
+                      const matchingPreset = STORED_SALARY_TRENDS.find(r => r.category === cat);
+                      if (matchingPreset) setSelectedRoleId(matchingPreset.roleId);
+                    }}
+                    className={`px-2.5 py-1 rounded-lg whitespace-nowrap text-xs font-medium transition-colors border ${
+                      activeCategory === cat
+                        ? 'bg-blue-600 text-white font-bold border-blue-600 shadow-xs'
+                        : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-200'
+                    }`}
+                  >
+                    {cat}
+                  </button>
+                ))}
+              </div>
+
+              {/* Sub-chart scope toggles */}
+              <div className="bg-slate-100 p-1 rounded-lg border border-slate-200 flex items-center gap-1 text-xs font-medium self-start sm:self-auto shrink-0">
+                <button
+                  onClick={() => setExpectationScope('category_roles')}
+                  className={`px-3 py-1.5 rounded-md whitespace-nowrap transition-all cursor-pointer ${
+                    expectationScope === 'category_roles'
+                      ? 'bg-white text-blue-700 font-bold shadow-2xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  Kateqoriya Vəzifələri
+                </button>
+                <button
+                  onClick={() => setExpectationScope('experience_levels')}
+                  className={`px-3 py-1.5 rounded-md whitespace-nowrap transition-all cursor-pointer ${
+                    expectationScope === 'experience_levels'
+                      ? 'bg-white text-blue-700 font-bold shadow-2xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  Təcrübə Səviyyələri
+                </button>
+                <button
+                  onClick={() => setExpectationScope('market_spread')}
+                  className={`px-3 py-1.5 rounded-md whitespace-nowrap transition-all cursor-pointer ${
+                    expectationScope === 'market_spread'
+                      ? 'bg-white text-blue-700 font-bold shadow-2xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  Bazar Aralığı Paylanması
+                </button>
+              </div>
+            </div>
+
+            {/* CHART 1: Category Roles vs User Expectation */}
+            {expectationScope === 'category_roles' && (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between text-xs text-slate-600 px-1">
+                  <span className="font-semibold text-slate-800">
+                    «{categoryMarketStats.categoryName}» kateqoriyasındakı vəzifələr üzrə bazar aralığı və sizin gözlənti xəttiniz:
+                  </span>
+                  <span className="text-[11px] text-purple-700 font-bold bg-purple-50 px-2 py-0.5 rounded border border-purple-200">
+                    Bənövşəyi xətt: Sizin Gözləntiniz ({formatMoney(userExpectationAZN)})
+                  </span>
+                </div>
+
+                <div className="h-88 w-full pt-2">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      data={categoryRolesExpectationData}
+                      margin={{ top: 20, right: 30, left: 10, bottom: 25 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                      <XAxis 
+                        dataKey="roleName" 
+                        tick={{ fontSize: 11, fill: '#334155', fontWeight: 600 }} 
+                        axisLine={{ stroke: '#e2e8f0' }}
+                        tickLine={false}
+                        interval={0}
+                        angle={-15}
+                        textAnchor="end"
+                        height={45}
+                      />
+                      <YAxis 
+                        tick={{ fontSize: 11, fill: '#64748b' }} 
+                        axisLine={{ stroke: '#e2e8f0' }}
+                        tickLine={false}
+                        tickFormatter={(val) => `${val.toLocaleString()} ${currencySymbol}`}
+                      />
+                      <Tooltip content={<CustomTooltip />} />
+                      <Legend 
+                        verticalAlign="top" 
+                        height={40} 
+                        formatter={(val) => <span className="text-xs font-semibold text-slate-700">{val}</span>}
+                      />
+                      <ReferenceLine 
+                        y={userExpectationScaled} 
+                        stroke="#8b5cf6" 
+                        strokeWidth={2.5} 
+                        strokeDasharray="5 5"
+                        label={{
+                          value: `Gözlənti: ${formatMoney(userExpectationAZN)}`,
+                          fill: '#7c3aed',
+                          fontSize: 11,
+                          fontWeight: 'bold',
+                          position: 'top'
+                        }}
+                      />
+                      <Bar dataKey="Bazar Minimumu" fill="#94a3b8" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="Bazar Ortalaması" fill="#2563eb" radius={[6, 6, 0, 0]} />
+                      <Bar dataKey="Bazar Maksimumu" fill="#10b981" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="Sizin Gözləntiniz" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            )}
+
+            {/* CHART 2: Experience Levels vs User Expectation */}
+            {expectationScope === 'experience_levels' && (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between text-xs text-slate-600 px-1">
+                  <span className="font-semibold text-slate-800">
+                    Təcrübə pillələri (Junior, Mid, Senior, Lead) ilə maaş gözləntinizin müqayisəsi:
+                  </span>
+                  <span className="text-[11px] text-purple-700 font-bold bg-purple-50 px-2 py-0.5 rounded border border-purple-200">
+                    Bənövşəyi xətt: Sizin Gözləntiniz ({formatMoney(userExpectationAZN)})
+                  </span>
+                </div>
+
+                <div className="h-88 w-full pt-2">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      data={experienceExpectationData}
+                      margin={{ top: 20, right: 30, left: 10, bottom: 10 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                      <XAxis 
+                        dataKey="level" 
+                        tick={{ fontSize: 11, fill: '#334155', fontWeight: 600 }} 
+                        axisLine={{ stroke: '#e2e8f0' }}
+                        tickLine={false}
+                      />
+                      <YAxis 
+                        tick={{ fontSize: 11, fill: '#64748b' }} 
+                        axisLine={{ stroke: '#e2e8f0' }}
+                        tickLine={false}
+                        tickFormatter={(val) => `${val.toLocaleString()} ${currencySymbol}`}
+                      />
+                      <Tooltip content={<CustomTooltip />} />
+                      <Legend 
+                        verticalAlign="top" 
+                        height={40} 
+                        formatter={(val) => <span className="text-xs font-semibold text-slate-700">{val}</span>}
+                      />
+                      <ReferenceLine 
+                        y={userExpectationScaled} 
+                        stroke="#8b5cf6" 
+                        strokeWidth={2.5} 
+                        strokeDasharray="5 5"
+                        label={{
+                          value: `Gözlənti: ${formatMoney(userExpectationAZN)}`,
+                          fill: '#7c3aed',
+                          fontSize: 11,
+                          fontWeight: 'bold',
+                          position: 'top'
+                        }}
+                      />
+                      <Bar dataKey="Bazar Minimumu" fill="#94a3b8" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="Bazar Ortalaması" fill="#2563eb" radius={[6, 6, 0, 0]} />
+                      <Bar dataKey="Bazar Maksimumu" fill="#10b981" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="Sizin Gözləntiniz" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            )}
+
+            {/* CHART 3: Market Spread Breakdown */}
+            {expectationScope === 'market_spread' && (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between text-xs text-slate-600 px-1">
+                  <span className="font-semibold text-slate-800">
+                    Bazar Aralığı Hədləri ilə Sizin Maaş Gözləntiniz:
+                  </span>
+                  <span className="text-[11px] text-slate-500">
+                    Kateqoriya: <strong className="text-slate-800">{categoryMarketStats.categoryName}</strong>
+                  </span>
+                </div>
+
+                <div className="h-88 w-full pt-2">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      data={marketSpreadData}
+                      margin={{ top: 20, right: 30, left: 10, bottom: 10 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                      <XAxis 
+                        dataKey="dimension" 
+                        tick={{ fontSize: 12, fill: '#334155', fontWeight: 600 }} 
+                        axisLine={{ stroke: '#e2e8f0' }}
+                        tickLine={false}
+                      />
+                      <YAxis 
+                        tick={{ fontSize: 11, fill: '#64748b' }} 
+                        axisLine={{ stroke: '#e2e8f0' }}
+                        tickLine={false}
+                        tickFormatter={(val) => `${val.toLocaleString()} ${currencySymbol}`}
+                      />
+                      <Tooltip content={<CustomTooltip />} />
+                      <Bar dataKey="amount" radius={[8, 8, 0, 0]}>
+                        {marketSpreadData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.fill} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            )}
+
+            {/* Comprehensive Diagnostic Insights & Career Advice Block */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-1">
+                <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Kateqoriya Ortalaması</span>
+                <div className="text-xl font-bold text-blue-700">
+                  {formatMoney(categoryMarketStats.avgSalary)}
+                </div>
+                <p className="text-[11px] text-slate-500">
+                  Diapazon: {formatMoney(categoryMarketStats.minSalary)} - {formatMoney(categoryMarketStats.maxSalary)}
+                </p>
+              </div>
+
+              <div className="bg-purple-50 p-4 rounded-xl border border-purple-200 space-y-1">
+                <span className="text-[11px] font-bold text-purple-700 uppercase tracking-wider">Sizin Gözləntiniz</span>
+                <div className="text-xl font-bold text-purple-900">
+                  {formatMoney(userExpectationAZN)}
+                </div>
+                <p className="text-[11px] text-purple-700 font-medium">
+                  {expectationStatus.percentDiffText}
+                </p>
+              </div>
+
+              <div className="bg-emerald-50 p-4 rounded-xl border border-emerald-200 space-y-1">
+                <span className="text-[11px] font-bold text-emerald-700 uppercase tracking-wider">Gözləntiyə Uyğun Elanlar</span>
+                <div className="text-xl font-bold text-emerald-800">
+                  {vacanciesMeetingExpectation.length} aktiv vakansiya
+                </div>
+                <p className="text-[11px] text-emerald-700">
+                  ≥ {formatMoney(userExpectationAZN)} maaş təklif edən şirkətlər
+                </p>
+              </div>
+            </div>
+
+            {/* Personalized Guidance Banner */}
+            <div className={`p-4 rounded-xl border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs ${expectationStatus.color}`}>
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="font-bold text-sm text-slate-900">{expectationStatus.title}</span>
+                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${expectationStatus.badgeBg}`}>
+                    {expectationStatus.levelMatch}
+                  </span>
+                </div>
+                <p className="text-slate-600 text-xs">
+                  {expectationStatus.desc}
+                </p>
+                <p className="text-slate-800 font-semibold text-xs pt-1">
+                  💡 <strong>Tövsiyə:</strong> {expectationStatus.advice}
+                </p>
+              </div>
             </div>
           </div>
         )}

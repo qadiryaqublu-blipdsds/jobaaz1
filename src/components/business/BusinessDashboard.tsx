@@ -6,6 +6,7 @@ import { downloadCVAsPDF, generateCVFileName } from '../../utils/pdfExport';
 import { usePDFDownload } from '../../hooks/usePDFDownload';
 import { PDFDownloadProgressToast } from '../common/PDFDownloadProgressToast';
 import { fileToDataUrl, generateSeedAvatar } from '../../utils/imageUpload';
+import { safeAlert, safeConfirm } from '../../utils/dialogHelper';
 import { isPlatformCreatedCV, ensureApplicationCV } from '../../utils/applicationCVHelper';
 import { JobOffersTable } from '../interview-offer/JobOffersTable';
 import { InterviewModal } from '../interview-offer/InterviewModal';
@@ -232,7 +233,7 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
       });
       setEditedCompany((prev) => ({ ...prev, logo: dataUrl }));
     } catch (err: any) {
-      alert(err.message || 'Loqo yüklənərkən xəta baş verdi.');
+      safeAlert(err.message || 'Loqo yüklənərkən xəta baş verdi.');
     } finally {
       setIsUploadingLogo(false);
       if (logoFileInputRef.current) logoFileInputRef.current.value = '';
@@ -348,8 +349,9 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
             >
               <UserCheck className="w-4 h-4 text-emerald-200" />
               <span>Kadr Bankı</span>
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-500/90 text-white">
-                Açıq Baza
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500 text-white flex items-center gap-1">
+                <Lock className="w-2.5 h-2.5" />
+                Ödənişli
               </span>
             </button>
 
@@ -953,7 +955,7 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
                               if (canEdit && onOpenEditJobModal) {
                                 onOpenEditJobModal(job);
                               } else {
-                                alert(
+                                safeAlert(
                                   language === 'en'
                                     ? 'You have already used your 1-time edit right for this vacancy (1/1 limit reached). Please contact platform admin for further changes.'
                                     : language === 'ru'
@@ -1661,6 +1663,7 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
           currentUser={currentUser || null}
           activeCompany={activeCompany}
           onOpenPricingModal={onOpenPricingModal}
+          onRequireAuth={() => onOpenAuthModal?.('login', 'business')}
         />
       )}
 
@@ -2318,7 +2321,7 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
                     : language === 'ru'
                     ? `Вы уверены, что хотите удалить вакансию "${selectedJobForDetail.title}"?`
                     : `"${selectedJobForDetail.title}" vakansiyasını həmişəlik silmək istəyirsiniz?`;
-                  if (window.confirm(confirmMsg)) {
+                  if (safeConfirm(confirmMsg)) {
                     onDeleteJob(selectedJobForDetail.id);
                     setSelectedJobForDetail(null);
                   }
@@ -2338,7 +2341,7 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
                       setSelectedJobForDetail(null);
                       onOpenEditJobModal(jobToEdit);
                     } else {
-                      alert(
+                      safeAlert(
                         language === 'en'
                           ? 'You have already used your 1-time edit right for this vacancy.'
                           : language === 'ru'

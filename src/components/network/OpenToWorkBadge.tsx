@@ -7,6 +7,7 @@ interface OpenToWorkBadgeProps {
   isHiring?: boolean;
   size?: 'sm' | 'md' | 'lg' | 'xl';
   className?: string;
+  showBadgePill?: boolean;
 }
 
 export const OpenToWorkBadge: React.FC<OpenToWorkBadgeProps> = ({
@@ -16,6 +17,7 @@ export const OpenToWorkBadge: React.FC<OpenToWorkBadgeProps> = ({
   isHiring = false,
   size = 'md',
   className = '',
+  showBadgePill = true,
 }) => {
   const sizeMap = {
     sm: {
@@ -95,7 +97,7 @@ export const OpenToWorkBadge: React.FC<OpenToWorkBadgeProps> = ({
       </div>
 
       {/* Azerbaijani Status Label Pill */}
-      {(isOpenToWork || isHiring) && (
+      {showBadgePill && (isOpenToWork || isHiring) && (
         <span
           className={`absolute ${currentSize.badgeOffset} left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full font-bold tracking-tight ${currentSize.badgeText} ${currentSize.badgePadding} ${badgeStyle} select-none pointer-events-none z-10`}
         >

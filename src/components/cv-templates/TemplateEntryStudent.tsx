@@ -157,9 +157,9 @@ export const TemplateEntryStudent: React.FC<TemplateProps> = ({ data, showPhoto 
               </h2>
               <div className="space-y-1.5 text-xs">
                 {languages.map((l) => (
-                  <div key={l.id} className="flex justify-between items-center">
-                    <span className="font-semibold text-slate-800">{(l as any).language || (l as any).name}</span>
-                    <span className="text-[11px] px-2 py-0.5 rounded bg-slate-200 text-slate-700 font-medium">
+                  <div key={l.id} className="flex flex-wrap justify-between items-center gap-1.5 min-w-0">
+                    <span className="font-semibold text-slate-800 flex-1 min-w-0 break-words">{(l as any).language || (l as any).name}</span>
+                    <span className="text-[11px] px-2 py-0.5 rounded bg-slate-200 text-slate-700 font-medium shrink-0">
                       {(l as any).proficiency || (l as any).level}
                     </span>
                   </div>

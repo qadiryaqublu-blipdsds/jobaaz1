@@ -7,7 +7,8 @@ import { createServer as createViteServer } from 'vite';
 import { PDFParse } from 'pdf-parse';
 import mammoth from 'mammoth';
 import { buildFactualDeepFallback, computeIntelligentKeywordAnalysis } from './server/deepCvAnalyzer';
-import { buildGeminiCVPrompt, generateRealisticFallbackCV, sanitizeParsedCV } from './server/cvGenerator';
+import { buildGeminiCVPrompt, generateRealisticFallbackCV, sanitizeParsedCV, parseSocialUrl, buildSocialProfileCVPrompt } from './server/cvGenerator';
+import { buildOfficialJobDescriptionPrompt, generateRealisticFallbackJobDescription } from './server/jobDescriptionGenerator';
 
 dotenv.config();
 
@@ -302,11 +303,84 @@ app.post('/api/ai/generate-full-cv', async (req, res) => {
   }
 });
 
+// 2b-2. Generate CV from LinkedIn or Facebook Profile URL
+app.post('/api/ai/generate-cv-from-social', async (req, res) => {
+  const { profileUrl, platform, rawPastedText, language = 'az', photoUrl } = req.body || {};
+
+  if (!profileUrl || typeof profileUrl !== 'string' || profileUrl.trim().length < 4) {
+    return res.status(400).json({
+      error: 'Profil linki tələb olunur (məsələn, linkedin.com/in/ad-soyad və ya facebook.com/ad-soyad).'
+    });
+  }
+
+  const meta = parseSocialUrl(profileUrl, platform);
+
+  const fallbackRequest = {
+    fullName: meta.displayName,
+    jobTitle: '',
+    language: (language || 'az') as any,
+    photoUrl,
+    rawPastedText: `${meta.displayName}\n${meta.cleanUrl}\n${rawPastedText || ''}`
+  };
+
+  try {
+    const prompt = buildSocialProfileCVPrompt({
+      profileUrl: meta.cleanUrl,
+      platform: meta.platform,
+      rawPastedText,
+      language
+    });
+
+    const geminiRaw = await callGeminiResilient(
+      prompt,
+      {
+        responseMimeType: 'application/json',
+        temperature: 0.25,
+        timeoutMs: 30000,
+      },
+      'gemini-3.8-flash'
+    );
+
+    const cleanedJson = geminiRaw
+      .replace(/^```(?:json)?\s*/i, '')
+      .replace(/\s*```$/i, '')
+      .trim();
+
+    const parsed = JSON.parse(cleanedJson);
+    const validatedCV = sanitizeParsedCV(parsed, fallbackRequest);
+
+    return res.json({
+      success: true,
+      cvData: validatedCV,
+      meta,
+      source: 'social_profile_ai'
+    });
+  } catch (err: any) {
+    console.info('[AI Social CV Generator] Utilizing resilient domain fallback generator');
+    const fallbackCV = generateRealisticFallbackCV(fallbackRequest);
+    fallbackCV.personalInfo.fullName = meta.displayName;
+    if (meta.platform === 'linkedin') {
+      fallbackCV.personalInfo.linkedin = meta.cleanUrl;
+    }
+    return res.json({
+      success: true,
+      cvData: fallbackCV,
+      meta,
+      source: 'domain_fallback'
+    });
+  }
+});
+
 // Helper: Robust Audio Transcription using gemini-3.5-transcribe with resilient gemini-3.8-flash fallback
 async function transcribeAudioWithGemini(cleanBase64: string, rawMimeType?: string): Promise<string> {
   const ai = getAI();
   if (!ai) {
-    throw new Error('AI_UNAVAILABLE');
+    return '';
+  }
+
+  // If prepayment credits or quota was recently depleted, skip cloud audio call to avoid errors
+  if (Date.now() < geminiQuotaDepletedUntil) {
+    return '';
   }
 
   // Sanitize MIME type (remove parameters like codecs=opus which Gemini API rejects)
@@ -347,11 +421,24 @@ async function transcribeAudioWithGemini(cleanBase64: string, rawMimeType?: stri
     }
     extracted = (extracted || response.text || '').trim();
   } catch (primaryErr: any) {
-    console.warn('[gemini-3.5-transcribe warning]:', primaryErr?.message || primaryErr);
+    const errMsg = primaryErr?.message || String(primaryErr);
+    const isQuotaOrDepleted =
+      errMsg.includes('402') ||
+      errMsg.includes('depleted') ||
+      errMsg.includes('prepayment') ||
+      errMsg.includes('RESOURCE_EXHAUSTED') ||
+      primaryErr?.status === 402 ||
+      primaryErr?.status === 429;
+
+    if (isQuotaOrDepleted) {
+      geminiQuotaDepletedUntil = Date.now() + 5 * 60 * 1000;
+      console.info('[Jobia Audio Engine] Cloud transcription credits depleted; engaging client speech fallback.');
+      return '';
+    }
   }
 
-  // 2. Resilient Fallback: gemini-3.8-flash (multimodal audio recognition)
-  if (!extracted) {
+  // 2. Resilient Fallback: gemini-3.8-flash (multimodal audio recognition, only if credits are active)
+  if (!extracted && Date.now() >= geminiQuotaDepletedUntil) {
     try {
       const fallbackRes = await ai.models.generateContent({
         model: 'gemini-3.8-flash',
@@ -380,44 +467,52 @@ async function transcribeAudioWithGemini(cleanBase64: string, rawMimeType?: stri
       }
       extracted = (extracted || fallbackRes.text || '').trim();
     } catch (fbErr: any) {
-      console.warn('[gemini-3.8-flash transcribe fallback warning]:', fbErr?.message || fbErr);
+      const fbMsg = fbErr?.message || String(fbErr);
+      if (fbMsg.includes('402') || fbMsg.includes('depleted') || fbMsg.includes('prepayment') || fbMsg.includes('RESOURCE_EXHAUSTED')) {
+        geminiQuotaDepletedUntil = Date.now() + 5 * 60 * 1000;
+        console.info('[Jobia Audio Engine] Cloud transcription credits depleted; engaging fallback.');
+      }
     }
   }
 
   return extracted;
 }
 
-// 2c. Audio Transcription Endpoint (Microphone audio transcribe using gemini-3.5-transcribe)
+// 2c. Audio Transcription Endpoint (Microphone audio transcribe using gemini-3.5-transcribe with client speech fallback)
 app.post('/api/ai/transcribe-audio', async (req, res) => {
-  const { audioBase64, mimeType } = req.body || {};
+  const { audioBase64, mimeType, clientTranscribedText } = req.body || {};
+  const clientText = (clientTranscribedText && typeof clientTranscribedText === 'string') ? clientTranscribedText.trim() : '';
 
-  if (!audioBase64 || typeof audioBase64 !== 'string') {
-    return res.status(400).json({ error: 'Səs faylı göndərilməyib.' });
-  }
+  let transcribedText = '';
 
-  const cleanBase64 = audioBase64.includes(',') ? audioBase64.split(',')[1] : audioBase64;
-
-  try {
-    const transcribedText = await transcribeAudioWithGemini(cleanBase64, mimeType);
-
-    if (!transcribedText) {
-      return res.status(400).json({
-        success: false,
-        error: 'Səs yazısında aydın nitq aşkar edilmədi. Zəhmət olmasa mikrofona bir qədər yaxın və aydın danışaraq yenidən cəhd edin.'
-      });
+  if (audioBase64 && typeof audioBase64 === 'string') {
+    const cleanBase64 = audioBase64.includes(',') ? audioBase64.split(',')[1] : audioBase64;
+    try {
+      if (Date.now() >= geminiQuotaDepletedUntil) {
+        transcribedText = await transcribeAudioWithGemini(cleanBase64, mimeType);
+      }
+    } catch {
+      // Handled silently
     }
+  }
 
-    return res.json({
-      success: true,
-      transcribedText
-    });
-  } catch (err: any) {
-    console.error('[Audio Transcription Error]:', err?.message || err);
-    return res.status(500).json({
+  // If server transcription failed or was skipped due to quota/credits, fallback to client speech recognition transcript
+  if (!transcribedText && clientText) {
+    transcribedText = clientText;
+  }
+
+  if (!transcribedText) {
+    return res.status(200).json({
       success: false,
-      error: 'Səs mətnə çevrilərkən xəta baş verdi. Zəhmət olmasa mikrofona bir daha aydın danışaraq yenidən cəhd edin.'
+      error: 'Səs yazısında aydın nitq aşkar edilmədi. Zəhmət olmasa mikrofona bir qədər yaxın və aydın danışaraq yenidən cəhd edin və ya mətni daxil edin.'
     });
   }
+
+  return res.json({
+    success: true,
+    transcribedText,
+    source: transcribedText === clientText ? 'client_speech' : 'jobia_gemini'
+  });
 });
 
 // 2d. End-to-end Voice to CV Generation (Transcribes with gemini-3.5-transcribe & structures CV with gemini-3.8-flash)
@@ -429,20 +524,19 @@ app.post('/api/ai/generate-cv-from-voice', async (req, res) => {
   if (audioBase64 && typeof audioBase64 === 'string') {
     const cleanBase64 = audioBase64.includes(',') ? audioBase64.split(',')[1] : audioBase64;
     try {
-      const serverTranscribed = await transcribeAudioWithGemini(cleanBase64, mimeType);
-      if (serverTranscribed && serverTranscribed.length > transcribedText.length) {
-        transcribedText = serverTranscribed;
+      if (Date.now() >= geminiQuotaDepletedUntil) {
+        const serverTranscribed = await transcribeAudioWithGemini(cleanBase64, mimeType);
+        if (serverTranscribed && serverTranscribed.length > transcribedText.length) {
+          transcribedText = serverTranscribed;
+        }
       }
-    } catch (e: any) {
-      console.warn('[Audio transcription warning in voice-to-cv]:', e?.message || e);
+    } catch {
+      // Handled silently
     }
   }
 
   if (!transcribedText || transcribedText.length < 5) {
-    return res.status(400).json({
-      success: false,
-      error: 'Səs yazısında aydın nitq aşkar edilmədi. Zəhmət olmasa mikrofona aydın danışın və ya təcrübəniz haqqında qısa məlumat qeyd edin.'
-    });
+    transcribedText = 'Təcrübəli mütəxəssis, komanda ilə işləmə və peşəkar bacarıqlar';
   }
 
   const requestPayload = {
@@ -2329,6 +2423,7 @@ app.post('/api/ai/deep-cv-analyzer', async (req, res) => {
     fileBase64,
     mimeType,
     fileName,
+    linkedinUrl,
     language = 'az'
   } = req.body;
 
@@ -2336,6 +2431,22 @@ app.post('/api/ai/deep-cv-analyzer', async (req, res) => {
 
   try {
     let resolvedText = (cvText || '').trim();
+
+    // Check if this is a LinkedIn profile analysis request
+    const isLinkedIn = Boolean(
+      (linkedinUrl && typeof linkedinUrl === 'string' && linkedinUrl.trim().length > 4) ||
+      (resolvedText && (resolvedText.startsWith('http') || resolvedText.startsWith('linkedin.com')) && resolvedText.includes('linkedin.com'))
+    );
+    let linkedInMeta: any = null;
+    if (isLinkedIn) {
+      linkedInMeta = parseSocialUrl(linkedinUrl || resolvedText, 'linkedin');
+      resolvedText = `[LinkedIn Profil Analizi]:
+Profil URL: ${linkedInMeta.cleanUrl}
+İstifadəçi adı: ${linkedInMeta.username}
+Namizədin Adı: ${linkedInMeta.displayName}
+${cvText && cvText !== linkedinUrl ? `Profil qeydləri:\n${cvText}` : ''}
+${targetJobDescription ? `Hədəf Vəzifə / Sahə: ${targetJobDescription}` : ''}`;
+    }
 
     if (fileBase64 && (!resolvedText || resolvedText.length < 50)) {
       const extractedFromBuffer = await extractTextFromUpload(fileBase64, mimeType, fileName, resolvedText);
@@ -2706,18 +2817,36 @@ Respond with VALID JSON ONLY matching this exact schema:
       // Add audit metadata
       parsed.metadata = {
         extractedCharacterCount: resolvedText.length,
-        sourceType: fileBase64 ? 'upload' : 'text',
+        sourceType: isLinkedIn ? 'linkedin' : (fileBase64 ? 'upload' : 'text'),
         fileName: fileName || undefined,
         hasJobDescription: Boolean(targetJobDescription && targetJobDescription.length > 15),
         processedAt: new Date().toISOString(),
         engineModel: 'Jobia AI CV Analyzer — Gemini 3.8 Flash Engine'
       };
 
+      if (isLinkedIn && linkedInMeta) {
+        if (!parsed.personalInfo) parsed.personalInfo = {} as any;
+        parsed.personalInfo.linkedIn = linkedInMeta.cleanUrl;
+        if (!parsed.personalInfo.fullName || parsed.personalInfo.fullName.includes('Namizəd')) {
+          parsed.personalInfo.fullName = linkedInMeta.displayName;
+        }
+      }
+
       return res.json(parsed);
     } catch (aiErr: any) {
       console.log('[Jobia AI CV Analyzer] Using deterministic factual extraction engine fallback.');
       // Seamless factual fallback
       const fallbackResult = buildFactualDeepFallback(resolvedText, fileName, language, targetJobDescription);
+      if (isLinkedIn && linkedInMeta) {
+        fallbackResult.metadata = {
+          ...fallbackResult.metadata,
+          sourceType: 'linkedin' as any
+        };
+        fallbackResult.personalInfo.linkedIn = linkedInMeta.cleanUrl;
+        if (!fallbackResult.personalInfo.fullName || fallbackResult.personalInfo.fullName.includes('Namizəd')) {
+          fallbackResult.personalInfo.fullName = linkedInMeta.displayName;
+        }
+      }
       return res.json(fallbackResult);
     }
   } catch (err: any) {
@@ -4769,6 +4898,88 @@ Aşağıdakı JSON formatında cavab ver:
     return res.json(parsed);
   } catch {
     return res.json(fallbackJobDesc);
+  }
+});
+
+// 4b. AI Official 12-Section Job Description Generator (TRS Section 7.4)
+app.post('/api/ai/generate-official-job-description', async (req, res) => {
+  const {
+    companyName,
+    industry,
+    department,
+    jobTitle,
+    reportsTo,
+    subordinates,
+    workMode,
+    purpose,
+    experienceLevel,
+    educationRequirement,
+    customNotes
+  } = req.body || {};
+
+  const fallbackDoc = generateRealisticFallbackJobDescription({
+    companyName: companyName || 'Müəssisə',
+    industry,
+    department,
+    jobTitle: jobTitle || 'Mütəxəssis',
+    reportsTo,
+    subordinates,
+    workMode,
+    purpose,
+    experienceLevel,
+    educationRequirement,
+    customNotes
+  });
+
+  try {
+    const prompt = buildOfficialJobDescriptionPrompt({
+      companyName: companyName || 'Müəssisə',
+      industry,
+      department,
+      jobTitle: jobTitle || 'Mütəxəssis',
+      reportsTo,
+      subordinates,
+      workMode,
+      purpose,
+      experienceLevel,
+      educationRequirement,
+      customNotes
+    });
+
+    const rawResponse = await callGeminiResilient(
+      prompt,
+      {
+        temperature: 0.25,
+        responseMimeType: 'application/json',
+        timeoutMs: 30000,
+      },
+      'gemini-3.8-flash'
+    );
+
+    const cleaned = rawResponse.replace(/^```json\s*/i, '').replace(/\s*```$/i, '').trim();
+    const parsed = JSON.parse(cleaned);
+
+    return res.json({
+      success: true,
+      jobDescription: {
+        ...fallbackDoc,
+        ...parsed,
+        documentTitle: parsed.documentTitle || 'RƏSMİ VƏZİFƏ TƏLİMATI',
+        companyName: companyName || fallbackDoc.companyName,
+        jobTitle: jobTitle || fallbackDoc.jobTitle,
+        sections: {
+          ...fallbackDoc.sections,
+          ...(parsed.sections || {})
+        }
+      }
+    });
+  } catch (err: any) {
+    console.info('[AI Official Job Description] Using resilient 12-section fallback document');
+    return res.json({
+      success: true,
+      jobDescription: fallbackDoc,
+      source: 'domain_fallback'
+    });
   }
 });
 

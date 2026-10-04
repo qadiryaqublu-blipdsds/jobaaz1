@@ -12,6 +12,7 @@ import {
 import { CVRenderer } from '../cv-templates/CVRenderer';
 import { CV_TEMPLATES } from '../cv-templates/templateRegistry';
 import { downloadCVAsPDF } from '../../utils/pdfExport';
+import { safeAlert, safeConfirm } from '../../utils/dialogHelper';
 import { 
   Search, 
   Download, 
@@ -300,7 +301,7 @@ export const AdminCreatedCVsRegistry: React.FC<AdminCreatedCVsRegistryProps> = (
     
     const emails = Array.from(new Set(targetList.map((r) => r.email?.trim()).filter((e) => e && e.includes('@'))));
     if (emails.length === 0) {
-      alert('Seçilmiş namizədlər arasında e-poçt ünvanı tapılmadı.');
+      safeAlert('Seçilmiş namizədlər arasında e-poçt ünvanı tapılmadı.');
       return;
     }
     navigator.clipboard.writeText(emails.join(', '));
@@ -316,7 +317,7 @@ export const AdminCreatedCVsRegistry: React.FC<AdminCreatedCVsRegistryProps> = (
     
     const phones = Array.from(new Set(targetList.map((r) => r.phone?.trim()).filter((p) => p && p.length > 5)));
     if (phones.length === 0) {
-      alert('Seçilmiş namizədlər arasında telefon nömrəsi tapılmadı.');
+      safeAlert('Seçilmiş namizədlər arasında telefon nömrəsi tapılmadı.');
       return;
     }
     navigator.clipboard.writeText(phones.join(', '));
@@ -330,7 +331,7 @@ export const AdminCreatedCVsRegistry: React.FC<AdminCreatedCVsRegistryProps> = (
       ? records.filter((r) => selectedIds.has(r.id))
       : filteredRecords;
     if (targetList.length === 0) {
-      alert('İxrac etmək üçün heç bir CV qeydi tapılmadı.');
+      safeAlert('İxrac etmək üçün heç bir CV qeydi tapılmadı.');
       return;
     }
     exportCreatedCVsToCSV(targetList);
@@ -342,7 +343,7 @@ export const AdminCreatedCVsRegistry: React.FC<AdminCreatedCVsRegistryProps> = (
       ? records.filter((r) => selectedIds.has(r.id))
       : filteredRecords;
     if (targetList.length === 0) {
-      alert('İxrac etmək üçün heç bir CV qeydi tapılmadı.');
+      safeAlert('İxrac etmək üçün heç bir CV qeydi tapılmadı.');
       return;
     }
     exportCreatedCVsToJSON(targetList);
@@ -376,7 +377,7 @@ export const AdminCreatedCVsRegistry: React.FC<AdminCreatedCVsRegistryProps> = (
 
   // Delete Record
   const handleDeleteRecord = async (record: CreatedCVRecord) => {
-    if (window.confirm(`"${record.fullName}" namizədinin CV qeydini bazadan silmək istədiyinizə əminsiniz?`)) {
+    if (safeConfirm(`"${record.fullName}" namizədinin CV qeydini bazadan silmək istədiyinizə əminsiniz?`)) {
       await deleteCreatedCVFromRegistry(record.id);
       setSelectedIds((prev) => {
         const next = new Set(prev);
@@ -396,7 +397,7 @@ export const AdminCreatedCVsRegistry: React.FC<AdminCreatedCVsRegistryProps> = (
     try {
       await downloadCVAsPDF('admin-cv-live-preview-box', { fileName });
     } catch (e: any) {
-      alert('PDF ixrac xətası: ' + (e?.message || 'Bilinməyən xəta'));
+      safeAlert('PDF ixrac xətası: ' + (e?.message || 'Bilinməyən xəta'));
     } finally {
       setIsExportingModalPdf(false);
     }

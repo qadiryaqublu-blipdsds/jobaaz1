@@ -33,6 +33,7 @@ import {
   getStoredAdminAuditLogs,
   recordAdminAuditLog
 } from '../../services/firestoreService';
+import { safeConfirm } from '../../utils/dialogHelper';
 import { 
   ShieldCheck, 
   XCircle, 
@@ -380,7 +381,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       : language === 'ru'
       ? `Вы уверены, что хотите одобрить и опубликовать ${selectedVacancyIds.length} выбранных вакансий?`
       : `Seçilmiş ${selectedVacancyIds.length} vakansiyanı dərhal təsdiqləyib dərc etmək istəyirsiniz?`;
-    if (window.confirm(confirmMsg)) {
+    if (safeConfirm(confirmMsg)) {
       selectedVacancyIds.forEach((id) => onApproveVacancy(id));
       setSelectedVacancyIds([]);
     }
@@ -393,7 +394,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       : language === 'ru'
       ? `Вы уверены, что хотите снять с публикации/отклонить ${selectedVacancyIds.length} выбранных вакансий?`
       : `Seçilmiş ${selectedVacancyIds.length} vakansiyanı dərcdən çıxarmaq / imtina etmək istəyirsiniz?`;
-    if (window.confirm(confirmMsg)) {
+    if (safeConfirm(confirmMsg)) {
       selectedVacancyIds.forEach((id) => onRejectVacancy(id));
       setSelectedVacancyIds([]);
     }
@@ -1542,7 +1543,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                   : language === 'ru'
                                   ? `Вы уверены, что хотите навсегда удалить "${job.title}"? Это действие необратимо.`
                                   : `"${job.title}" vakansiyasını həmişəlik silmək istəyirsiniz? Bu əməliyyat geri qaytarılmır.`;
-                                if (window.confirm(confirmMsg)) {
+                                if (safeConfirm(confirmMsg)) {
                                   onDeleteVacancy(job.id);
                                 }
                               }}
@@ -2550,7 +2551,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       : language === 'ru'
                       ? `Вы уверены, что хотите навсегда удалить вакансию "${selectedVacancyForDetail.title}"?`
                       : `"${selectedVacancyForDetail.title}" vakansiyasını həmişəlik silmək istəyirsiniz?`;
-                    if (window.confirm(confirmMsg)) {
+                    if (safeConfirm(confirmMsg)) {
                       onDeleteVacancy(selectedVacancyForDetail.id);
                       setSelectedVacancyForDetail(null);
                     }

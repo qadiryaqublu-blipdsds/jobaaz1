@@ -34,6 +34,7 @@ import {
   ArrowRight
 } from 'lucide-react';
 import { ModalBottomLogo } from '../ModalBottomLogo';
+import { safeAlert } from '../../utils/dialogHelper';
 import { JobAlertSubscription } from '../../types';
 import { getJobAlertSubscription, saveJobAlertSubscription } from '../../services/firestoreService';
 import { buildActiveCandidateCV } from '../../utils/applicationCVHelper';
@@ -252,7 +253,7 @@ export const JobDetailModal: React.FC<JobDetailModalProps> = ({
   const processCVFile = (file: File) => {
     if (!file) return;
     if (file.size > 10 * 1024 * 1024) {
-      alert('CV faylının ölçüsü maksimum 10 MB ola bilər.');
+      safeAlert('CV faylının ölçüsü maksimum 10 MB ola bilər.');
       return;
     }
 

@@ -212,9 +212,76 @@ export interface JobAlertSubscription {
 // SUBSCRIPTION & MONETIZATION TYPES
 // -------------------------------------------------------------
 
-export type EmployerPlanTier = 'FREE' | 'PRO' | 'BUSINESS';
+export type EmployerPlanTier = 'FREE' | 'STARTER' | 'BUSINESS' | 'CORPORATE' | 'PRO';
 export type CandidatePlanTier = 'FREE' | 'PREMIUM';
 export type PlanTier = EmployerPlanTier | CandidatePlanTier;
+
+export interface OneOffServiceItem {
+  id: string;
+  name: string;
+  price: number;
+  unit?: string;
+  description: string;
+  category: 'employer' | 'candidate';
+  creditsCost?: number;
+}
+
+export interface AICreditPackage {
+  id: string;
+  credits: number;
+  price: number; // in AZN
+  badge?: string;
+  description: string;
+  savings?: string;
+}
+
+export interface FunctionalDuties {
+  daily: string[];
+  weekly: string[];
+  monthly: string[];
+}
+
+export interface KpiMetric {
+  kpiName: string;
+  measurementUnit: string;
+  measurementPeriod: string;
+  targetScore: string;
+}
+
+export interface OfficialJobDescription {
+  documentTitle: string;
+  companyName: string;
+  department: string;
+  jobTitle: string;
+  reportsTo: string;
+  subordinates: string;
+  workMode: string;
+  sections: {
+    generalProvisions: string[];
+    jobPurpose: string;
+    keyResponsibilities: string[];
+    functionalDuties: FunctionalDuties;
+    rightsAndAuthorities: string[];
+    responsibilitiesAndLiabilities: string[];
+    requiredSkillsAndKnowledge: string[];
+    educationAndExperience: {
+      education: string;
+      experience: string;
+      languages: string[];
+      certifications: string[];
+    };
+    reportingHierarchy: string;
+    interdepartmentalRelations: string[];
+    kpisAndPerformanceMetrics: KpiMetric[];
+    finalProvisions: string[];
+  };
+  approvalSection: {
+    approverTitle: string;
+    approverName: string;
+    approvalDate: string;
+    employeeAcknowledgement: string;
+  };
+}
 
 export type SubscriptionStatus = 'ACTIVE' | 'CANCELLED' | 'EXPIRED' | 'PENDING';
 export type BillingCycle = 'monthly' | 'yearly';
@@ -1246,3 +1313,71 @@ export interface AdminAuditLog {
   timestamp: string;
   ipAddress?: string;
 }
+
+// -------------------------------------------------------------
+// GIG & CASUAL WORKER / TUTOR INSTRUCTOR EXCHANGE TYPES
+// -------------------------------------------------------------
+export type GigProfileType = 'casual_worker' | 'tutor_instructor';
+
+export type GigAvailability = 'available_today' | 'weekends' | 'evenings' | 'flexible' | 'busy';
+
+export type TutorTeachingFormat = 'online' | 'in_person' | 'student_home' | 'tutor_place';
+
+export interface GigReview {
+  id: string;
+  authorName: string;
+  authorRole?: string; // e.g. "Tələbə", "Valideyn", "Tədbir Təşkilatçısı", "Restoran Meneceri"
+  rating: number; // 1-5
+  comment: string;
+  date: string;
+}
+
+export interface GigProfile {
+  id: string;
+  userId?: string;
+  type: GigProfileType; // 'casual_worker' (günlük/saatlıq) vs 'tutor_instructor' (repetitor/müəllim)
+  fullName: string;
+  title: string; // e.g. "Tədbir Ofisiantı & Barmen", "İngilis dili Repetitoru (IELTS 8.0)", "Santexnik & Elektrik Ustası"
+  category: string; // e.g. "Tədbir & Xidmət", "Təhsil & Repetitorluq", "Usta & Təmir", "Kuryer & Çatdırılma", "İT & Proqramlaşdırma"
+  phone: string;
+  whatsapp: string;
+  email?: string;
+  avatarUrl?: string;
+  location: string; // e.g. "Bakı, Nəsimi", "Gəncə", "Onlayn"
+  rating: number; // e.g. 4.9
+  reviewsCount: number;
+  hourlyRate?: number; // ₼/saat
+  dailyRate?: number; // ₼/gün
+  monthlyRate?: number; // ₼/ay (for tutors)
+  currency: string;
+  availability: GigAvailability;
+  formats?: TutorTeachingFormat[]; // for tutors: online, in_person, student_home, tutor_place
+  subjectsOrSkills: string[];
+  experienceYears: number;
+  bio: string;
+  verified: boolean;
+  completedGigsCount?: number;
+  trialLessonAvailable?: boolean; // Tutors: Pulsuz/Endirimli sınaq dərsi
+  badges?: string[]; // e.g. ["Super İfaçı", "Sertifikatlı Müəllim", "Dərhal Hazır", "Top Reytinq"]
+  educationOrCertifications?: string[];
+  reviews?: GigReview[];
+  createdAt: string;
+}
+
+export interface GigOffer {
+  id: string;
+  posterName: string;
+  posterPhone: string;
+  posterWhatsapp: string;
+  type: 'need_casual_worker' | 'need_tutor';
+  title: string;
+  category: string;
+  rateOffered: string; // e.g. "50 ₼/gün", "15 ₼/saat", "150 ₼/ay"
+  location: string;
+  dateOrSchedule: string; // e.g. "Bugün 18:00 - 23:00", "Həftədə 3 dəfə"
+  description: string;
+  status: 'open' | 'filled';
+  applicantsCount: number;
+  createdAt: string;
+}
+

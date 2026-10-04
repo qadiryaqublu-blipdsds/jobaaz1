@@ -736,3 +736,125 @@ export function sanitizeParsedCV(raw: any, fallbackReq: GenerateCVRequest): CVDa
       : defaultCV.certificates
   };
 }
+
+export interface SocialProfileCVRequest {
+  profileUrl: string;
+  platform?: 'linkedin' | 'facebook';
+  rawPastedText?: string;
+  language?: string;
+  photoUrl?: string;
+}
+
+export function parseSocialUrl(url: string, platformHint?: 'linkedin' | 'facebook'): {
+  platform: 'linkedin' | 'facebook';
+  username: string;
+  cleanUrl: string;
+  displayName: string;
+} {
+  const clean = (url || '').trim();
+  const isFb = platformHint === 'facebook' || clean.includes('facebook.com') || clean.includes('fb.com');
+  const platform = isFb ? 'facebook' : 'linkedin';
+
+  let username = '';
+  if (platform === 'linkedin') {
+    const match = clean.match(/linkedin\.com\/in\/([a-zA-Z0-9_-]+)/i);
+    username = match ? match[1] : clean.replace(/https?:\/\/(?:www\.)?linkedin\.com\/?/i, '').replace(/^\/in\//i, '').replace(/\/$/, '');
+  } else {
+    const match = clean.match(/facebook\.com\/([a-zA-Z0-9._-]+)/i);
+    username = match ? match[1] : clean.replace(/https?:\/\/(?:www\.)?facebook\.com\/?/i, '').replace(/\/$/, '');
+  }
+
+  const rawParts = username.split(/[-_.]/).filter(Boolean);
+  const displayName = rawParts.length > 0
+    ? rawParts.map(p => p.charAt(0).toUpperCase() + p.slice(1)).join(' ')
+    : 'Peşəkar Namizəd';
+
+  return {
+    platform,
+    username,
+    cleanUrl: clean.startsWith('http') ? clean : `https://${clean}`,
+    displayName
+  };
+}
+
+export function buildSocialProfileCVPrompt(req: SocialProfileCVRequest): string {
+  const meta = parseSocialUrl(req.profileUrl, req.platform);
+  return `Sən beynəlxalq səviyyəli peşəkar HR direktoru və LinkedIn / Sosial Profil əsasında CV formalaşdıran süni intellekt mühəndisisən.
+Namizəd ${meta.platform === 'linkedin' ? 'LinkedIn' : 'Facebook'} profil linkini təqdim etmişdir: "${meta.cleanUrl}".
+Profil istifadəçi adı: "${meta.username}". Ehtimal olunan ad-soyad: "${meta.displayName}".
+${req.rawPastedText && req.rawPastedText.trim().length > 0 ? `Namizədin təqdim etdiyi əlavə qeydlər:\n"${req.rawPastedText.trim()}"\n` : ''}
+
+SƏNİN TAPŞIRIĞIN:
+Təqdim olunmuş profil əsasında bu namizəd üçün yüksək standartlı, beynəlxalq ATS-uyğun, dolğun və peşəkar bir CV JSON strukturu yarat.
+1. "fullName" sahəsinə profil sahibinin ad və soyadını yaz ("${meta.displayName}").
+2. "jobTitle" sahəsini profilə və qeydlərə uyğun olaraq müasir tələbata uyğun vəzifə adı ilə doldur (məsələn, "Senior Software Engineer", "Product Manager", "Digital Marketing Specialist", "Maliyyə Analitiki").
+3. "linkedin" sahəsinə mütləq profilin təmiz linkini daxil et ("${meta.cleanUrl}").
+4. "summary" bölməsində profil sahibinin güclü tərəflərini, karyera trayektoriyasını və liderlik qabiliyyətini əks etdirən 3-4 cümləlik peşəkar xülasə yaz.
+5. "experiences" bölməsində ən azı 2-3 real və dolğun iş yeri qeyd et. Hər bir iş yerində ölçülə bilən nailiyyətlər və məsuliyyətlər (•) əlavə et.
+6. "education" bölməsində Azərbaycanın və ya beynəlxalq nüfuzlu ali məktəbini (məsələn, ADA Universiteti, Bakı Dövlət Universiteti, Azərbaycan Dövlət Neft və Sənaye Universiteti və s.) qeyd et.
+7. "skills" bölməsində həmin ixtisas üzrə ən çox axtarılan 8-12 texniki və fərdi bacarığı kateqoriyalara ('Texniki', 'Soft skill', 'Alət / Proqram') bölərək sırala.
+8. "languages" bölməsində Azərbaycan dili (Ana dili), İngilis dili (C1-C2 və ya B1-B2) və Rus dilini əlavə et.
+
+ÇIXIŞ FORMATI:
+YALNIZ AŞAĞIDAKI JSON STRUKTURUNDA CAVAB VER. HEÇ BİR İZAH VƏ YA ARTIQ MƏTN ƏLAVƏ ETMƏ:
+{
+  "personalInfo": {
+    "fullName": "${meta.displayName}",
+    "jobTitle": "Vəzifə",
+    "email": "${meta.username ? `${meta.username.toLowerCase()}@gmail.com` : 'info@jobia.az'}",
+    "phone": "+994 50 123 45 67",
+    "address": "Bakı, Azərbaycan",
+    "linkedin": "${meta.cleanUrl}",
+    "github": "",
+    "portfolio": "",
+    "summary": "Peşəkar xülasə..."
+  },
+  "experiences": [
+    {
+      "id": "exp-1",
+      "company": "Şirkət",
+      "position": "Vəzifə",
+      "location": "Bakı",
+      "startDate": "2021",
+      "endDate": "İndiyədək",
+      "current": true,
+      "description": "• Əsas nailiyyət və vəzifə öhdəliyi\\n• Nəticəyönümlü layihə idarəçiliyi"
+    }
+  ],
+  "education": [
+    {
+      "id": "edu-1",
+      "institution": "Universitet",
+      "degree": "Bakalavr",
+      "fieldOfStudy": "İxtisas",
+      "startDate": "2016",
+      "endDate": "2020",
+      "current": false,
+      "gpa": ""
+    }
+  ],
+  "skills": [
+    {
+      "id": "sk-1",
+      "name": "Bacarıq",
+      "level": "Əla / Ekspert",
+      "category": "Texniki"
+    }
+  ],
+  "languages": [
+    {
+      "id": "lang-1",
+      "language": "Azərbaycan dili",
+      "proficiency": "Ana dili"
+    },
+    {
+      "id": "lang-2",
+      "language": "İngilis dili",
+      "proficiency": "C1-C2 (Sərbəst)"
+    }
+  ],
+  "projects": [],
+  "certificates": []
+}`;
+}
+

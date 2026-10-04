@@ -125,15 +125,15 @@ export const TemplateEmerald: React.FC<TemplateProps> = ({ data }) => {
               <div className="space-y-3">
                 {projects.map((prj) => (
                   <div key={prj.id} className="bg-slate-50 p-3 rounded border border-slate-100">
-                    <div className="flex justify-between items-center">
-                      <h3 className="text-xs font-bold text-slate-900">{prj.title}</h3>
+                    <div className="flex flex-wrap justify-between items-center gap-1.5 min-w-0">
+                      <h3 className="text-xs font-bold text-slate-900 flex-1 min-w-0 break-words">{prj.title}</h3>
                       {prj.link && (
-                        <span className="text-[10px] text-emerald-600 hover:underline truncate max-w-[140px]">
+                        <span className="text-[10px] text-emerald-600 hover:underline truncate max-w-[140px] shrink-0">
                           {prj.link.replace(/^https?:\/\//, '')}
                         </span>
                       )}
                     </div>
-                    <p className="text-[11px] text-slate-600 mt-1 leading-relaxed">{prj.description}</p>
+                    <p className="text-[11px] text-slate-600 mt-1 leading-relaxed break-words">{prj.description}</p>
                     {prj.technologies && prj.technologies.length > 0 && (
                       <div className="flex flex-wrap gap-1 mt-2">
                         {prj.technologies.map((t, idx) => (

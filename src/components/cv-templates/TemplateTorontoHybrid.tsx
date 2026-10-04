@@ -187,13 +187,13 @@ export const TemplateTorontoHybrid: React.FC<TemplateProps> = ({ data, showPhoto
               <div className="space-y-2">
                 {education.map((edu, idx) => (
                   <div key={edu.id || idx} className="text-xs">
-                    <div className="flex justify-between font-bold text-slate-900">
-                      <span>{edu.institution || edu.school}</span>
-                      <span className="text-sky-700 font-semibold">
+                    <div className="flex flex-wrap justify-between items-baseline gap-2 min-w-0 font-bold text-slate-900">
+                      <span className="flex-1 min-w-0 break-words">{edu.institution || edu.school}</span>
+                      <span className="text-sky-700 font-semibold shrink-0 whitespace-nowrap">
                         {edu.graduationYear || edu.endDate || (edu.current ? terms.present : '')}
                       </span>
                     </div>
-                    <div className="text-slate-600 font-medium">
+                    <div className="text-slate-600 font-medium break-words">
                       {edu.degree} {edu.fieldOfStudy && `— ${edu.fieldOfStudy}`}
                     </div>
                   </div>
@@ -211,8 +211,8 @@ export const TemplateTorontoHybrid: React.FC<TemplateProps> = ({ data, showPhoto
               <div className="space-y-2">
                 {projects.map((proj, idx) => (
                   <div key={proj.id || idx} className="text-xs space-y-0.5">
-                    <div className="font-bold text-slate-900">{proj.title}</div>
-                    <p className="text-slate-600 line-clamp-2">{proj.description}</p>
+                    <div className="font-bold text-slate-900 break-words">{proj.title}</div>
+                    <p className="text-slate-600 leading-relaxed break-words">{proj.description}</p>
                     {proj.technologies && proj.technologies.length > 0 && (
                       <div className="flex flex-wrap gap-1 pt-0.5">
                         {proj.technologies.map((t, tIdx) => (

@@ -177,12 +177,12 @@ export const TemplateBerlinCreative: React.FC<TemplateProps> = ({ data, showPhot
             </h2>
             <div className="space-y-2">
               {education.map((edu) => (
-                <div key={edu.id} className="flex justify-between items-baseline text-xs">
-                  <div>
+                <div key={edu.id} className="flex flex-wrap justify-between items-baseline gap-2 min-w-0 text-xs">
+                  <div className="flex-1 min-w-0 break-words">
                     <span className="font-bold text-slate-900">{edu.degree}</span>
                     <span className="text-slate-600"> — {edu.institution}</span>
                   </div>
-                  <span className="text-slate-400 font-medium">{edu.startDate} – {edu.endDate}</span>
+                  <span className="text-slate-400 font-medium shrink-0 whitespace-nowrap">{edu.startDate} – {edu.endDate}</span>
                 </div>
               ))}
             </div>

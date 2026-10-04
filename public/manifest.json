@@ -1,0 +1,44 @@
+{
+  "name": "Jobia.az — Müasir Vakansiya və Ağıllı Karyera Portalı",
+  "short_name": "Jobia",
+  "description": "Azərbaycanın müasir vakansiya, ağıllı CV hazırlama, ATS analizi və korporativ işə qəbul platforması.",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#ffffff",
+  "theme_color": "#0b1b2b",
+  "scope": "/",
+  "lang": "az",
+  "categories": ["business", "productivity", "utilities"],
+  "icons": [
+    {
+      "src": "/jobia-logo.svg",
+      "sizes": "192x192 512x512 any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Vakansiyalar",
+      "short_name": "İşlər",
+      "description": "Aktiv iş elanlarını axtarın",
+      "url": "/?view=jobs",
+      "icons": [{ "src": "/jobia-logo.svg", "sizes": "192x192" }]
+    },
+    {
+      "name": "CV Hazırla",
+      "short_name": "CV",
+      "description": "Peşəkar A4 CV forması hazırlayın",
+      "url": "/?view=cv",
+      "icons": [{ "src": "/jobia-logo.svg", "sizes": "192x192" }]
+    },
+    {
+      "name": "Kadr Bankı",
+      "short_name": "Kadrlar",
+      "description": "Təsdiqlənmiş namizədlər bazası",
+      "url": "/?view=talent_pool",
+      "icons": [{ "src": "/jobia-logo.svg", "sizes": "192x192" }]
+    }
+  ]
+}

@@ -5,6 +5,8 @@ import {
   Copy,
   Check,
   Download,
+  FileDown,
+  Loader2,
   AlertTriangle,
   CheckCircle2,
   Sparkles,
@@ -31,6 +33,8 @@ import {
   CartesianGrid
 } from 'recharts';
 import { CVAnalyzerResult, DetailedKeywordItem, ConcreteAdviceItem } from '../../../types/cvAnalyzer';
+import { CVDownloadPaymentModal } from '../CVDownloadPaymentModal';
+import { downloadCVAsPDF } from '../../../utils/pdfExport';
 
 interface AnalysisReportModalProps {
   isOpen: boolean;
@@ -47,6 +51,52 @@ export const AnalysisReportModal: React.FC<AnalysisReportModalProps> = ({
   const [activeKeywordFilter, setActiveKeywordFilter] = useState<'all' | 'missing' | 'matched'>('missing');
   const [keywordSearch, setKeywordSearch] = useState('');
   const [copiedSentenceIndex, setCopiedSentenceIndex] = useState<number | null>(null);
+  const [hasPaidForPDF, setHasPaidForPDF] = useState(false);
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+  const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
+  const [pendingAction, setPendingAction] = useState<'download' | 'print'>('download');
+
+  const executeDownloadPDF = async () => {
+    setIsDownloadingPdf(true);
+    try {
+      await downloadCVAsPDF('ats-analysis-report-content', {
+        fileName: `Jobia_ATS_Analiz_${(candidateName || 'Namized').replace(/[^a-zA-Z0-9əğıöşüƏĞIÖŞÜ_-]/g, '_')}.pdf`
+      });
+    } catch (e) {
+      console.warn('Direct PDF capture fallback to window.print:', e);
+      window.print();
+    } finally {
+      setIsDownloadingPdf(false);
+    }
+  };
+
+  const handleDownloadPDFClick = () => {
+    if (!hasPaidForPDF) {
+      setPendingAction('download');
+      setIsPaymentModalOpen(true);
+      return;
+    }
+    executeDownloadPDF();
+  };
+
+  const handlePrintClick = () => {
+    if (!hasPaidForPDF) {
+      setPendingAction('print');
+      setIsPaymentModalOpen(true);
+      return;
+    }
+    window.print();
+  };
+
+  const handlePaymentSuccess = () => {
+    setHasPaidForPDF(true);
+    setIsPaymentModalOpen(false);
+    if (pendingAction === 'print') {
+      setTimeout(() => window.print(), 350);
+    } else {
+      setTimeout(() => executeDownloadPDF(), 350);
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -199,7 +249,7 @@ Hesabat Jobia AI Platforması tərəfindən avtomatik tərtib edilmişdir.`;
         </div>
 
         {/* Modal Scrollable Content */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-6 md:p-8 space-y-6 sm:space-y-8 bg-slate-50/50">
+        <div id="ats-analysis-report-content" className="flex-1 overflow-y-auto p-4 sm:p-6 md:p-8 space-y-6 sm:space-y-8 bg-slate-50/50">
           {/* Executive Score Card */}
           <div className="bg-white rounded-2xl p-4 sm:p-6 border border-slate-200/80 shadow-xs">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-6 border-b border-slate-100">
@@ -705,11 +755,11 @@ Hesabat Jobia AI Platforması tərəfindən avtomatik tərtib edilmişdir.`;
             Bu hesabatdakı məsləhətləri birbaşa <strong>CV Yaradıcı</strong> bölməsində tətbiq edə bilərsiniz.
           </div>
 
-          <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+          <div className="flex items-center gap-2 w-full sm:w-auto justify-end flex-wrap">
             <button
               type="button"
               onClick={handleCopyReport}
-              className="flex-1 sm:flex-initial px-4 py-2 rounded-xl border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+              className="flex-1 sm:flex-initial px-3.5 py-2 rounded-xl border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
             >
               <Copy className="w-3.5 h-3.5" />
               <span>{copied ? 'Kopyalandı' : 'Mətni Kopyala'}</span>
@@ -717,15 +767,58 @@ Hesabat Jobia AI Platforması tərəfindən avtomatik tərtib edilmişdir.`;
 
             <button
               type="button"
-              onClick={handlePrint}
-              className="flex-1 sm:flex-initial px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold flex items-center justify-center gap-1.5 transition-colors shadow-xs cursor-pointer"
+              onClick={handlePrintClick}
+              className="flex-1 sm:flex-initial px-3.5 py-2 rounded-xl border border-slate-300 hover:bg-slate-100 text-slate-700 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
             >
               <Printer className="w-3.5 h-3.5" />
-              <span>Çap Et / PDF</span>
+              <span>Çap Et</span>
+              {!hasPaidForPDF && (
+                <span className="px-1.5 py-0.2 rounded bg-slate-200 text-slate-700 text-[10px] font-bold">2 ₼</span>
+              )}
+            </button>
+
+            <button
+              id="btn-report-download-pdf"
+              type="button"
+              onClick={handleDownloadPDFClick}
+              disabled={isDownloadingPdf}
+              className="flex-1 sm:flex-initial px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:from-emerald-700 hover:to-teal-800 text-white text-xs font-bold flex items-center justify-center gap-1.5 transition-all shadow-sm cursor-pointer disabled:opacity-80"
+            >
+              {isDownloadingPdf ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin text-emerald-200" />
+                  <span>PDF Hazırlanır...</span>
+                </>
+              ) : (
+                <>
+                  <FileDown className="w-3.5 h-3.5" />
+                  <span>Rəsmi PDF Endir</span>
+                  {!hasPaidForPDF ? (
+                    <span className="px-1.5 py-0.2 rounded bg-emerald-800/90 text-white text-[10px] font-black border border-emerald-400/30">
+                      2 ₼
+                    </span>
+                  ) : (
+                    <span className="px-1.5 py-0.2 rounded bg-emerald-800/80 text-emerald-200 text-[10px] font-bold">
+                      Ödənildi
+                    </span>
+                  )}
+                </>
+              )}
             </button>
           </div>
         </div>
       </div>
+
+      {/* 2 AZN CV Download Payment Modal */}
+      <CVDownloadPaymentModal
+        isOpen={isPaymentModalOpen}
+        onClose={() => setIsPaymentModalOpen(false)}
+        onPaymentSuccess={handlePaymentSuccess}
+        type="cv_analysis"
+        candidateName={candidateName}
+        title="Rəsmi ATS Analiz Hesabatı PDF İxracı"
+        subtitle="10 meyar üzrə detallı audit cədvəli, açar sözlər xəritəsi və təkmilləşdirmə tövsiyələri olan rəsmi A4 PDF sənədi."
+      />
     </div>
   );
 };

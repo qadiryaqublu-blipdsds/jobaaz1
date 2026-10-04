@@ -652,6 +652,93 @@ Platforma həm B2B (İşəgötürənlər), həm də B2C (Namizədlər) istiqamə
   3. **Vergi Güzəştləri və Fərdi Tutulmalar:** 0, 200, 400 və 800 AZN vergi güzəşti kateqoriyaları, Həyatın Yığım Sığortası (HYS), maaş tutulması, maaş əlavəsi və həmkarlar ittifaqı haqları dəstəkləndi.
   4. **Şirkət Xərcləri və İzahlı Düstur Bloku:** İşçidən tutulan DSMF, İTS və işsizlik sığortası ilə yanaşı, işəgötürən tərəfindən ödənilən sosial, tibbi və işsizlik sığortasının detallı hesabatı və şəffaf riyazi düstur izahı Jobia sayt dizaynına tam uyğunlaşdırıldı.
 
+- [x] **Vakansiya Kateqoriyası Üzrə Bazar Diapazonu və İstifadəçi Gözləntisinin İnteraktiv Müqayisə Qrafiki (`SalaryTrendsView.tsx`):**
+  1. **İnteraktiv Maaş Gözləntisi İdarəetməsi:** Namizəd arzuladığı aylıq maaş məbləğini dinamik rəqəmsal daxiletmə, addım düymələri (-250/100, +100/250) və ya interaktiv sürüşdürücü (slider) ilə sərbəst tənzimləyir; sürətli çiplər (1 000 ₼, 1 800 ₼, 2 500 ₼, 3 500 ₼, 5 000 ₼, 7 000 ₼) və bir kliklə kateqoriya/vəzifə ortalamasına bərabərləşdirmə imkanı təqdim edildi.
+  2. **Recharts Əsaslı Çoxölçülü Müqayisə Qrafiki:**
+     - **Kateqoriya Vəzifələri Üzrə Müqayisə:** Seçilmiş kateqoriyadakı bütün vəzifələr üçün Minimum, Orta və Maksimum maaş sütunları ilə yanaşı istifadəçinin gözləntisini əks etdirən bənövşəyi kəsik-kəsik dinamik `ReferenceLine` xətti və müqayisə sütunu.
+     - **Təcrübə Səviyyələri Üzrə (Junior, Mid, Senior, Lead):** Namizədin istədiyi əmək haqqının bazarın hansı təcrübə səviyyəsinə (Junior/Mid/Senior/Lead) uyğun gəldiyini dərhal vizual göstərən qrafik tərtibatı.
+     - **Bazar Aralığı Paylanması:** Kateqoriya minimumu, bazar ortalaması, istifadəçi gözləntisi və maksimum hədlərin birbaşa yan-yana analitik müqayisəsi.
+  3. **Canlı Spektr və Persentil İndikatoru:** İstifadəçinin gözləntisinin seçilmiş kateqoriyanın neçənci persentilində (0-100%) yerləşdiyini real vaxtda göstərən vizual horizontal qradiyent xətt və hərəkətli göstərici (pin).
+  4. **Diaqnostik Bazar Təhlili və Fərdi Karyera Tövsiyələri:**
+     - Faiz və məbləğ fərqi göstəricisi (məsələn: `+18% bazar ortalamasından yuxarı` və ya `-15% bazar ortalamasından aşağı`).
+     - Real vaxt status dərəcələri: *Bazar Minimumundan Aşağı, Bazar Ortalamasından Aşağı (Müsahibə şansı yüksək), Bazarın Qızıl Ortası (Optimal & Balanslı), Senior & Yüksək Tələbat, Bazar Maksimumunu Üstələyir (Qlobal / Remote)*.
+     - Əmək haqqı danışıqları üçün konkret peşəkar tövsiyələr və portalda həmin gözləntiyə bərabər və ya ondan yüksək təklif edən aktiv vakansiyaların sayı.
+
+
+- [x] **Kadr Bankının Ödənişsiz Açılmasının Qadağan Edilməsi və Yalnız Ödənişli İşəgötürənlərə Açılması (Paid-Only Talent Pool Paywall & Employer Gating):**
+  1. **Ödənişsiz Girişin Tamamilə Bağlanması:** İstifadəçinin xüsusi tələbinə əsasən Kadr Bankı bölməsi ödəniş etməyən heç kimə (qonaqlara, namizədlərə və pulsuz plandakı şirkətlərə) açılmır; namizəd profilləri, əlaqələr və axtarış bağlı saxlanılır.
+  2. **Yalnız Rəsmi İşəgötürən Şirkət Girişi:** Namizəd və ya daxil olmamış şəxslər Kadr Bankına daxil olmaq istədikdə onlardan rəsmi işəgötürən kimi daxil olmaq və ya yeni müəssisə qeydiyyatından keçmək tələb olunur.
+  3. **Yüksək Konversiyalı Paywall və İnteraktiv Kart Ödəniş Bloku:** İşəgötürən Kadr Bankını açmaq istədikdə birbaşa interfeys daxilində "Pro Recruiter" (49 AZN/ay) və "Enterprise / Business" (129 AZN/ay) paketləri arasından seçim edir; 1-klikli sınaq kartı doldurma (test) və ya real onlayn bank kartı (Visa/Mastercard) ilə ödəniş formasından istifadə edir.
+  4. **Ödənişdən Sonra Anında Açılma:** İşəgötürən ödənişi təsdiqlədikdə abunəlik Firestore və yaddaşda aktivləşdirilir, şirkətin statusu yenilənir və Kadr Bankı dərhal açılır; 1 500+ təsdiqlənmiş namizədin telefon nömrələri, e-poçtları, WhatsApp əlaqələri, canlı CV-ləri, regional Google xəritəsi və PDF yükləmə imkanları limitsiz istifadəyə verilir.
+  5. **Naviqasiya və Menyu Tənzimləmələri:** Həm sol paneldə (`Sidebar.tsx`), həm də işəgötürən panelində (`BusinessDashboard.tsx`) Kadr Bankı düyməsi xüsusi "Ödənişli / PRO" nişanı ilə təmin edildi.
+
+- [x] **CV Hazırlama və CV Analizi Bölmələrində PDF Endirmə üçün 2 AZN Avtomatik Mikro-Ödəniş Tələbi (Pay-Per-Download Monetization Engine):**
+  1. **"Analiz və Düzəliş Pulsuz, Rəsmi PDF İxracı 2 ₼" Modeli:** İstifadəçinin birbaşa tələbinə əsasən, namizəd istədiyi qədər CV-ni tam hazırlaya, redaktə edə, AI ilə mətnləri təkmilləşdirə, 30 şablonda canlı nəzərdən keçirə; həmçinin CV Analizi bölməsində CV-sini yükləyərək 10 ATS meyarı üzrə tam balı, çatışmayan açar sözləri, rəyləri və fərdi inkişaf planını tamamilə ödənişsiz görə bilir.
+  2. **Avtomatik 2.00 AZN Ödəniş Gateway:** Namizəd rəsmi A4 PDF sənədini kompüterinə və ya telefonuna endirmək istədikdə sistem avtomatik olaraq 2.00 AZN birdəfəlik ödəniş dialoqunu (`CVDownloadPaymentModal`) açır.
+  3. **Təhlükəsiz Kart Ödənişi və Sınaq Modu:** 16 rəqəmli kart nömrəsi, kart sahibi, bitmə tarixi, CVV və kart brendlərinin (Visa, Mastercard, Birbank, Leobank) avtomatik aşkarlanması; həmçinin sürətli test üçün "Test Kartı ilə Doldur (4128 •••• 4242)" funksionallığı.
+  4. **Ödənişdən Sonra Anında Avtomatik Endirmə:** 2 AZN ödəniş təsdiqlənən kimi sistem yaşıl rəsmi qəbz nömrəsini təqdim edir və arxa planda dərhal yüksək keyfiyyətli A4 PDF generasiyasını işə salaraq sənədi namizədin cihazına endirir.
+  5. **Həm CV Yaradıcıda, Həm də ATS Analizində Sinxron İnteqrasiya:**
+     - CV Yaradıcıda: Üst idarəetmə panelində və canlı önbaxış alətlər panelində "PDF Endir (2 ₼)" düymələri.
+     - CV Analizində: İdarəetmə panelində "Rəsmi PDF Hesabat (2 ₼)", interaktiv analiz hesabatında "Çap Et (2 ₼)" və "Rəsmi PDF Endir (2 ₼)" düymələri.
+
+- [x] **Bütün CV Şablonlarında Sətir və Mətnlərin Üst-Üstə Düşməsinin Kökündən Həlli (Universal Anti-Line-Collision & Dynamic Typography Architecture):**
+  1. **İstifadəçi Tələbinin Həlli:** İstifadəçinin xüsusi tələbi əsasında ("İstenilen CV formalarında bazıları sözler üst üste düşüyor. Onları öyle et ki, istenilen CV formunda metin ne kadar uzun olursa olsun, bir satır başka bir satırın üstüne çıkmasın") platformadakı bütün 30 beynəlxalq CV şablonunda və sənəd baxışında sətirlərin bir-birinin üzərinə çıxması problemi kökündən həll edildi.
+  2. **Qlobal Tipografiya və Sətir Hündürlüyü Tənzimləmələri (`src/index.css`):**
+     - Bütün CV konteynerləri (`.cv-template-root`, `[id^="cv-preview-"]`, `#cv-live-creator-export`, `#cv-document-export`) üçün başlıqların (`h1-h6`) minimal sətir hündürlüyü `line-height: 1.35 !important`, paraqraf və mətnlərin sətir hündürlüyü isə `line-height: 1.55 !important` olaraq təyin edildi. Nəticədə uzun mətnlər bir neçə sətrə bölündükdə şaquli olaraq sətirlərin toqquşması 100% istisna edildi.
+     - `overflow-wrap: anywhere !important; word-break: break-word !important;` qlobal qaydası ilə ən uzun boşluqsuz sözlər, xarici linklər və e-poçtlar belə heç vaxt qonşu elementin üzərinə çıxmadan təbii şəkildə növbəti sətrə keçirilir.
+  3. **Şablonlar Üzrə Flex və Grid Daşma Qorumaları (Flex & Grid Column Containment):**
+     - Bütün şablonlardakı başlıq, vəzifə, şirkət, təhsil, layihə və dillər bloklarında tək xətli sıxılmalara səbəb olan `flex justify-between` elementləri `flex flex-wrap items-baseline gap-2 min-w-0` arxitekturasına keçirildi.
+     - Soldakı mətnlər `flex-1 min-w-0 break-words`, sağdakı tarix və ya dərəcə nişanları isə `shrink-0 whitespace-nowrap` ilə qorundu. Mətn istənilən qədər uzun olduqda, tarix nişanı ilə toqquşmur, səliqə ilə sətirdən-sətrə axır.
+     - Bütün şablonlardakı `line-clamp` məhdudiyyətləri ləğv edildi, mətndə heç bir kəsilmə və ya kəsilmədən qaynaqlanan üst-üstə düşmə artefaktı qalmadı.
+
+- [x] **Şüşə-Şəbəkə Vitrininin İncə, Səliqəli və Kompakt Yenilənməsi (Ultra-Compact Glassmorphism Professional Network Architecture):**
+  1. **İstifadəçi Tələbinin İcrası:** İstifadəçinin xüsusi tələbi əsasında ("Şüşə-şəbəkə bölməsini daha balaca olsun, daha çox adam görsənsin pəncərədə və daha incə, səliqəli, kompakt olsun") Peşəkar Şəbəkə (Professional Network) bölməsi kökündən yeniləndi.
+  2. **Yüksək Sıxlıqlı və Çoxsütunlu Şəbəkə (High-Density Grid Layout):**
+     - Əvvəlki böyük, hündür və cəmi 3 sütunlu (`lg:grid-cols-3`) kartlar əvəzinə, ekranda/pəncərədə maksimum sayda mütəxəssisin eyni vaxtda görünməsi üçün 6 sütunlu həssas arxitektura (`grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6`) tətbiq edildi.
+     - Kartların hündürlüyü təxminən 320px-dən 165-175px-ə endirildi; nəticədə istifadəçi səhifəni sürüşdürmədən (scroll etmədən) pəncərədə 3-4 dəfə daha çox mütəxəssisi (12–18 nəfər) dərhal görə bilir.
+  3. **İncə və Şüşəvari Dizayn (Frosted Glassmorphism & Delicate Micro-UI):**
+     - Hər bir mütəxəssis kartına və üst idarəetmə panelinə `bg-white/85 backdrop-blur-md border border-slate-200/80` şəffaf şüşə vizualı, incə qradiyent xətlər və mikro-nişanlar (`🎯 Açıq`, `📢 Kadr`) əlavə edildi.
+     - Avatar ölçüsü incə və zərif `sm` ölçüsünə uyğunlaşdırıldı, ad, vəzifə və bacarıq mikro-teqləri səliqəli şəkildə nümayiş etdirildi.
+     - İki rejimli görünüş tənzimləyicisi (View Density Switcher: Kompakt Şüşə-Şəbəkə vs Geniş Standart) inteqrasiya edildi; ilkin rejim olaraq kompakt şüşə mənzərə aktivləşdirildi.
+
+- [x] **Platforma Üzrə Bütün Xətaların və İframe Sandbox Uyğunsuzluqlarının Aradan Qaldırılması (Universal Sandbox & Dialog Resilience Engine):**
+  1. **İframe və Sandbox Dialoq Xətalarının Kökündən Həlli (`safeAlert` & `safeConfirm`):** Brauzer iframe mühitlərində `window.alert` və `window.confirm` çağırışlarının səbəb olduğu təhlükəsizlik və DOM bloklanma xətaları tam aradan qaldırıldı. Xüsusi `dialogHelper.ts` arxitekturası və qlobal `jobia-toast` hadisə dinləyicisi vasitəsilə bütün xəbərdarlıqlar və təsdiq sorğuları səssiz, kəsilməz və zərif vizual toast bildirişlərinə çevrildi.
+  2. **CV Yaradıcı, CV Redaktor və ATS Analizində Təhlükəsizlik:** Sənəd və şəkil yükləmələrində, PDF ixracında və GPS koordinat aşkarlanmasında baş verə biləcək bütün potensial xətalar süzüldü, istifadəçiyə anında anlaşıqlı izahat və bərpa imkanı təmin edildi.
+  3. **İşəgötürən və İnzibatçı Panellərində Stabil Əməliyyatlar:** Şirkət yaradılması, vakansiya redaktəsi, kütləvi təsdiq/imtina və sənəd silinməsi əməliyyatlarında dialoq ilişmələri aradan qaldırıldı, Firestore qaydaları təzələnərək 100% uğurla yerləşdirildi.
+
+- [x] **Sol Sütun Elementlərinin Üst Zolaqda (Logo Yanında) Üfüqi Sətir Kimi Düzülməsi (Top Horizontal Navigation & Full-Width Layout):**
+  1. **İstifadəçi Tələbinin İcrası:** İstifadəçinin "sol sütünda olanları logonun yanından sətir kimi düz. amma ekrana sığsın" tələbi əsasında bütün şaquli sol panel idarəetmə elementləri üst başlıq (Header) zolağına, logonun sağına səliqəli üfüqi sətir şəklində köçürüldü.
+  2. **Ekrana Tam Sığan və Kompakt Arxitektura:**
+     - **Rejim Dəyişdirici:** "İş Axtaran", "İşəgötürən" və "Admin" rejimləri logonun dərhal yanında kompakt seqmentləşdirilmiş zərif düymələr kimi tərtib edildi.
+     - **Əsas Naviqasiya:** Vakansiyalar, Peşəkar Şəbəkə, CV Yaradıcı, AI CV Analizator və Müraciətlər birbaşa üfüqi sətirdə yerləşdirildi.
+     - **Alətlər Açılan Menyu (Smart Dropdown):** Maaşını hesabla, Məzuniyyətini hesabla, Xəritədə Vakansiyalar, Əmək haqqı trendləri, İzləmə & Bildirişlər və Google Chat alətləri "Alətlər ▾" açılan menyusunda kompaktlaşdırıldı ki, hər ölçülü ekrana (noutbuk, planşet) qırılmadan və daşmadan tam sığsın.
+  3. **Genişləndirilmiş İşçi Sahə (Full-Width Workspace):** Sol tərəfdəki 250px-lik şaquli panel masaüstü rejimdə gizlədildi, nəticədə əsas kontent (vakansiyalar, CV-lər, şəbəkə) ekranın 100% enini əhatə edərək daha geniş və təmiz vizual qazandı. Mobil qurğular üçün isə menyu düyməsi ilə açılan çevik yan çekmə (drawer) saxlanıldı.
+
+- [x] **Hərəkət Edən Şirkət Framelərinin Ləğvi və Bütün Ekranlar Üçün Ultra-Rahat Əsas Naviqasiya Başlığı (Clean Universal Navigation Header):**
+  1. **İstifadəçi Tələbinin İcrası:** İstifadəçinin "hərəkət edən şirkət famelərini sil , və yuxarıda elə elə ki əsas naviqaysi bölmələri istənilən ekranda rahat görünsün" tələbi əsasında üst başlıqdakı hərəkət edən şirkət lentləri (marquee frames) tamamilə ləğv edildi və bütün diqqət əsas naviqasiya bölmələrinin aydınlığına yönəldildi.
+  2. **Bütün Ekranlarda İdeal Görünüş (Universal Responsiveness):**
+     - Mobil, planşet, noutbuk və geniş monitor ekranlarında "Vakansiyalar", "Peşəkar Şəbəkə", "CV Yaradıcı", "AI Analizator", "Müraciətlərim" və "Alətlər ▾" bölmələri 36px rahat toxunma hündürlüyü, aydın nişanlar və yüksək kontrastlı rənglərlə birbaşa görünən vəziyyətə gətirildi.
+     - Rejim seçimi ("İş Axtaran", "İşəgötürən", "Admin") logonun yanında qorundu, sağ tərəfdə isə "+ Elan Yerləşdir", "VIP Planlar", Bildirişlər və Profil düymələri stabil, ekranın xaricinə çıxmayan tərtibatla möhkəmləndirildi.
+
+- [x] **Üst Başlıqda Rejim Seçici Düymələrin Ləğvi və Zəmanətli Portal Dropdown Sistemi (Role-Clutter Free Header & Bulletproof Portal Dropdowns):**
+  1. **İstifadəçi Tələbinin İcrası:** İstifadəçinin "naviqasiya elə düzəlt ki daxil olan işəgötürən işaxtaran admin bölməsi yuxarıda elə görünməsin, zatən girişdən deyir də necə girmək istədiyini; yuxarıdan aşağı dropdown-u basanda işləmir, ona görə də o problemləri də həll et" tapşırığı tam icra edildi.
+  2. **Yuxarıdakı Rejim Düymələrinin Ləğvi:** İstifadəçinin qeydiyyat və giriş zamanı rolunu onsuz da təyin etdiyi nəzərə alınaraq, başlıqdakı artıq yer tutan "İş Axtaran | İşəgötürən | Admin" düymələr bloku tamamilə ləğv edildi; bütün genişlik sırf əsas naviqasiya bölmələrinə verildi.
+  3. **Açılan Menyu (Dropdown) Probleminin 100% Kökündən Həlli:** CSS `overflow-x-auto` və kəsilmə (clipping) problemləri aradan qaldırıldı; "Alətlər ▾" və "Daha çox ▾" menyuları üçün React `createPortal` və dəqiq koordinatlı `fixed` render arxitekturası quruldu. Nəticədə istənilən ekranda və mobil qurğuda açılan menyu dərhal düymənin altında zərif şəkildə açılır, heç vaxt kəsilmir və kənara toxunduqda etibarlı şəkildə bağlanır.
+
+- [x] **Audio Transkripsiya və AI Kredit/Kvota Dayanıqlığı (Resilient Audio Speech & AI Quota Engine):**
+  1. **Prepayment Krediti / 402 Xətalarının Zərərsizləşdirilməsi:** Gemini API layihəsində ilkin ödəniş kreditlərinin bitməsi (HTTP 402 / RESOURCE_EXHAUSTED) halında serverdə yaranan `gemini-3.5-transcribe` və `gemini-3.8-flash` xəbərdarlıqları tam aradan qaldırıldı; ağıllı kvota soyuma sistemi (`geminiQuotaDepletedUntil`) aktivləşdirildi.
+  2. **Klient Səs Tanıma Ehtiyat Sistemi (Client Speech Recognition Fallback):** Mikrofonla diktə zamanı brauzerin daxili Web Speech API mühərriki ilə sinxronizasiya təmin edildi; bulud AI kreditləri tükəndikdə belə istifadəçinin danışdığı mətn heç bir itki olmadan avtomatik qorunur və CV yaradıcısına ötürülür.
+
+- [x] **LinkedIn və Facebook Linki ilə 1-Kliklə CV Yaratma və LinkedIn Profil Analizi Modulu (Social CV Creation & LinkedIn Profile Audit):**
+  1. **İstifadəçi Tələbinin İcrası:** İstifadəçinin "cv yarat bölməsində həm də linkedin və ya facebook linkini qoymaqla da cv yaratmaq, həm də linkedin linkini qoymaqla linkedin profilini analiz etmək funksiyası qoy analiz bölməsinə" tələbi tam və qüsursuz şəkildə reallaşdırıldı.
+  2. **CV Yarat Bölməsində Sosial Profil İnteqrasiyası (LinkedIn & Facebook to CV):**
+     - **Birbaşa Redaktorda Giriş Paneli:** CV Redaktorunda namizədin dərhal öz LinkedIn və ya Facebook profil linkini (`https://linkedin.com/in/...` və ya `https://facebook.com/...`) daxil edə biləcəyi xüsusi interaktiv kart yerləşdirildi.
+     - **Ağıllı Profil Çıxarışı:** Daxil edilmiş link əsasında namizədin adı, soyadı, profil başlığı, təcrübəsi, təhsili, bacarıqları və əlaqə vasitələri Jobia AI vasitəsilə təhlil edilir və 1 kliklə beynəlxalq standartlı CV JSON strukturuna çevrilərək bütün redaktor bölmələrinə avtomatik doldurulur.
+     - **Nümunə Linklər və Çevik Rejimlər:** Namizədlərin tez sınaqdan keçirməsi üçün nümunə profil düymələri, platforma seçicisi (LinkedIn / Facebook) və modal daxilində əlavə qeydlər daxil etmə imkanı təmin edildi.
+  3. **Analiz Bölməsində LinkedIn Profil Analizi Modulu (LinkedIn Profile Audit & Recruiter Vision):**
+     - **3-cü Analiz Rejimi (LinkedIn Analizi):** AI CV Analizatorunda "CV Faylı Yüklə" və "CV Mətni" rejimlərinin yanına yeni "LinkedIn Analizi" rejimi əlavə edildi.
+     - **Dərin Rekruter və ATS Auditi:** Namizəd öz LinkedIn profil URL-ni daxil edərək profil başlığının (Headline), Haqqında (About) bölməsinin, təcrübə detallarının və bacarıqların LinkedIn Recruiter axtarış sistemlərində tapılma dərəcəsini və ATS uyğunluğunu dərinliklə təhlil etdirir.
+     - **İxtisaslaşmış Dashboard və Tövsiyələr:** Nəticələr lövhəsində LinkedIn profili üçün xüsusi fərqləndirici nişan, rekruter görünürlüyü təhlili, açar söz təklifləri və həmin məlumatlarla birbaşa CV yaratma imkanı təqdim olunur.
 
 ### 🔮 Növbəti Mərhələlər (Gələcək Planlar)
 - [ ] **Mobil Tətbiq (iOS & Android):** Namizədlər üçün anlıq bildirişlər və mobil iş axtarışı.

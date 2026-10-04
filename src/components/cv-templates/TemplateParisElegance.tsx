@@ -98,13 +98,13 @@ export const TemplateParisElegance: React.FC<TemplateProps> = ({ data, showPhoto
             <div className="space-y-3">
               {education.map((edu, idx) => (
                 <div key={edu.id || idx} className="space-y-0.5">
-                  <div className="flex justify-between items-baseline font-sans text-xs">
-                    <span className="font-bold text-stone-900">{edu.institution || edu.school}</span>
-                    <span className="text-[#9b5168] text-[11px]">
+                  <div className="flex flex-wrap justify-between items-baseline gap-2 min-w-0 font-sans text-xs">
+                    <span className="font-bold text-stone-900 flex-1 min-w-0 break-words">{edu.institution || edu.school}</span>
+                    <span className="text-[#9b5168] text-[11px] shrink-0 whitespace-nowrap">
                       {edu.graduationYear || edu.endDate || (edu.current ? terms.present : '')}
                     </span>
                   </div>
-                  <div className="text-xs text-stone-600 font-serif italic">
+                  <div className="text-xs text-stone-600 font-serif italic break-words">
                     {edu.degree} {edu.fieldOfStudy && `— ${edu.fieldOfStudy}`}
                   </div>
                 </div>
@@ -122,8 +122,8 @@ export const TemplateParisElegance: React.FC<TemplateProps> = ({ data, showPhoto
             <div className="space-y-3">
               {projects.map((proj, idx) => (
                 <div key={proj.id || idx} className="space-y-0.5 font-sans">
-                  <div className="text-xs font-bold text-stone-900">{proj.title}</div>
-                  <p className="text-xs text-stone-600 font-light line-clamp-2">{proj.description}</p>
+                  <div className="text-xs font-bold text-stone-900 break-words">{proj.title}</div>
+                  <p className="text-xs text-stone-600 font-light leading-relaxed break-words">{proj.description}</p>
                 </div>
               ))}
             </div>

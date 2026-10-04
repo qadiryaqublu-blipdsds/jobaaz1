@@ -21,6 +21,7 @@ import {
   ChevronUp,
   Sparkles,
   Download,
+  FileDown,
   Copy,
   Check,
   Search,
@@ -121,6 +122,12 @@ export const AICVAnalyzerDashboard: React.FC<AICVAnalyzerDashboardProps> = ({
                 <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-100 text-blue-800 border border-blue-200">
                   {data.candidateProfile?.primaryProfession || 'Mütəxəssis'}
                 </span>
+                {data.metadata?.sourceType === 'linkedin' && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-[#0077b5]/10 text-[#0077b5] border border-[#0077b5]/30">
+                    <Globe className="w-3.5 h-3.5" />
+                    <span>LinkedIn Profili</span>
+                  </span>
+                )}
                 <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-600">
                   {data.candidateProfile?.careerLevel || 'Mid-Level'}
                 </span>
@@ -148,6 +155,19 @@ export const AICVAnalyzerDashboard: React.FC<AICVAnalyzerDashboardProps> = ({
 
           <div className="flex items-center gap-2 self-start md:self-center flex-wrap">
             <button
+              id="open-report-pdf-header-btn"
+              type="button"
+              onClick={() => setIsReportModalOpen(true)}
+              className="px-3.5 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:from-emerald-700 hover:to-teal-800 text-white shadow-sm flex items-center gap-1.5 transition-all cursor-pointer"
+            >
+              <FileDown className="w-4 h-4 text-emerald-200" />
+              <span>Rəsmi PDF Hesabat</span>
+              <span className="px-1.5 py-0.2 rounded-md bg-emerald-800 text-emerald-200 text-[10px] font-black border border-emerald-400/30">
+                2 ₼
+              </span>
+            </button>
+
+            <button
               id="open-analysis-report-header-btn"
               type="button"
               onClick={() => setIsReportModalOpen(true)}
@@ -166,6 +186,28 @@ export const AICVAnalyzerDashboard: React.FC<AICVAnalyzerDashboardProps> = ({
             </button>
           </div>
         </div>
+
+        {/* LinkedIn Audit Banner */}
+        {data.metadata?.sourceType === 'linkedin' && (
+          <div className="mt-4 p-4 bg-gradient-to-r from-blue-50/90 via-sky-50 to-indigo-50/80 rounded-2xl border border-blue-200 text-xs text-blue-950 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-2xs">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-[#0077b5] text-white flex items-center justify-center font-black text-sm shadow-xs shrink-0">
+                in
+              </div>
+              <div>
+                <span className="font-bold text-sm text-blue-950 flex items-center gap-2">
+                  <span>LinkedIn Profil Auditi Uğurla İcra Edildi</span>
+                  <span className="px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 text-[10px] font-black">
+                    Recruiter Search Ready
+                  </span>
+                </span>
+                <p className="text-[11px] text-blue-800 mt-0.5">
+                  Bu hesabat təqdim olunmuş LinkedIn profiliniz əsasında yaradılmışdır. Profilinizin ATS uyğunluğu, açar sözləri və LinkedIn Recruiter axtarışlarındakı cəlbediciliyi aşağıda təfərrüatı ilə əks olunub.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Executive Summary */}
         {data.executiveSummary && (
@@ -312,7 +354,7 @@ export const AICVAnalyzerDashboard: React.FC<AICVAnalyzerDashboardProps> = ({
               id="open-analysis-report-banner-btn"
               type="button"
               onClick={() => setIsReportModalOpen(true)}
-              className="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs sm:text-sm shrink-0 flex items-center gap-2 transition-colors shadow-sm self-stretch sm:self-auto justify-center"
+              className="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs sm:text-sm shrink-0 flex items-center gap-2 transition-colors shadow-sm self-stretch sm:self-auto justify-center"
             >
               <span>Hesabatı Aç</span>
               <ArrowRight className="w-4 h-4" />

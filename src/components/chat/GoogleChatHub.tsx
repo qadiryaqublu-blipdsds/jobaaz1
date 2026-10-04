@@ -14,6 +14,7 @@ import {
 } from '../../utils/googleChatService';
 import { Vacancy, Application, CVData } from '../../types';
 import { SectionBottomLogo } from '../common/SectionBottomLogo';
+import { safeAlert } from '../../utils/dialogHelper';
 import { 
   MessageSquare, 
   Send, 
@@ -222,7 +223,7 @@ export const GoogleChatHub: React.FC<GoogleChatHubProps> = ({
       setMessages((prev) => [...prev, newMsg]);
       setMessageInput('');
     } catch (err: any) {
-      alert(`Mesaj göndərilərkən xəta baş verdi: ${err.message}`);
+      safeAlert(`Mesaj göndərilərkən xəta baş verdi: ${err.message}`);
     } finally {
       setIsSendingMessage(false);
     }
@@ -243,7 +244,7 @@ export const GoogleChatHub: React.FC<GoogleChatHubProps> = ({
       setNewSpaceDesc('');
       loadMessages(created);
     } catch (err: any) {
-      alert(`Otaq yaradılarkən xəta baş verdi: ${err.message}`);
+      safeAlert(`Otaq yaradılarkən xəta baş verdi: ${err.message}`);
     } finally {
       setIsCreatingSpace(false);
     }
@@ -281,7 +282,7 @@ export const GoogleChatHub: React.FC<GoogleChatHubProps> = ({
       setMessages((prev) => [...prev, newMsg]);
       setConfirmSendDialog({ isOpen: false, text: '' });
     } catch (err: any) {
-      alert(`Paylaşım zamanı xəta: ${err.message}`);
+      safeAlert(`Paylaşım zamanı xəta: ${err.message}`);
     } finally {
       setIsSendingMessage(false);
     }

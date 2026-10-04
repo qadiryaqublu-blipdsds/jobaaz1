@@ -103,15 +103,15 @@ export const TemplateSiliconDev: React.FC<TemplateProps> = ({ data, showPhoto = 
             <div className="grid grid-cols-2 gap-3">
               {projects.map((proj) => (
                 <div key={proj.id} className="p-3 bg-slate-50 rounded-lg border border-slate-200/80">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-slate-900">{proj.title}</span>
+                  <div className="flex flex-wrap items-center justify-between gap-1.5 min-w-0">
+                    <span className="text-xs font-bold text-slate-900 flex-1 min-w-0 break-words">{proj.title}</span>
                     {proj.link && (
-                      <span className="text-[10px] font-mono text-cyan-600 underline truncate max-w-[130px]">
+                      <span className="text-[10px] font-mono text-cyan-600 underline truncate max-w-[130px] shrink-0">
                         {proj.link.replace(/^https?:\/\//, '')}
                       </span>
                     )}
                   </div>
-                  {proj.description && <p className="text-xs text-slate-600 mt-1">{proj.description}</p>}
+                  {proj.description && <p className="text-xs text-slate-600 mt-1 leading-relaxed break-words">{proj.description}</p>}
                   {proj.technologies && proj.technologies.length > 0 && (
                     <div className="flex flex-wrap gap-1 mt-2">
                       {proj.technologies.map((tech, i) => (

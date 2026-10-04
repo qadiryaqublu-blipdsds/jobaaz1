@@ -130,15 +130,15 @@ export const TemplateHorizon: React.FC<TemplateProps> = ({ data, showPhoto = tru
               <div className="space-y-3">
                 {projects.map((proj) => (
                   <div key={proj.id} className="p-3 rounded-lg border border-slate-200 bg-slate-50/50">
-                    <div className="flex justify-between items-center mb-1">
-                      <h3 className="text-xs font-bold text-slate-900">{proj.title}</h3>
+                    <div className="flex flex-wrap justify-between items-center gap-1.5 min-w-0 mb-1">
+                      <h3 className="text-xs font-bold text-slate-900 flex-1 min-w-0 break-words">{proj.title}</h3>
                       {proj.link && (
-                        <a href={proj.link} target="_blank" rel="noopener noreferrer" className="text-[10px] text-blue-600 font-semibold hover:underline">
+                        <a href={proj.link} target="_blank" rel="noopener noreferrer" className="text-[10px] text-blue-600 font-semibold hover:underline shrink-0">
                           Keçid ↗
                         </a>
                       )}
                     </div>
-                    <p className="text-[10px] text-slate-600 mb-1.5">{proj.description}</p>
+                    <p className="text-[10px] text-slate-600 mb-1.5 leading-relaxed break-words">{proj.description}</p>
                     {proj.technologies && proj.technologies.length > 0 && (
                       <div className="flex flex-wrap gap-1">
                         {proj.technologies.map((t, idx) => (

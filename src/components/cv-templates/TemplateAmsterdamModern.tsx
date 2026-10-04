@@ -67,9 +67,9 @@ export const TemplateAmsterdamModern: React.FC<TemplateProps> = ({ data, showPho
               <div className="space-y-4">
                 {experiences.map((exp) => (
                   <div key={exp.id} className="space-y-1">
-                    <div className="flex justify-between items-baseline gap-2">
-                      <span className="text-xs font-bold text-slate-900">{exp.position}</span>
-                      <span className="text-[10px] font-bold text-sky-700 bg-sky-50 px-2 py-0.5 rounded-full border border-sky-100">
+                    <div className="flex flex-wrap justify-between items-baseline gap-2 min-w-0">
+                      <span className="text-xs font-bold text-slate-900 flex-1 min-w-0 break-words">{exp.position}</span>
+                      <span className="text-[10px] font-bold text-sky-700 bg-sky-50 px-2 py-0.5 rounded-full border border-sky-100 shrink-0 whitespace-nowrap">
                         {exp.startDate} – {exp.current ? terms.present : exp.endDate}
                       </span>
                     </div>

@@ -387,7 +387,7 @@ export interface CVAnalyzerResult {
   // System metadata
   metadata: {
     extractedCharacterCount: number;
-    sourceType: 'upload' | 'text';
+    sourceType: 'upload' | 'text' | 'linkedin';
     fileName?: string;
     hasJobDescription?: boolean;
     processedAt: string;

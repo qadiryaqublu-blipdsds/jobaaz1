@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { CVData } from '../../../types';
 import { 
   X, 
@@ -12,7 +12,12 @@ import {
   Mic,
   MicOff,
   Image as ImageIcon,
-  UploadCloud
+  UploadCloud,
+  Link as LinkIcon,
+  Globe,
+  Share2,
+  CheckCircle2,
+  ArrowRight
 } from 'lucide-react';
 
 interface CVCreatorAiModalProps {
@@ -21,6 +26,7 @@ interface CVCreatorAiModalProps {
   onApplyCvData: (data: CVData) => void;
   photoUrl?: string;
   autoTriggerImageUpload?: boolean;
+  initialMode?: 'social' | 'text' | 'voice' | 'image';
 }
 
 export const CVCreatorAiModal: React.FC<CVCreatorAiModalProps> = ({
@@ -28,8 +34,19 @@ export const CVCreatorAiModal: React.FC<CVCreatorAiModalProps> = ({
   onClose,
   onApplyCvData,
   photoUrl,
-  autoTriggerImageUpload = false
+  autoTriggerImageUpload = false,
+  initialMode = 'social'
 }) => {
+  const [activeTab, setActiveTab] = useState<'social' | 'text' | 'voice' | 'image'>(
+    autoTriggerImageUpload ? 'image' : (initialMode || 'social')
+  );
+
+  // Social Profile Mode state
+  const [socialPlatform, setSocialPlatform] = useState<'linkedin' | 'facebook'>('linkedin');
+  const [socialUrl, setSocialUrl] = useState('');
+  const [socialNotes, setSocialNotes] = useState('');
+
+  // Text Mode state
   const [pastedText, setPastedText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
@@ -41,28 +58,32 @@ export const CVCreatorAiModal: React.FC<CVCreatorAiModalProps> = ({
   const [selectedImageName, setSelectedImageName] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  // Auto trigger file picker if launched specifically in image mode
-  React.useEffect(() => {
-    if (isOpen && autoTriggerImageUpload && !selectedImageBase64) {
-      const timer = setTimeout(() => {
-        fileInputRef.current?.click();
-      }, 150);
-      return () => clearTimeout(timer);
-    }
-  }, [isOpen, autoTriggerImageUpload, selectedImageBase64]);
-
   // Voice recording state for the modal
   const [isRecording, setIsRecording] = useState(false);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
   const [isTranscribing, setIsTranscribing] = useState(false);
-  const mediaRecorderRef = React.useRef<MediaRecorder | null>(null);
-  const audioChunksRef = React.useRef<Blob[]>([]);
-  const timerRef = React.useRef<NodeJS.Timeout | null>(null);
-  const streamRef = React.useRef<MediaStream | null>(null);
-  const recognitionRef = React.useRef<any>(null);
-  const baselineTextRef = React.useRef<string>('');
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const recognitionRef = useRef<any>(null);
+  const baselineTextRef = useRef<string>('');
 
-  React.useEffect(() => {
+  useEffect(() => {
+    if (isOpen) {
+      if (autoTriggerImageUpload) {
+        setActiveTab('image');
+        const timer = setTimeout(() => {
+          fileInputRef.current?.click();
+        }, 150);
+        return () => clearTimeout(timer);
+      } else if (initialMode) {
+        setActiveTab(initialMode);
+      }
+    }
+  }, [isOpen, autoTriggerImageUpload, initialMode]);
+
+  useEffect(() => {
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
       if (streamRef.current) {
@@ -98,9 +119,6 @@ export const CVCreatorAiModal: React.FC<CVCreatorAiModalProps> = ({
       setStatusMsg('📷 Şəkil uğurla seçildi! İstəsəniz aşağıda əlavə qeydlər də yaza bilərsiniz.');
       setTimeout(() => setStatusMsg(''), 4000);
     };
-    reader.onerror = () => {
-      setErrorMsg('Şəkli oxumaq mümkün olmadı.');
-    };
     reader.readAsDataURL(file);
   };
 
@@ -108,15 +126,15 @@ export const CVCreatorAiModal: React.FC<CVCreatorAiModalProps> = ({
     setSelectedImageBase64(null);
     setSelectedImageMime(null);
     setSelectedImageName(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   const startVoiceRecording = async () => {
     setErrorMsg('');
+    setStatusMsg('');
     audioChunksRef.current = [];
-    baselineTextRef.current = pastedText.trim();
+    baselineTextRef.current = pastedText;
+
     try {
       if (!navigator.mediaDevices?.getUserMedia) {
         throw new Error('Brauzer mikrofonu dəstəkləmir.');
@@ -187,7 +205,8 @@ export const CVCreatorAiModal: React.FC<CVCreatorAiModalProps> = ({
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
                 audioBase64: base64,
-                mimeType: cleanMime
+                mimeType: cleanMime,
+                clientTranscribedText: pastedText.trim()
               })
             });
             const data = await res.json();
@@ -195,14 +214,11 @@ export const CVCreatorAiModal: React.FC<CVCreatorAiModalProps> = ({
               setPastedText(baselineTextRef.current ? `${baselineTextRef.current}\n\n${data.transcribedText}` : data.transcribedText);
               setStatusMsg('✨ Səs uğurla mətnə çevrildi!');
               setTimeout(() => setStatusMsg(''), 3000);
+            } else if (pastedText.trim() && pastedText.trim() !== baselineTextRef.current) {
+              setStatusMsg('✨ Nitq qeydə alındı.');
+              setTimeout(() => setStatusMsg(''), 3000);
             } else {
-              // If live transcription already captured text, keep it
-              if (pastedText.trim() && pastedText.trim() !== baselineTextRef.current) {
-                setStatusMsg('✨ Nitq qeydə alındı.');
-                setTimeout(() => setStatusMsg(''), 3000);
-              } else {
-                setErrorMsg(data.error || 'Səs transkripsiya edilə bilmədi. Mikrofona bir daha aydın danışın.');
-              }
+              setErrorMsg(data.error || 'Səs transkripsiya edilə bilmədi. Mikrofona bir daha aydın danışın.');
             }
             setIsTranscribing(false);
           };
@@ -228,14 +244,10 @@ export const CVCreatorAiModal: React.FC<CVCreatorAiModalProps> = ({
 
   const stopVoiceRecording = () => {
     if (timerRef.current) clearInterval(timerRef.current);
-    if (recognitionRef.current) {
-      try { recognitionRef.current.stop(); } catch {}
-      recognitionRef.current = null;
-    }
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+    setIsRecording(false);
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
       mediaRecorderRef.current.stop();
     }
-    setIsRecording(false);
   };
 
   if (!isOpen) return null;
@@ -271,7 +283,56 @@ Dillər:
 - İngilis dili: Professional Working (C1)
 - Rus dili: Danışıq səviyyəsi (B2)`;
 
-  const handleGenerate = async () => {
+  // Generate CV from LinkedIn or Facebook Profile URL
+  const handleGenerateFromSocial = async () => {
+    const url = socialUrl.trim();
+    if (!url) {
+      setErrorMsg(
+        socialPlatform === 'linkedin'
+          ? 'Zəhmət olmasa LinkedIn profil linkinizi daxil edin (məsələn: linkedin.com/in/ad-soyad).'
+          : 'Zəhmət olmasa Facebook profil linkinizi daxil edin (məsələn: facebook.com/ad-soyad).'
+      );
+      return;
+    }
+
+    setIsLoading(true);
+    setErrorMsg('');
+    setStatusMsg(
+      `AI ${socialPlatform === 'linkedin' ? 'LinkedIn' : 'Facebook'} profil məlumatlarını təhlil edir və CV-yə çevirir...`
+    );
+
+    try {
+      const res = await fetch('/api/ai/generate-cv-from-social', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          profileUrl: url,
+          platform: socialPlatform,
+          rawPastedText: socialNotes.trim() || undefined,
+          photoUrl
+        })
+      });
+
+      const json = await res.json();
+      if (json && json.cvData) {
+        setStatusMsg('🎉 Profil məlumatları əsasında CV uğurla yaradıldı!');
+        setTimeout(() => {
+          onApplyCvData(json.cvData);
+          onClose();
+        }, 700);
+      } else {
+        throw new Error(json.error || 'Profil məlumatları emal edilə bilmədi.');
+      }
+    } catch (err: any) {
+      console.error('Social CV error:', err);
+      setErrorMsg(err?.message || 'Profil məlumatları çıxarılarkən xəta baş verdi. Zəhmət olmasa linki yoxlayıb yenidən cəhd edin.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Generate CV from Text, Voice or Image
+  const handleGenerateFromContent = async () => {
     const text = pastedText.trim();
     if (!text && !selectedImageBase64) {
       setErrorMsg('Zəhmət olmasa mətn daxil edin və ya qalereyadan CV şəkli yükləyin.');
@@ -304,7 +365,7 @@ Dillər:
         setTimeout(() => {
           onApplyCvData(json.cvData);
           onClose();
-        }, 800);
+        }, 700);
       } else {
         throw new Error(json.error || 'CV məlumatları emal edilə bilmədi.');
       }
@@ -317,199 +378,481 @@ Dillər:
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in-50">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in-50">
       <div className="bg-white w-full max-w-2xl rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[90vh]">
         {/* Header */}
-        <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-gradient-to-r from-purple-50 via-white to-indigo-50">
+        <div className="px-5 sm:px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-gradient-to-r from-blue-50 via-indigo-50/50 to-purple-50">
           <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-xl bg-purple-600 text-white shadow-2xs">
+            <div className="p-2 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-xs">
               <Sparkles className="w-5 h-5" />
             </div>
             <div>
               <h3 className="text-base font-bold text-slate-900">
-                AI İlə Mətndən və ya Şəkildən CV Yarat
+                AI ilə Ağıllı CV Yarat
               </h3>
               <p className="text-xs text-slate-500">
-                Qalereyadan şəkil yükləyin, səslə deyin və ya mətn yapışdırın
+                LinkedIn və ya Facebook linki qoyun, mətn yapışdırın, səslə diktə edin və ya şəkil yükləyin
               </p>
             </div>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+            className="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Body */}
-        <div className="p-6 space-y-4 overflow-y-auto flex-1 text-xs">
-          {/* Quick Info Tip */}
-          <div className="p-3.5 rounded-xl bg-purple-50/70 border border-purple-200/80 text-purple-900 flex items-start gap-2.5">
-            <Lightbulb className="w-4 h-4 text-purple-600 shrink-0 mt-0.5" />
-            <div className="space-y-0.5">
-              <span className="font-bold">Necə işləyir?</span>
-              <p className="text-[11px] text-purple-800 leading-relaxed">
-                Köhnə CV-nizin və ya sənədlərinizin şəklini yükləyə, mikrofona danışa və ya LinkedIn mətnini yapışdıra bilərsiniz. Süni intellekt məlumatları avtomatik ayıraraq rəsmi CV strukturuna çevirir.
-              </p>
-            </div>
-          </div>
+        {/* Mode Selector Tabs */}
+        <div className="px-5 sm:px-6 pt-3 pb-1 border-b border-slate-100 bg-slate-50/60">
+          <div className="flex items-center gap-1 overflow-x-auto scrollbar-none p-1 bg-slate-200/70 rounded-xl">
+            {/* 1. LinkedIn & Facebook Tab */}
+            <button
+              type="button"
+              onClick={() => {
+                setActiveTab('social');
+                setErrorMsg('');
+              }}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer select-none whitespace-nowrap leading-none ${
+                activeTab === 'social'
+                  ? 'bg-white text-blue-700 shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <Globe className="w-3.5 h-3.5 text-blue-600" />
+              <span>LinkedIn / Facebook</span>
+            </button>
 
-          {/* Uploaded Image Preview */}
-          {selectedImageBase64 && (
-            <div className="flex items-center justify-between p-3 rounded-xl bg-indigo-50/90 border border-indigo-200 animate-fadeIn">
-              <div className="flex items-center gap-3 min-w-0">
-                <img
-                  src={selectedImageBase64}
-                  alt="Yüklənmiş CV Şəkli"
-                  className="w-12 h-12 rounded-lg object-cover border border-indigo-300 shadow-2xs shrink-0"
-                />
-                <div className="min-w-0">
-                  <div className="text-xs font-bold text-indigo-950 truncate flex items-center gap-1.5">
-                    <span className="truncate">{selectedImageName || 'CV Şəkli'}</span>
-                    <span className="px-1.5 py-0.5 rounded bg-indigo-200 text-[10px] text-indigo-900 font-bold">
-                      Şəkil Yükləndi
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-indigo-800/90 truncate mt-0.5">
-                    AI şəkildəki bütün təcrübə, təhsil və əlaqə məlumatlarını oxuyacaq.
+            {/* 2. Text Tab */}
+            <button
+              type="button"
+              onClick={() => {
+                setActiveTab('text');
+                setErrorMsg('');
+              }}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer select-none whitespace-nowrap leading-none ${
+                activeTab === 'text'
+                  ? 'bg-white text-purple-700 shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <FileText className="w-3.5 h-3.5 text-purple-600" />
+              <span>Mətn və ya Qeydlər</span>
+            </button>
+
+            {/* 3. Voice Tab */}
+            <button
+              type="button"
+              onClick={() => {
+                setActiveTab('voice');
+                setErrorMsg('');
+              }}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer select-none whitespace-nowrap leading-none ${
+                activeTab === 'voice'
+                  ? 'bg-white text-rose-700 shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <Mic className="w-3.5 h-3.5 text-rose-600" />
+              <span>Səslə Diktə</span>
+            </button>
+
+            {/* 4. Image Tab */}
+            <button
+              type="button"
+              onClick={() => {
+                setActiveTab('image');
+                setErrorMsg('');
+              }}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer select-none whitespace-nowrap leading-none ${
+                activeTab === 'image'
+                  ? 'bg-white text-indigo-700 shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <ImageIcon className="w-3.5 h-3.5 text-indigo-600" />
+              <span>Şəkil / Sənəd OCR</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Modal Body Content */}
+        <div className="p-5 sm:p-6 space-y-4 overflow-y-auto flex-1 text-xs">
+
+          {/* TAB 1: SOCIAL PROFILE (LINKEDIN / FACEBOOK) */}
+          {activeTab === 'social' && (
+            <div className="space-y-4 animate-in fade-in-50">
+              {/* Quick Info Tip */}
+              <div className="p-3.5 rounded-xl bg-blue-50/80 border border-blue-200/90 text-blue-950 flex items-start gap-2.5">
+                <Globe className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
+                <div className="space-y-0.5">
+                  <span className="font-bold">Sosial Profilinizlə 1-kliklə CV Yaratmaq</span>
+                  <p className="text-[11px] text-blue-800 leading-relaxed">
+                    LinkedIn və ya Facebook profil linkinizi yapışdırın. Jobia AI profil məlumatlarınızı, ad-soyadınızı, təcrübələrinizi və bacarıqlarınızı dərhal beynəlxalq standartlı rəsmi CV-yə çevirəcək.
                   </p>
                 </div>
               </div>
-              <button
-                type="button"
-                onClick={handleRemoveImage}
-                className="p-1.5 rounded-lg text-indigo-600 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer shrink-0 ml-2"
-                title="Şəkli sil"
-              >
-                <X className="w-4 h-4" />
-              </button>
+
+              {/* Platform Selector */}
+              <div className="space-y-1.5">
+                <label className="font-bold text-slate-800 flex items-center gap-1.5">
+                  <span>Sosial Şəbəkəni Seçin:</span>
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSocialPlatform('linkedin');
+                      if (!socialUrl || socialUrl.includes('facebook')) {
+                        setSocialUrl('https://linkedin.com/in/');
+                      }
+                    }}
+                    className={`flex items-center justify-center gap-2 p-2.5 rounded-xl border text-xs font-bold transition-all cursor-pointer select-none ${
+                      socialPlatform === 'linkedin'
+                        ? 'bg-blue-50 border-blue-500 text-blue-700 shadow-xs ring-1 ring-blue-500'
+                        : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+                    }`}
+                  >
+                    <div className="w-5 h-5 rounded-md bg-[#0077b5] text-white flex items-center justify-center font-black text-xs">
+                      in
+                    </div>
+                    <span>LinkedIn Profili</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSocialPlatform('facebook');
+                      if (!socialUrl || socialUrl.includes('linkedin')) {
+                        setSocialUrl('https://facebook.com/');
+                      }
+                    }}
+                    className={`flex items-center justify-center gap-2 p-2.5 rounded-xl border text-xs font-bold transition-all cursor-pointer select-none ${
+                      socialPlatform === 'facebook'
+                        ? 'bg-indigo-50 border-indigo-500 text-indigo-700 shadow-xs ring-1 ring-indigo-500'
+                        : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+                    }`}
+                  >
+                    <div className="w-5 h-5 rounded-md bg-[#1877f2] text-white flex items-center justify-center font-black text-xs">
+                      f
+                    </div>
+                    <span>Facebook Profili</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* URL Input Field */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <label className="font-bold text-slate-800 flex items-center gap-1.5">
+                    <LinkIcon className="w-3.5 h-3.5 text-blue-600" />
+                    <span>{socialPlatform === 'linkedin' ? 'LinkedIn Profil Linki:' : 'Facebook Profil Linki:'}</span>
+                  </label>
+                  {/* Sample links */}
+                  <div className="flex items-center gap-1.5 text-[11px]">
+                    <span className="text-slate-400">Nümunə:</span>
+                    <button
+                      type="button"
+                      onClick={() => setSocialUrl(socialPlatform === 'linkedin' ? 'https://linkedin.com/in/elmir-qasimov' : 'https://facebook.com/elmir.qasimov')}
+                      className="text-blue-600 hover:underline font-semibold"
+                    >
+                      elmir-qasimov
+                    </button>
+                    <span className="text-slate-300">·</span>
+                    <button
+                      type="button"
+                      onClick={() => setSocialUrl(socialPlatform === 'linkedin' ? 'https://linkedin.com/in/ayten-hesenova' : 'https://facebook.com/ayten.hesenova')}
+                      className="text-blue-600 hover:underline font-semibold"
+                    >
+                      ayten-hesenova
+                    </button>
+                  </div>
+                </div>
+
+                <div className="relative">
+                  <input
+                    type="url"
+                    value={socialUrl}
+                    onChange={(e) => setSocialUrl(e.target.value)}
+                    placeholder={
+                      socialPlatform === 'linkedin'
+                        ? 'https://www.linkedin.com/in/ad-soyad/'
+                        : 'https://www.facebook.com/ad-soyad'
+                    }
+                    className="w-full pl-9 pr-24 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-xs font-medium text-slate-800 shadow-2xs"
+                  />
+                  <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
+                    <LinkIcon className="w-4 h-4" />
+                  </div>
+                  {socialUrl && (
+                    <button
+                      type="button"
+                      onClick={() => setSocialUrl('')}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Optional Extra Notes */}
+              <div className="space-y-1.5">
+                <label className="font-bold text-slate-700 flex items-center justify-between">
+                  <span>Əlavə Qeydlər və ya Hədəf Vəzifə (İstəyə görə):</span>
+                  <span className="text-[10px] text-slate-400 font-normal">Məsələn: Senior Frontend Developer</span>
+                </label>
+                <textarea
+                  value={socialNotes}
+                  onChange={(e) => setSocialNotes(e.target.value)}
+                  placeholder="CV-də xüsusi qeyd etmək istədiyiniz təcrübələr, vəzifə istəyi və ya əsas bacarıqları bura yaza bilərsiniz..."
+                  rows={2}
+                  className="w-full p-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs text-slate-800"
+                />
+              </div>
             </div>
           )}
 
-          {/* Text Area & Action Buttons */}
-          <div className="space-y-1.5">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <label className="font-bold text-slate-800 flex items-center gap-1.5">
-                <FileText className="w-3.5 h-3.5 text-slate-500" />
-                <span>{selectedImageBase64 ? 'Əlavə Qeydlər (İstəyə görə):' : 'Mətn Sahəsi:'}</span>
-              </label>
-              <div className="flex flex-wrap items-center gap-2">
-                {/* Voice Dictation Button */}
+          {/* TAB 2 & 3: TEXT & VOICE DICTATION */}
+          {(activeTab === 'text' || activeTab === 'voice') && (
+            <div className="space-y-4 animate-in fade-in-50">
+              {/* Quick Info Tip */}
+              <div className="p-3.5 rounded-xl bg-purple-50/70 border border-purple-200/80 text-purple-900 flex items-start gap-2.5">
+                <Lightbulb className="w-4 h-4 text-purple-600 shrink-0 mt-0.5" />
+                <div className="space-y-0.5">
+                  <span className="font-bold">Mətn və ya Səslə CV Tərtibi</span>
+                  <p className="text-[11px] text-purple-800 leading-relaxed">
+                    Köhnə CV mətninizi yapışdıra, sərbəst qeydlər yaza və ya mikrofona danışaraq təcrübənizi bölüşə bilərsiniz. Süni intellekt məlumatları rəsmi CV standartlarına salacaq.
+                  </p>
+                </div>
+              </div>
+
+              {/* Voice Dictation Control Bar */}
+              <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-200">
+                <div className="flex items-center gap-2">
+                  <Mic className={`w-4 h-4 ${isRecording ? 'text-rose-600 animate-pulse' : 'text-slate-600'}`} />
+                  <div>
+                    <div className="font-bold text-slate-800 text-xs">
+                      {isRecording ? `Səs yazılır: ${recordingSeconds} saniyə...` : 'Səslə Diktə İmkanı'}
+                    </div>
+                    <div className="text-[10px] text-slate-500">
+                      {isRecording ? 'Aydın danışın, nitqiniz anında mətnə çevrilir' : 'Mikrofona danışaraq CV məlumatlarınızı diktə edin'}
+                    </div>
+                  </div>
+                </div>
+
                 {!isRecording ? (
                   <button
                     type="button"
                     onClick={startVoiceRecording}
                     disabled={isLoading || isTranscribing}
-                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold border border-rose-200 transition-all cursor-pointer text-[11px]"
-                    title="Mikrofona danışaraq mətni bura əlavə et"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold transition-all cursor-pointer text-xs shadow-2xs"
                   >
-                    <Mic className="w-3.5 h-3.5 text-rose-600" />
-                    <span>Səslə De</span>
+                    <Mic className="w-3.5 h-3.5" />
+                    <span>Diktəyə Başla</span>
                   </button>
                 ) : (
                   <button
                     type="button"
                     onClick={stopVoiceRecording}
-                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-rose-600 hover:bg-rose-700 text-white font-bold transition-all cursor-pointer text-[11px] animate-pulse"
-                    title="Səs yazısını saxla"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold transition-all cursor-pointer text-xs animate-pulse shadow-xs"
                   >
                     <MicOff className="w-3.5 h-3.5" />
                     <span>Dayandır ({recordingSeconds}s)</span>
                   </button>
                 )}
+              </div>
 
-                {/* Gallery / Image Upload Button */}
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={isLoading || isTranscribing}
-                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold border border-indigo-200 transition-all cursor-pointer text-[11px]"
-                  title="Qalereyadan və ya kompüterdən CV şəkli yüklə"
-                >
-                  <ImageIcon className="w-3.5 h-3.5 text-indigo-600" />
-                  <span>Şəkildən Oxu</span>
-                </button>
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  onChange={handleImageSelect}
-                  accept="image/*"
-                  className="hidden"
-                />
-
-                <button
-                  type="button"
-                  onClick={() => setPastedText(sampleLinkedInText)}
-                  className="text-purple-700 hover:text-purple-900 font-bold hover:underline"
-                >
-                  Nümunə mətn qoy
-                </button>
-                {pastedText && (
-                  <>
-                    <span className="text-slate-300">•</span>
+              {/* Text Area */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <label className="font-bold text-slate-800 flex items-center gap-1.5">
+                    <FileText className="w-3.5 h-3.5 text-purple-600" />
+                    <span>CV Mətni və ya Tərcümeyi-hal:</span>
+                  </label>
+                  <div className="flex items-center gap-2">
                     <button
                       type="button"
-                      onClick={() => setPastedText('')}
-                      className="text-rose-600 hover:text-rose-800 font-bold hover:underline"
+                      onClick={() => setPastedText(sampleLinkedInText)}
+                      className="text-purple-700 hover:text-purple-900 font-bold hover:underline text-[11px]"
                     >
-                      Təmizlə
+                      Nümunə mətn qoy
                     </button>
-                  </>
-                )}
+                    {pastedText && (
+                      <button
+                        type="button"
+                        onClick={() => setPastedText('')}
+                        className="text-slate-400 hover:text-rose-600 text-[11px]"
+                      >
+                        Təmizlə
+                      </button>
+                    )}
+                  </div>
+                </div>
+                <textarea
+                  value={pastedText}
+                  onChange={(e) => setPastedText(e.target.value)}
+                  placeholder="Köhnə CV mətninizi, qeydlərinizi və ya iş təcrübənizi bura yapışdırın..."
+                  rows={7}
+                  className="w-full p-3 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-purple-500 font-mono text-xs text-slate-800"
+                />
               </div>
-            </div>
-
-            <textarea
-              rows={selectedImageBase64 ? 5 : 8}
-              value={pastedText}
-              onChange={(e) => setPastedText(e.target.value)}
-              placeholder={
-                selectedImageBase64
-                  ? "İstəsəniz şəkildən əlavə qeydlərinizi də bura yaza bilərsiniz (Məs: 'Maaş gözləntisi 1500 AZN, sürücülük vəsiqəm B kateqoriyasıdır')..."
-                  : "LinkedIn 'About & Experience' bölməsini, köhnə CV mətninizi və ya sərbəst qeydlərinizi bura yapışdırın..."
-              }
-              className="w-full p-3.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-purple-500 focus:outline-none bg-slate-50/50 text-xs text-slate-900 font-mono leading-relaxed"
-            />
-          </div>
-
-          {/* Status & Error Messages */}
-          {errorMsg && (
-            <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 shrink-0" />
-              <span>{errorMsg}</span>
             </div>
           )}
 
+          {/* TAB 4: IMAGE SCAN (OCR) */}
+          {activeTab === 'image' && (
+            <div className="space-y-4 animate-in fade-in-50">
+              <div className="p-3.5 rounded-xl bg-indigo-50/80 border border-indigo-200/90 text-indigo-950 flex items-start gap-2.5">
+                <ImageIcon className="w-4 h-4 text-indigo-600 shrink-0 mt-0.5" />
+                <div className="space-y-0.5">
+                  <span className="font-bold">Şəkildən və Sənədlərdən CV Yaratmaq</span>
+                  <p className="text-[11px] text-indigo-800 leading-relaxed">
+                    Kağız CV-nizin, diplomunuzun və ya kompüterdəki CV skrinşotunun şəklini yükləyin. Jobia Vision AI mətni oxuyacaq və formatlaşdıracaq.
+                  </p>
+                </div>
+              </div>
+
+              {selectedImageBase64 ? (
+                <div className="flex items-center justify-between p-3.5 rounded-xl bg-indigo-50 border border-indigo-200">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <img
+                      src={selectedImageBase64}
+                      alt="CV Şəkli"
+                      className="w-14 h-14 rounded-lg object-cover border border-indigo-300 shadow-2xs shrink-0"
+                    />
+                    <div className="min-w-0">
+                      <div className="text-xs font-bold text-indigo-950 truncate flex items-center gap-1.5">
+                        <span className="truncate">{selectedImageName || 'CV Şəkli'}</span>
+                        <span className="px-1.5 py-0.5 rounded bg-indigo-200 text-[10px] text-indigo-900 font-bold">
+                          Yükləndi
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-indigo-800/90 truncate mt-0.5">
+                        AI şəkildəki bütün təcrübə, təhsil və əlaqə məlumatlarını oxuyacaq.
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleRemoveImage}
+                    className="p-1.5 rounded-lg text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer shrink-0 ml-2"
+                    title="Şəkli sil"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              ) : (
+                <div
+                  onClick={() => fileInputRef.current?.click()}
+                  className="p-8 border-2 border-dashed border-indigo-200 hover:border-indigo-400 rounded-2xl bg-indigo-50/40 hover:bg-indigo-50 text-center cursor-pointer transition-all flex flex-col items-center justify-center gap-2 group"
+                >
+                  <div className="p-3 rounded-full bg-white text-indigo-600 shadow-xs group-hover:scale-110 transition-transform">
+                    <UploadCloud className="w-6 h-6" />
+                  </div>
+                  <div className="font-bold text-slate-800 text-xs">
+                    CV Şəklini Seçmək üçün Klikləyin
+                  </div>
+                  <div className="text-[11px] text-slate-500">
+                    JPG, PNG və ya WEBP (Maksimum 15 MB)
+                  </div>
+                </div>
+              )}
+
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleImageSelect}
+                accept="image/*"
+                className="hidden"
+              />
+
+              {/* Extra text alongside image */}
+              <div className="space-y-1.5">
+                <label className="font-bold text-slate-700">
+                  Şəklə Əlavə Qeydlər (İstəyə görə):
+                </label>
+                <textarea
+                  value={pastedText}
+                  onChange={(e) => setPastedText(e.target.value)}
+                  placeholder="Şəkilə əlavə olaraq qeyd etmək istədiyiniz məlumatlar..."
+                  rows={2}
+                  className="w-full p-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-xs"
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Status Message */}
           {statusMsg && (
-            <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 flex items-center gap-2 font-medium">
-              <Sparkles className="w-4 h-4 text-emerald-600 shrink-0" />
+            <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center gap-2 animate-fadeIn font-semibold">
+              <Check className="w-4 h-4 text-emerald-600 shrink-0" />
               <span>{statusMsg}</span>
+            </div>
+          )}
+
+          {/* Error Message */}
+          {errorMsg && (
+            <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center gap-2 animate-fadeIn font-semibold">
+              <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+              <span>{errorMsg}</span>
             </div>
           )}
         </div>
 
-        {/* Footer Actions */}
-        <div className="px-6 py-3.5 border-t border-slate-100 bg-slate-50/70 flex items-center justify-end gap-2.5">
+        {/* Modal Footer */}
+        <div className="px-5 sm:px-6 py-3.5 border-t border-slate-100 flex items-center justify-between bg-slate-50/80">
           <button
             type="button"
-            onClick={handleGenerate}
-            disabled={isLoading || (!pastedText.trim() && !selectedImageBase64)}
-            className="px-5 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 active:bg-purple-800 text-white font-bold text-xs shadow-md transition-all inline-flex items-center gap-2 disabled:opacity-50 cursor-pointer"
+            onClick={onClose}
+            disabled={isLoading}
+            className="px-4 py-2 rounded-xl text-slate-600 hover:text-slate-800 font-bold transition-colors cursor-pointer text-xs"
           >
-            {isLoading ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                <span>Hazırlanır...</span>
-              </>
-            ) : (
-              <>
-                <Sparkles className="w-4 h-4 text-yellow-300" />
-                <span>{selectedImageBase64 ? 'AI İlə Şəkildən CV Yarat' : 'AI İlə CV-ni Yarat'}</span>
-              </>
-            )}
+            Ləğv et
           </button>
+
+          {activeTab === 'social' ? (
+            <button
+              type="button"
+              onClick={handleGenerateFromSocial}
+              disabled={isLoading || !socialUrl.trim()}
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold transition-all shadow-md active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer text-xs"
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Profil Analiz Edilir...</span>
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-4 h-4" />
+                  <span>Profili İdxal Et və CV Yarat</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </>
+              )}
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={handleGenerateFromContent}
+              disabled={isLoading || (!pastedText.trim() && !selectedImageBase64)}
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-bold transition-all shadow-md active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer text-xs"
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>AI CV Tərtib Edir...</span>
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-4 h-4" />
+                  <span>{selectedImageBase64 ? 'Şəkildən CV Yarat' : 'Mətndən CV Yarat'}</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </>
+              )}
+            </button>
+          )}
         </div>
       </div>
     </div>

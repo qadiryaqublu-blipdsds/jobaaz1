@@ -23,6 +23,8 @@ import { CVCreatorAiModal } from './cv-creator/CVCreatorAiModal';
 import { CVCreatorClearModal } from './cv-creator/CVCreatorClearModal';
 import { SectionBottomLogo } from '../common/SectionBottomLogo';
 import { PDFDownloadProgressToast } from '../common/PDFDownloadProgressToast';
+import { safeAlert } from '../../utils/dialogHelper';
+import { CVDownloadPaymentModal } from './CVDownloadPaymentModal';
 
 import { 
   Sparkles, 
@@ -300,7 +302,10 @@ export const CVCreator: React.FC<CVCreatorProps> = ({
   // Modals state
   const [isAiModalOpen, setIsAiModalOpen] = useState(false);
   const [isAiModalImageMode, setIsAiModalImageMode] = useState(false);
+  const [aiModalInitialMode, setAiModalInitialMode] = useState<'social' | 'text' | 'voice' | 'image'>('social');
   const [isClearModalOpen, setIsClearModalOpen] = useState(false);
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+  const [hasPaidForPDF, setHasPaidForPDF] = useState(false);
 
   // Full Preview Zoom Mode
   const [previewZoomMode, setPreviewZoomMode] = useState<'fit' | '100%'>('fit');
@@ -530,8 +535,23 @@ export const CVCreator: React.FC<CVCreatorProps> = ({
       console.error('PDF export error', err);
       setIsDownloadingPdf(false);
       setPdfProgressPercent(0);
-      alert('PDF yüklənərkən xəta baş verdi: ' + (err?.message || 'Zəhmət olmasa yenidən cəhd edin.'));
+      safeAlert('PDF yüklənərkən xəta baş verdi: ' + (err?.message || 'Zəhmət olmasa yenidən cəhd edin.'));
     }
+  };
+
+  // Trigger PDF export after 2 AZN payment check
+  const handleInitiatePDFDownload = () => {
+    if (hasPaidForPDF) {
+      handleDownloadPDF();
+    } else {
+      setIsPaymentModalOpen(true);
+    }
+  };
+
+  const handlePaymentSuccess = () => {
+    setHasPaidForPDF(true);
+    setIsPaymentModalOpen(false);
+    handleDownloadPDF();
   };
 
   const currentTemplateMeta = CV_TEMPLATES.find((t) => t.id === selectedTemplate) || CV_TEMPLATES[0];
@@ -550,11 +570,18 @@ export const CVCreator: React.FC<CVCreatorProps> = ({
         onTranslateContent={() => handleTranslateContentWithAI(currentLanguage)}
         isTranslating={isTranslating}
         onOpenAiModal={() => {
+          setAiModalInitialMode('text');
           setIsAiModalImageMode(false);
           setIsAiModalOpen(true);
         }}
         onOpenImageAiModal={() => {
+          setAiModalInitialMode('image');
           setIsAiModalImageMode(true);
+          setIsAiModalOpen(true);
+        }}
+        onOpenSocialModal={() => {
+          setAiModalInitialMode('social');
+          setIsAiModalImageMode(false);
           setIsAiModalOpen(true);
         }}
         onOpenClearModal={() => setIsClearModalOpen(true)}
@@ -562,11 +589,12 @@ export const CVCreator: React.FC<CVCreatorProps> = ({
         onSaveData={handleSaveData}
         saveSuccess={saveSuccess}
         lastSavedTime={lastSavedTime}
-        onDownloadPDF={handleDownloadPDF}
+        onDownloadPDF={handleInitiatePDFDownload}
         isDownloadingPdf={isDownloadingPdf}
         pdfProgressText={pdfProgressText}
         pdfProgressPercent={pdfProgressPercent}
         pdfSuccess={pdfSuccess}
+        hasPaidForPDF={hasPaidForPDF}
         onOpenATSAnalyzer={
           onOpenATSAnalyzer
             ? () => {
@@ -602,12 +630,23 @@ export const CVCreator: React.FC<CVCreatorProps> = ({
                   showPhoto={showPhoto}
                   setShowPhoto={setShowPhoto}
                   onOpenAiModal={() => {
+                    setAiModalInitialMode('text');
                     setIsAiModalImageMode(false);
                     setIsAiModalOpen(true);
                   }}
                   onOpenImageAiModal={() => {
+                    setAiModalInitialMode('image');
                     setIsAiModalImageMode(true);
                     setIsAiModalOpen(true);
+                  }}
+                  onOpenSocialModal={() => {
+                    setAiModalInitialMode('social');
+                    setIsAiModalImageMode(false);
+                    setIsAiModalOpen(true);
+                  }}
+                  onApplyCvData={(newData) => {
+                    setCvData(newData);
+                    setActiveTab('editor');
                   }}
                 />
 
@@ -704,14 +743,14 @@ export const CVCreator: React.FC<CVCreatorProps> = ({
                 <button
                   id="btn-preview-toolbar-download-pdf"
                   type="button"
-                  onClick={handleDownloadPDF}
+                  onClick={handleInitiatePDFDownload}
                   disabled={isDownloadingPdf}
                   className={`relative overflow-hidden px-3.5 py-1.5 rounded-xl text-white text-xs font-bold inline-flex items-center gap-1.5 transition-all shadow-sm cursor-pointer border ${
                     pdfSuccess
                       ? 'bg-emerald-700 border-emerald-600 ring-2 ring-emerald-400/40'
                       : 'bg-emerald-600 hover:bg-emerald-700 border-emerald-500 disabled:opacity-95'
                   }`}
-                  title="CV-ni rəsmi A4 PDF formatında endir"
+                  title="CV-ni rəsmi A4 PDF formatında endir (2 AZN)"
                 >
                   {isDownloadingPdf && (
                     <div
@@ -735,6 +774,15 @@ export const CVCreator: React.FC<CVCreatorProps> = ({
                       <>
                         <FileDown className="w-3.5 h-3.5" />
                         <span>PDF Endir</span>
+                        {!hasPaidForPDF ? (
+                          <span className="px-1.5 py-0.2 rounded-md bg-emerald-700/90 text-white text-[10px] font-black border border-emerald-400/40">
+                            2 ₼
+                          </span>
+                        ) : (
+                          <span className="px-1.5 py-0.2 rounded-md bg-emerald-800/80 text-emerald-200 text-[10px] font-bold">
+                            Ödənildi
+                          </span>
+                        )}
                       </>
                     )}
                   </span>
@@ -818,6 +866,7 @@ export const CVCreator: React.FC<CVCreatorProps> = ({
         }}
         photoUrl={cvData.personalInfo.photoUrl}
         autoTriggerImageUpload={isAiModalImageMode}
+        initialMode={aiModalInitialMode}
       />
 
       {/* Confirmation Modal to Clear Data */}
@@ -835,6 +884,16 @@ export const CVCreator: React.FC<CVCreatorProps> = ({
         showToast={showPdfToast}
         fileName={pdfFileName}
         onDismissToast={() => setShowPdfToast(false)}
+      />
+
+      {/* CV Download Payment Modal (2 AZN) */}
+      <CVDownloadPaymentModal
+        isOpen={isPaymentModalOpen}
+        onClose={() => setIsPaymentModalOpen(false)}
+        onPaymentSuccess={handlePaymentSuccess}
+        type="cv_creation"
+        candidateName={cvData.personalInfo?.fullName}
+        currentUser={currentUser}
       />
     </div>
   );

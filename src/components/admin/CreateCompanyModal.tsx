@@ -14,6 +14,7 @@ import {
   Image as ImageIcon
 } from 'lucide-react';
 import { ModalBottomLogo } from '../ModalBottomLogo';
+import { safeAlert } from '../../utils/dialogHelper';
 
 interface CreateCompanyModalProps {
   isOpen: boolean;
@@ -70,7 +71,7 @@ export const CreateCompanyModal: React.FC<CreateCompanyModalProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) {
-      alert(language === 'en' ? 'Please enter company name.' : language === 'ru' ? 'Укажите название компании.' : 'Zəhmət olmasa şirkət adını daxil edin.');
+      safeAlert(language === 'en' ? 'Please enter company name.' : language === 'ru' ? 'Укажите название компании.' : 'Zəhmət olmasa şirkət adını daxil edin.');
       return;
     }
 
@@ -100,7 +101,7 @@ export const CreateCompanyModal: React.FC<CreateCompanyModalProps> = ({
       onClose();
     } catch (err) {
       console.error(err);
-      alert('Şirkət yaradılarkən xəta baş verdi.');
+      safeAlert('Şirkət yaradılarkən xəta baş verdi.');
     } finally {
       setIsSubmitting(false);
     }

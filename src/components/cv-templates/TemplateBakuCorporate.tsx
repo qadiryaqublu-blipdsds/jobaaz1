@@ -118,13 +118,13 @@ export const TemplateBakuCorporate: React.FC<TemplateProps> = ({ data, showPhoto
               <div className="space-y-3 pt-1">
                 {education.map((edu, idx) => (
                   <div key={edu.id || idx} className="space-y-0.5">
-                    <div className="flex justify-between items-baseline text-xs">
-                      <span className="font-bold text-slate-900">{edu.institution || edu.school}</span>
-                      <span className="text-[#c26d36] font-semibold">
+                    <div className="flex flex-wrap justify-between items-baseline gap-2 min-w-0 text-xs">
+                      <span className="font-bold text-slate-900 flex-1 min-w-0 break-words">{edu.institution || edu.school}</span>
+                      <span className="text-[#c26d36] font-semibold shrink-0 whitespace-nowrap">
                         {edu.graduationYear || edu.endDate || (edu.current ? terms.present : '')}
                       </span>
                     </div>
-                    <div className="text-xs text-slate-600">
+                    <div className="text-xs text-slate-600 break-words">
                       {edu.degree} {edu.fieldOfStudy && `— ${edu.fieldOfStudy}`}
                     </div>
                   </div>
@@ -143,8 +143,8 @@ export const TemplateBakuCorporate: React.FC<TemplateProps> = ({ data, showPhoto
               <div className="space-y-2.5 pt-1">
                 {projects.map((proj, idx) => (
                   <div key={proj.id || idx} className="space-y-1">
-                    <div className="text-xs font-bold text-slate-900">{proj.title}</div>
-                    <p className="text-[11px] text-slate-600 line-clamp-2">{proj.description}</p>
+                    <div className="text-xs font-bold text-slate-900 break-words">{proj.title}</div>
+                    <p className="text-[11px] text-slate-600 leading-relaxed break-words">{proj.description}</p>
                     {proj.technologies && proj.technologies.length > 0 && (
                       <div className="flex flex-wrap gap-1 pt-0.5">
                         {proj.technologies.map((tech, tIdx) => (

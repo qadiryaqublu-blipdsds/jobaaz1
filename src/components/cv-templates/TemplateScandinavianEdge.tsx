@@ -141,8 +141,8 @@ export const TemplateScandinavianEdge: React.FC<TemplateProps> = ({ data, showPh
               <div className="space-y-2 text-xs">
                 {projects.slice(0, 2).map((p) => (
                   <div key={p.id}>
-                    <div className="font-bold text-slate-900">{p.title}</div>
-                    {p.description && <div className="text-slate-600 text-[11px] mt-0.5 line-clamp-2">{p.description}</div>}
+                    <div className="font-bold text-slate-900 break-words">{p.title}</div>
+                    {p.description && <div className="text-slate-600 text-[11px] mt-0.5 leading-relaxed break-words">{p.description}</div>}
                   </div>
                 ))}
               </div>
@@ -154,9 +154,9 @@ export const TemplateScandinavianEdge: React.FC<TemplateProps> = ({ data, showPh
               <div className="text-xs font-bold uppercase text-[#1b4332] mb-2">{terms.languages}</div>
               <div className="space-y-1 text-xs">
                 {languages.map((l) => (
-                  <div key={l.id} className="flex justify-between">
-                    <span className="font-semibold text-slate-800">{l.language}</span>
-                    <span className="text-slate-500 text-[11px]">{l.proficiency}</span>
+                  <div key={l.id} className="flex flex-wrap justify-between items-baseline gap-1.5 min-w-0">
+                    <span className="font-semibold text-slate-800 flex-1 min-w-0 break-words">{l.language}</span>
+                    <span className="text-slate-500 text-[11px] shrink-0">{l.proficiency}</span>
                   </div>
                 ))}
               </div>

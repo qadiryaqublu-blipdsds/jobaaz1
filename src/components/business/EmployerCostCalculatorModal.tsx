@@ -125,7 +125,7 @@ export const EmployerCostCalculatorModal: React.FC<EmployerCostCalculatorModalPr
                       : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-100'
                   }`}
                 >
-                  Net (Ələ Çatan)
+                  Net
                 </button>
               </div>
             </div>
