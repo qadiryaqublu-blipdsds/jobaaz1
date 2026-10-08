@@ -17,8 +17,15 @@ import {
   Globe,
   Share2,
   CheckCircle2,
-  ArrowRight
+  ArrowRight,
+  FileCheck,
+  FileUp
 } from 'lucide-react';
+import { 
+  extractTextFromDocument, 
+  readFileAsBase64, 
+  formatFileSize 
+} from '../../../utils/fileExtractor';
 
 interface CVCreatorAiModalProps {
   isOpen: boolean;
@@ -26,7 +33,7 @@ interface CVCreatorAiModalProps {
   onApplyCvData: (data: CVData) => void;
   photoUrl?: string;
   autoTriggerImageUpload?: boolean;
-  initialMode?: 'social' | 'text' | 'voice' | 'image';
+  initialMode?: 'file' | 'social' | 'text' | 'voice' | 'image';
 }
 
 export const CVCreatorAiModal: React.FC<CVCreatorAiModalProps> = ({
@@ -35,11 +42,23 @@ export const CVCreatorAiModal: React.FC<CVCreatorAiModalProps> = ({
   onApplyCvData,
   photoUrl,
   autoTriggerImageUpload = false,
-  initialMode = 'social'
+  initialMode = 'file'
 }) => {
-  const [activeTab, setActiveTab] = useState<'social' | 'text' | 'voice' | 'image'>(
-    autoTriggerImageUpload ? 'image' : (initialMode || 'social')
+  const [activeTab, setActiveTab] = useState<'file' | 'social' | 'text' | 'voice' | 'image'>(
+    autoTriggerImageUpload ? 'image' : (initialMode || 'file')
   );
+
+  // File Upload Mode state (PDF, Word, TXT, Image)
+  const [selectedCvFile, setSelectedCvFile] = useState<File | null>(null);
+  const [cvFileBase64, setCvFileBase64] = useState<string | null>(null);
+  const [cvFileMime, setCvFileMime] = useState<string | null>(null);
+  const [cvFileName, setCvFileName] = useState<string | null>(null);
+  const [cvFileSize, setCvFileSize] = useState<string | null>(null);
+  const [cvExtractedText, setCvExtractedText] = useState<string>('');
+  const [cvFileNotes, setCvFileNotes] = useState<string>('');
+  const [isExtractingFile, setIsExtractingFile] = useState<boolean>(false);
+  const [isDragOverFile, setIsDragOverFile] = useState<boolean>(false);
+  const cvFileInputRef = useRef<HTMLInputElement | null>(null);
 
   // Social Profile Mode state
   const [socialPlatform, setSocialPlatform] = useState<'linkedin' | 'facebook'>('linkedin');
@@ -283,6 +302,80 @@ Dillər:
 - İngilis dili: Professional Working (C1)
 - Rus dili: Danışıq səviyyəsi (B2)`;
 
+  // Select and locally parse uploaded CV file
+  const handleSelectCvFile = async (file: File) => {
+    if (!file) return;
+    if (file.size > 25 * 1024 * 1024) {
+      setErrorMsg('Fayl ölçüsü 25MB-dan kiçik olmalıdır.');
+      return;
+    }
+    setErrorMsg('');
+    setSelectedCvFile(file);
+    setCvFileName(file.name);
+    setCvFileMime(file.type || 'application/octet-stream');
+    setCvFileSize(formatFileSize(file.size));
+    setIsExtractingFile(true);
+    setStatusMsg('Fayl oxunur və məlumatlar çıxarılır...');
+
+    try {
+      const base64 = await readFileAsBase64(file);
+      setCvFileBase64(base64);
+      const text = await extractTextFromDocument(file);
+      setCvExtractedText(text || '');
+      const wordCount = (text || '').split(/\s+/).filter(Boolean).length;
+      setStatusMsg(`✓ "${file.name}" seçildi! ${wordCount > 10 ? `(~${wordCount} söz aşkarlandı)` : ''}`);
+    } catch (err) {
+      console.warn('Local extraction note:', err);
+      setStatusMsg(`✓ "${file.name}" seçildi.`);
+    } finally {
+      setIsExtractingFile(false);
+      setTimeout(() => setStatusMsg(''), 4000);
+    }
+  };
+
+  // Generate CV from Uploaded File (PDF, Word, TXT, Image)
+  const handleGenerateFromFile = async () => {
+    if (!selectedCvFile && !cvExtractedText && !cvFileBase64) {
+      setErrorMsg('Zəhmət olmasa bir CV faylı (PDF, Word, Şəkil və ya TXT) seçin.');
+      return;
+    }
+
+    setIsLoading(true);
+    setErrorMsg('');
+    setStatusMsg(`AI "${cvFileName || 'CV faylını'}" təhlil edir və yeni CV yaradır...`);
+
+    try {
+      const res = await fetch('/api/ai/generate-cv-from-file', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          fileBase64: cvFileBase64,
+          mimeType: cvFileMime,
+          fileName: cvFileName,
+          extractedText: cvExtractedText,
+          notes: cvFileNotes.trim() || undefined,
+          photoUrl
+        })
+      });
+
+      const json = await res.json();
+      if (json && json.cvData) {
+        setStatusMsg('🎉 Yeni CV fayl məlumatları əsasında uğurla yaradıldı!');
+        setTimeout(() => {
+          onApplyCvData(json.cvData);
+          onClose();
+        }, 700);
+      } else {
+        throw new Error(json.error || 'CV faylı emal edilə bilmədi.');
+      }
+    } catch (err: any) {
+      console.error('File CV error:', err);
+      setErrorMsg(err?.message || 'Fayl emal edilərkən xəta baş verdi. Zəhmət olmasa faylı yoxlayıb yenidən cəhd edin.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   // Generate CV from LinkedIn or Facebook Profile URL
   const handleGenerateFromSocial = async () => {
     const url = socialUrl.trim();
@@ -391,7 +484,7 @@ Dillər:
                 AI ilə Ağıllı CV Yarat
               </h3>
               <p className="text-xs text-slate-500">
-                LinkedIn və ya Facebook linki qoyun, mətn yapışdırın, səslə diktə edin və ya şəkil yükləyin
+                Köhnə CV faylınızı yükləyin (PDF, Word, Şəkil, TXT), sosial profil linki qoyun və ya mətn yapışdırın
               </p>
             </div>
           </div>
@@ -407,7 +500,24 @@ Dillər:
         {/* Mode Selector Tabs */}
         <div className="px-5 sm:px-6 pt-3 pb-1 border-b border-slate-100 bg-slate-50/60">
           <div className="flex items-center gap-1 overflow-x-auto scrollbar-none p-1 bg-slate-200/70 rounded-xl">
-            {/* 1. LinkedIn & Facebook Tab */}
+            {/* 1. File Upload Tab (PDF, Word, TXT, Image) */}
+            <button
+              type="button"
+              onClick={() => {
+                setActiveTab('file');
+                setErrorMsg('');
+              }}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer select-none whitespace-nowrap leading-none ${
+                activeTab === 'file'
+                  ? 'bg-white text-emerald-700 shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <UploadCloud className="w-3.5 h-3.5 text-emerald-600" />
+              <span>Fayl Yüklə (PDF / Word)</span>
+            </button>
+
+            {/* 2. LinkedIn & Facebook Tab */}
             <button
               type="button"
               onClick={() => {
@@ -424,7 +534,7 @@ Dillər:
               <span>LinkedIn / Facebook</span>
             </button>
 
-            {/* 2. Text Tab */}
+            {/* 3. Text Tab */}
             <button
               type="button"
               onClick={() => {
@@ -441,7 +551,7 @@ Dillər:
               <span>Mətn və ya Qeydlər</span>
             </button>
 
-            {/* 3. Voice Tab */}
+            {/* 4. Voice Tab */}
             <button
               type="button"
               onClick={() => {
@@ -458,7 +568,7 @@ Dillər:
               <span>Səslə Diktə</span>
             </button>
 
-            {/* 4. Image Tab */}
+            {/* 5. Image Tab */}
             <button
               type="button"
               onClick={() => {
@@ -480,7 +590,140 @@ Dillər:
         {/* Modal Body Content */}
         <div className="p-5 sm:p-6 space-y-4 overflow-y-auto flex-1 text-xs">
 
-          {/* TAB 1: SOCIAL PROFILE (LINKEDIN / FACEBOOK) */}
+          {/* TAB 1: FILE UPLOAD (PDF, WORD DOCX/DOC, TXT, IMAGE) */}
+          {activeTab === 'file' && (
+            <div className="space-y-4 animate-in fade-in-50">
+              {/* Quick Info Tip */}
+              <div className="p-3.5 rounded-xl bg-emerald-50/80 border border-emerald-200/90 text-emerald-950 flex items-start gap-2.5">
+                <UploadCloud className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                <div className="space-y-0.5">
+                  <span className="font-bold">İstənilən CV Faylından Yeni CV Yaratmaq</span>
+                  <p className="text-[11px] text-emerald-800 leading-relaxed">
+                    Kompüter və ya telefonunuzdakı köhnə CV sənədini (PDF, Word DOCX/DOC, Şəkil JPG/PNG və ya TXT) yükləyin. Jobia AI bütün məlumatları dəqiqliklə oxuyaraq müasir, beynəlxalq ATS standartlı CV formalaşdıracaq.
+                  </p>
+                </div>
+              </div>
+
+              {/* Drag & Drop Area */}
+              {!selectedCvFile ? (
+                <div
+                  onDragOver={(e) => { e.preventDefault(); setIsDragOverFile(true); }}
+                  onDragLeave={() => setIsDragOverFile(false)}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    setIsDragOverFile(false);
+                    const file = e.dataTransfer.files?.[0];
+                    if (file) handleSelectCvFile(file);
+                  }}
+                  onClick={() => cvFileInputRef.current?.click()}
+                  className={`border-2 border-dashed rounded-2xl p-6 sm:p-8 text-center cursor-pointer transition-all flex flex-col items-center justify-center gap-3 ${
+                    isDragOverFile
+                      ? 'border-emerald-500 bg-emerald-50/60 scale-[1.01]'
+                      : 'border-slate-300 hover:border-emerald-400 bg-slate-50/60 hover:bg-slate-50'
+                  }`}
+                >
+                  <input
+                    ref={cvFileInputRef}
+                    type="file"
+                    accept=".pdf,.doc,.docx,.txt,.rtf,.png,.jpg,.jpeg,.webp,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) handleSelectCvFile(file);
+                    }}
+                  />
+                  <div className="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center shadow-xs">
+                    <UploadCloud className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <p className="text-xs sm:text-sm font-bold text-slate-800">
+                      Köhnə CV faylınızı bura atın və ya <span className="text-emerald-700 underline font-extrabold">cihazdan seçin</span>
+                    </p>
+                    <p className="text-[11px] text-slate-500 mt-1">
+                      Dəstəklənən formatlar: PDF, Word (DOCX / DOC), Şəkil (PNG / JPG), TXT, RTF (25MB-dək)
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 mt-1 flex-wrap justify-center">
+                    <span className="px-2 py-0.5 rounded-md bg-red-100 text-red-700 text-[10px] font-bold">PDF</span>
+                    <span className="px-2 py-0.5 rounded-md bg-blue-100 text-blue-700 text-[10px] font-bold">Word .docx / .doc</span>
+                    <span className="px-2 py-0.5 rounded-md bg-indigo-100 text-indigo-700 text-[10px] font-bold">Şəkil JPG / PNG</span>
+                    <span className="px-2 py-0.5 rounded-md bg-slate-200 text-slate-700 text-[10px] font-bold">TXT</span>
+                  </div>
+                </div>
+              ) : (
+                <div className="border border-emerald-200 rounded-2xl p-4 bg-emerald-50/40 space-y-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-xs">
+                        {cvFileName?.endsWith('.pdf') ? 'PDF' : cvFileName?.includes('.doc') ? 'DOC' : cvFileMime?.startsWith('image/') ? 'IMG' : 'TXT'}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-xs font-bold text-slate-900 truncate">
+                          {cvFileName}
+                        </p>
+                        <div className="flex items-center gap-2 text-[11px] text-slate-500 mt-0.5 flex-wrap">
+                          <span className="font-semibold text-slate-600">{cvFileSize}</span>
+                          {cvExtractedText && (
+                            <span className="text-emerald-700 font-semibold flex items-center gap-1">
+                              <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                              <span>Mətn oxundu (~{cvExtractedText.split(/\s+/).filter(Boolean).length} söz)</span>
+                            </span>
+                          )}
+                          {isExtractingFile && (
+                            <span className="text-amber-700 font-semibold flex items-center gap-1">
+                              <Loader2 className="w-3 h-3 animate-spin text-amber-600" />
+                              <span>Mətn oxunur...</span>
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedCvFile(null);
+                        setCvFileBase64(null);
+                        setCvFileMime(null);
+                        setCvFileName(null);
+                        setCvFileSize(null);
+                        setCvExtractedText('');
+                        if (cvFileInputRef.current) cvFileInputRef.current.value = '';
+                      }}
+                      className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer shrink-0"
+                      title="Faylı dəyiş / sil"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  {/* Text Preview if available */}
+                  {cvExtractedText && (
+                    <div className="p-2.5 rounded-xl bg-white border border-emerald-100 text-[11px] text-slate-600 max-h-24 overflow-y-auto leading-relaxed font-mono">
+                      {cvExtractedText.slice(0, 350)}...
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Optional Notes or Target Position */}
+              <div className="space-y-1.5">
+                <label className="font-bold text-slate-800 flex items-center gap-1.5">
+                  <Lightbulb className="w-3.5 h-3.5 text-amber-600" />
+                  <span>Hədəf Vəzifə və ya Əlavə Qeydlər (İstəyə görə):</span>
+                </label>
+                <input
+                  type="text"
+                  value={cvFileNotes}
+                  onChange={(e) => setCvFileNotes(e.target.value)}
+                  placeholder="Məsələn: 'Senior Frontend Developer vəzifəsinə uyğunlaşdır' və ya 'Maliyyə sahəsində təcrübəmi vurğula'"
+                  className="w-full p-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-xs"
+                />
+              </div>
+            </div>
+          )}
+
+          {/* TAB 2: SOCIAL PROFILE (LINKEDIN / FACEBOOK) */}
           {activeTab === 'social' && (
             <div className="space-y-4 animate-in fade-in-50">
               {/* Quick Info Tip */}
@@ -812,7 +1055,27 @@ Dillər:
             Ləğv et
           </button>
 
-          {activeTab === 'social' ? (
+          {activeTab === 'file' ? (
+            <button
+              type="button"
+              onClick={handleGenerateFromFile}
+              disabled={isLoading || (!selectedCvFile && !cvExtractedText && !cvFileBase64)}
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 via-teal-600 to-indigo-600 hover:from-emerald-700 hover:to-indigo-700 text-white font-bold transition-all shadow-md active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer text-xs"
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Fayl Oxunur və CV Tərtib Edilir...</span>
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-4 h-4" />
+                  <span>Fayldan Yeni CV Yarat</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </>
+              )}
+            </button>
+          ) : activeTab === 'social' ? (
             <button
               type="button"
               onClick={handleGenerateFromSocial}

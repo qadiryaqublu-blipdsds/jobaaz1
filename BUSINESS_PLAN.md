@@ -740,6 +740,20 @@ Platforma həm B2B (İşəgötürənlər), həm də B2C (Namizədlər) istiqamə
      - **Dərin Rekruter və ATS Auditi:** Namizəd öz LinkedIn profil URL-ni daxil edərək profil başlığının (Headline), Haqqında (About) bölməsinin, təcrübə detallarının və bacarıqların LinkedIn Recruiter axtarış sistemlərində tapılma dərəcəsini və ATS uyğunluğunu dərinliklə təhlil etdirir.
      - **İxtisaslaşmış Dashboard və Tövsiyələr:** Nəticələr lövhəsində LinkedIn profili üçün xüsusi fərqləndirici nişan, rekruter görünürlüyü təhlili, açar söz təklifləri və həmin məlumatlarla birbaşa CV yaratma imkanı təqdim olunur.
 
+- [x] **İstənilən Fayldan CV Yükləmə və Avtomatik Yeni CV Yaratma Modulu (Universal CV File Upload & Multi-Format Parsing Engine):**
+  1. **İstifadəçi Tələbinin İcrası:** İstifadəçinin "cv yaradıcı bölməsində istənilən fayldan olan cv ni upload edib ondan yeni cv yaratmaq funksiyası olsun" tələbi əsasında platformanın CV Yaradıcı bölməsinə universal fayl yükləmə və avtomatik CV generasiyası sistemi əlavə edildi.
+  2. **Universal Format Dəstəyi (PDF, Word DOCX/DOC, Şəkil JPG/PNG, TXT, RTF):**
+     - Namizədlər kompüter və ya mobil cihazlarından köhnə və ya mövcud CV-lərini istənilən formatda (PDF, Microsoft Word .docx / .doc, fotoşəkil/skan JPG/PNG/WEBP, TXT, RTF) 25MB-dək limitsiz yükləyə bilirlər.
+     - Həm müştəri tərəfində (Client-Side), həm də serverdə dərin mətn çıxarışı (Mammoth DOCX decoder, PDF binary parser, TextDecoder) və Gemini multimodal inteqrasiyası ilə sənədin həm mətni, həm də strukturu dəqiqliklə oxunur.
+  3. **CV Redaktorunda Birbaşa İnteraktiv Kart (Direct Editor Dropzone):**
+     - `CVCreatorEditor.tsx` daxilində şəxsi məlumatlardan öncə parlaq və cəlbedici "İstənilən CV Faylından Yeni CV Yarat" kartı yerləşdirildi.
+     - İstifadəçi faylı birbaşa redaktor daxilinə ata (drag & drop) və ya "Fayl Seç" düyməsinə klikləyərək yükləyə bilir. Fayl seçildikdə adı, ölçüsü, format nişanı və oxunan söz sayı nümayiş etdirilir; "Bu Fayldan CV Yarat" düyməsi ilə bütün redaktor sahələri saniyələr içində avtomatik doldurulur.
+  4. **Üst İdarəetmə Paneli və Modal İnteqrasiyası:**
+     - `CVCreatorHeader.tsx` zolağında birbaşa "Fayldan CV" düyməsi və "Digər seçimlər" menyusunda "Köhnə CV Faylı Yüklə" seçimi təmin edildi.
+     - `CVCreatorAiModal.tsx` dialoqunda 1-ci əsas tab olaraq "Fayl Yüklə (PDF / Word)" rejimi aktivləşdirildi; istifadəçilərə faylla yanaşı hədəf vəzifə və əlavə peşəkar qeydlər daxil etmək imkanı verildi.
+  5. **Davamlı və Təhlükəsiz Server Mühərriki (`/api/ai/generate-cv-from-file`):**
+     - Serverdə xüsusi endpoint quruldu; Gemini AI modeli mövcud CV-dəki ad, soyad, əlaqə, vəzifə, xülasə, iş təcrübələri, təhsil, bacarıqlar və dilləri beynəlxalq ATS standartında çıxarır; AI kvotası və ya şəbəkə kəsildikdə belə zəmanətli domayn ehtiyat sistemi (Domain Fallback) ilə məlumatlar heç vaxt itmir.
+
 ### 🔮 Növbəti Mərhələlər (Gələcək Planlar)
 - [ ] **Mobil Tətbiq (iOS & Android):** Namizədlər üçün anlıq bildirişlər və mobil iş axtarışı.
 - [ ] **WhatsApp & Telegram Bot İnteqrasiyası:** Yeni vakansiyalar haqqında namizədlərə anlıq çat bildirişləri.

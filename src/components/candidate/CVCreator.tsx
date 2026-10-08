@@ -302,7 +302,7 @@ export const CVCreator: React.FC<CVCreatorProps> = ({
   // Modals state
   const [isAiModalOpen, setIsAiModalOpen] = useState(false);
   const [isAiModalImageMode, setIsAiModalImageMode] = useState(false);
-  const [aiModalInitialMode, setAiModalInitialMode] = useState<'social' | 'text' | 'voice' | 'image'>('social');
+  const [aiModalInitialMode, setAiModalInitialMode] = useState<'file' | 'social' | 'text' | 'voice' | 'image'>('file');
   const [isClearModalOpen, setIsClearModalOpen] = useState(false);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [hasPaidForPDF, setHasPaidForPDF] = useState(false);
@@ -584,6 +584,11 @@ export const CVCreator: React.FC<CVCreatorProps> = ({
           setIsAiModalImageMode(false);
           setIsAiModalOpen(true);
         }}
+        onOpenFileUploadModal={() => {
+          setAiModalInitialMode('file');
+          setIsAiModalImageMode(false);
+          setIsAiModalOpen(true);
+        }}
         onOpenClearModal={() => setIsClearModalOpen(true)}
         onLoadSampleData={handleLoadSampleData}
         onSaveData={handleSaveData}
@@ -641,6 +646,11 @@ export const CVCreator: React.FC<CVCreatorProps> = ({
                   }}
                   onOpenSocialModal={() => {
                     setAiModalInitialMode('social');
+                    setIsAiModalImageMode(false);
+                    setIsAiModalOpen(true);
+                  }}
+                  onOpenFileUploadModal={() => {
+                    setAiModalInitialMode('file');
                     setIsAiModalImageMode(false);
                     setIsAiModalOpen(true);
                   }}

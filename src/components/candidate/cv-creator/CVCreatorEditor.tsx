@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { 
   CVData, 
   ExperienceItem, 
@@ -29,9 +29,19 @@ import {
   Check,
   Link as LinkIcon,
   HelpCircle,
-  Mic
+  Mic,
+  UploadCloud,
+  FileUp,
+  FileText,
+  X,
+  CheckCircle2
 } from 'lucide-react';
 import { safeAlert } from '../../../utils/dialogHelper';
+import { 
+  extractTextFromDocument, 
+  readFileAsBase64, 
+  formatFileSize 
+} from '../../../utils/fileExtractor';
 
 interface CVCreatorEditorProps {
   cvData: CVData;
@@ -41,6 +51,7 @@ interface CVCreatorEditorProps {
   onOpenAiModal?: () => void;
   onOpenImageAiModal?: () => void;
   onOpenSocialModal?: () => void;
+  onOpenFileUploadModal?: () => void;
   onApplyCvData?: (data: CVData) => void;
 }
 
@@ -52,8 +63,85 @@ export const CVCreatorEditor: React.FC<CVCreatorEditorProps> = ({
   onOpenAiModal,
   onOpenImageAiModal,
   onOpenSocialModal,
+  onOpenFileUploadModal,
   onApplyCvData
 }) => {
+  // Quick File Upload CV Generation (PDF, Word DOCX/DOC, Images, TXT)
+  const [quickUploadFile, setQuickUploadFile] = useState<File | null>(null);
+  const [quickFileName, setQuickFileName] = useState<string | null>(null);
+  const [quickFileSize, setQuickFileSize] = useState<string | null>(null);
+  const [quickFileExtractedText, setQuickFileExtractedText] = useState<string>('');
+  const [quickFileBase64, setQuickFileBase64] = useState<string | null>(null);
+  const [quickFileMime, setQuickFileMime] = useState<string | null>(null);
+  const [isFileGenerating, setIsFileGenerating] = useState(false);
+  const [fileSuccessMsg, setFileSuccessMsg] = useState('');
+  const [fileErrorMsg, setFileErrorMsg] = useState('');
+  const [isDragOverEditor, setIsDragOverEditor] = useState(false);
+  const editorFileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const handleEditorFileSelect = async (file: File) => {
+    if (!file) return;
+    if (file.size > 25 * 1024 * 1024) {
+      setFileErrorMsg('Fayl ölçüsü 25MB-dan kiçik olmalıdır.');
+      return;
+    }
+    setFileErrorMsg('');
+    setFileSuccessMsg('');
+    setQuickUploadFile(file);
+    setQuickFileName(file.name);
+    setQuickFileMime(file.type || 'application/octet-stream');
+    setQuickFileSize(formatFileSize(file.size));
+    try {
+      const base64 = await readFileAsBase64(file);
+      setQuickFileBase64(base64);
+      const text = await extractTextFromDocument(file);
+      setQuickFileExtractedText(text || '');
+    } catch (err) {
+      console.warn('File read note:', err);
+    }
+  };
+
+  const handleEditorGenerateFromFile = async () => {
+    if (!quickUploadFile && !quickFileExtractedText && !quickFileBase64) {
+      setFileErrorMsg('Zəhmət olmasa bir CV faylı seçin.');
+      return;
+    }
+    setFileErrorMsg('');
+    setFileSuccessMsg('');
+    setIsFileGenerating(true);
+
+    try {
+      const res = await fetch('/api/ai/generate-cv-from-file', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          fileBase64: quickFileBase64,
+          mimeType: quickFileMime,
+          fileName: quickFileName,
+          extractedText: quickFileExtractedText,
+          photoUrl: cvData.personalInfo?.photoUrl
+        })
+      });
+      const json = await res.json();
+      if (json && json.cvData) {
+        if (onApplyCvData) {
+          onApplyCvData(json.cvData);
+        } else {
+          setCvData(json.cvData);
+        }
+        setFileSuccessMsg(`🎉 "${quickFileName || 'Fayl'}" əsasında yeni CV uğurla yaradıldı və bütün sahələr dolduruldu!`);
+        setTimeout(() => setFileSuccessMsg(''), 6000);
+      } else {
+        throw new Error(json.error || 'CV məlumatları emal edilə bilmədi.');
+      }
+    } catch (err: any) {
+      console.error('Editor File CV Error:', err);
+      setFileErrorMsg(err?.message || 'Fayl emal edilərkən xəta baş verdi. Zəhmət olmasa yenidən cəhd edin.');
+    } finally {
+      setIsFileGenerating(false);
+    }
+  };
+
   // Quick Social Profile CV Generation (LinkedIn / Facebook)
   const [socialPlatform, setSocialPlatform] = useState<'linkedin' | 'facebook'>('linkedin');
   const [quickSocialUrl, setQuickSocialUrl] = useState('');
@@ -437,6 +525,161 @@ export const CVCreatorEditor: React.FC<CVCreatorEditorProps> = ({
             </button>
           )}
         </div>
+      </div>
+
+      {/* 📄 Universal Feature: İstənilən CV Faylından (PDF, Word, Şəkil, TXT) Yeni CV Yarat */}
+      <div className="bg-gradient-to-br from-emerald-50/90 via-teal-50/50 to-indigo-50/80 rounded-2xl border border-emerald-200/90 p-4 sm:p-5 shadow-xs space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-emerald-100/80 pb-3">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-emerald-600 to-teal-700 text-white flex items-center justify-center shadow-xs font-bold text-sm">
+              <UploadCloud className="w-4 h-4 text-white" />
+            </div>
+            <div>
+              <h4 className="text-xs sm:text-sm font-extrabold text-slate-900 flex items-center gap-1.5 flex-wrap">
+                <span>İstənilən CV Faylından Yeni CV Yarat</span>
+                <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-black border border-emerald-200">
+                  PDF • Word • Şəkil • TXT
+                </span>
+              </h4>
+              <p className="text-[11px] text-slate-600 mt-0.5">
+                Köhnə və ya mövcud CV faylınızı bura yükləyin — Jobia AI bütün məlumatları çıxararaq dərhal yeni peşəkar CV formalaşdıracaq.
+              </p>
+            </div>
+          </div>
+
+          {onOpenFileUploadModal && (
+            <button
+              type="button"
+              onClick={onOpenFileUploadModal}
+              className="text-[11px] font-bold text-emerald-700 hover:text-emerald-900 underline self-start sm:self-auto cursor-pointer"
+            >
+              Ətraflı Qeydlərlə Yarat ↗
+            </button>
+          )}
+        </div>
+
+        {/* File Drag-and-Drop or Selected Preview */}
+        {!quickUploadFile ? (
+          <div
+            onDragOver={(e) => { e.preventDefault(); setIsDragOverEditor(true); }}
+            onDragLeave={() => setIsDragOverEditor(false)}
+            onDrop={(e) => {
+              e.preventDefault();
+              setIsDragOverEditor(false);
+              const file = e.dataTransfer.files?.[0];
+              if (file) handleEditorFileSelect(file);
+            }}
+            onClick={() => editorFileInputRef.current?.click()}
+            className={`border-2 border-dashed rounded-xl p-3 sm:p-4 text-center cursor-pointer transition-all flex flex-col sm:flex-row items-center justify-between gap-3 ${
+              isDragOverEditor 
+                ? 'border-emerald-500 bg-emerald-100/60' 
+                : 'border-emerald-300/80 hover:border-emerald-400 bg-white/80 hover:bg-white'
+            }`}
+          >
+            <input
+              ref={editorFileInputRef}
+              type="file"
+              accept=".pdf,.doc,.docx,.txt,.rtf,.png,.jpg,.jpeg,.webp,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,image/*"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) handleEditorFileSelect(file);
+              }}
+            />
+            <div className="flex items-center gap-3 text-left">
+              <div className="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+                <FileUp className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="text-xs font-bold text-slate-800">
+                  Köhnə CV faylınızı bura atın və ya <span className="text-emerald-700 underline font-black">seçin</span>
+                </p>
+                <p className="text-[11px] text-slate-500">
+                  PDF, Word (DOCX/DOC), Şəkil (JPG/PNG) və ya TXT formatı (25MB-dək)
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              className="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs transition-all shrink-0 cursor-pointer pointer-events-none"
+            >
+              Fayl Seç
+            </button>
+          </div>
+        ) : (
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-3 bg-white rounded-xl border border-emerald-200">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-9 h-9 rounded-lg bg-emerald-600 text-white flex items-center justify-center font-bold text-xs shrink-0">
+                {quickFileName?.endsWith('.pdf') ? 'PDF' : quickFileName?.includes('.doc') ? 'DOC' : quickFileMime?.startsWith('image/') ? 'IMG' : 'TXT'}
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs font-bold text-slate-900 truncate">
+                  {quickFileName}
+                </p>
+                <div className="flex items-center gap-2 text-[11px] text-slate-500">
+                  <span>{quickFileSize}</span>
+                  {quickFileExtractedText && (
+                    <span className="text-emerald-700 font-semibold flex items-center gap-1">
+                      <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                      <span>Mətn oxundu (~{quickFileExtractedText.split(/\s+/).filter(Boolean).length} söz)</span>
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={() => {
+                  setQuickUploadFile(null);
+                  setQuickFileName(null);
+                  setQuickFileSize(null);
+                  setQuickFileExtractedText('');
+                  setQuickFileBase64(null);
+                  setQuickFileMime(null);
+                  if (editorFileInputRef.current) editorFileInputRef.current.value = '';
+                }}
+                disabled={isFileGenerating}
+                className="px-2.5 py-1.5 rounded-lg text-slate-500 hover:text-slate-800 text-xs font-semibold hover:bg-slate-100 transition-colors cursor-pointer"
+              >
+                Dəyiş
+              </button>
+
+              <button
+                type="button"
+                onClick={handleEditorGenerateFromFile}
+                disabled={isFileGenerating}
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white text-xs font-bold shadow-xs transition-all active:scale-95 disabled:opacity-50 cursor-pointer"
+              >
+                {isFileGenerating ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Yeni CV Yaradılır...</span>
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-3.5 h-3.5" />
+                    <span>Bu Fayldan CV Yarat</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {fileSuccessMsg && (
+          <div className="p-2.5 rounded-xl bg-emerald-100 border border-emerald-300 text-emerald-900 text-xs font-bold flex items-center gap-2 animate-fadeIn">
+            <Check className="w-4 h-4 text-emerald-700 shrink-0" />
+            <span>{fileSuccessMsg}</span>
+          </div>
+        )}
+
+        {fileErrorMsg && (
+          <div className="p-2.5 rounded-xl bg-rose-100 border border-rose-300 text-rose-900 text-xs font-bold flex items-center gap-2 animate-fadeIn">
+            <span>⚠️ {fileErrorMsg}</span>
+          </div>
+        )}
       </div>
 
       {/* 🚀 Feature: LinkedIn və ya Facebook Linki ilə Avtomatik CV Yarat */}

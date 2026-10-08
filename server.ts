@@ -7,7 +7,7 @@ import { createServer as createViteServer } from 'vite';
 import { PDFParse } from 'pdf-parse';
 import mammoth from 'mammoth';
 import { buildFactualDeepFallback, computeIntelligentKeywordAnalysis } from './server/deepCvAnalyzer';
-import { buildGeminiCVPrompt, generateRealisticFallbackCV, sanitizeParsedCV, parseSocialUrl, buildSocialProfileCVPrompt } from './server/cvGenerator';
+import { buildGeminiCVPrompt, generateRealisticFallbackCV, sanitizeParsedCV, parseSocialUrl, buildSocialProfileCVPrompt, buildFileUploadCVPrompt } from './server/cvGenerator';
 import { buildOfficialJobDescriptionPrompt, generateRealisticFallbackJobDescription } from './server/jobDescriptionGenerator';
 
 dotenv.config();
@@ -370,6 +370,117 @@ app.post('/api/ai/generate-cv-from-social', async (req, res) => {
     });
   }
 });
+
+// 2b-3. Generate Structured CV from Any Uploaded CV File (PDF, DOCX, DOC, TXT, Images)
+app.post('/api/ai/generate-cv-from-file', async (req, res) => {
+  const { fileBase64, mimeType, fileName, extractedText, notes, language = 'az', photoUrl } = req.body || {};
+
+  if (!fileBase64 && (!extractedText || extractedText.trim().length < 5)) {
+    return res.status(400).json({
+      error: 'Zəhmət olmasa bir CV faylı seçin və ya fayl mətni təqdim edin.'
+    });
+  }
+
+  try {
+    let resolvedText = (extractedText || '').trim();
+    if (fileBase64 && (!resolvedText || resolvedText.length < 50)) {
+      const extractedFromBuffer = await extractTextFromUpload(fileBase64, mimeType, fileName, resolvedText);
+      if (extractedFromBuffer && extractedFromBuffer.length > 20) {
+        resolvedText = extractedFromBuffer;
+      }
+    }
+
+    const cleanBase64 = fileBase64 && fileBase64.includes(',') ? fileBase64.split(',')[1] : fileBase64;
+    const lowerMime = (mimeType || '').toLowerCase();
+    const lowerName = (fileName || '').toLowerCase();
+    const isPdf = lowerMime.includes('pdf') || lowerName.endsWith('.pdf');
+    const isImage = lowerMime.startsWith('image/') || /\.(png|jpe?g|webp|heic)$/i.test(lowerName);
+
+    const hasBinary = Boolean(cleanBase64 && cleanBase64.length > 50 && (isPdf || isImage));
+
+    const prompt = buildFileUploadCVPrompt({
+      fileName,
+      mimeType,
+      extractedText: resolvedText,
+      notes,
+      language,
+      photoUrl,
+      hasBinary
+    });
+
+    let geminiContents: any = prompt;
+
+    if (hasBinary) {
+      const effectiveMime = isPdf ? 'application/pdf' : (lowerMime.startsWith('image/') ? lowerMime : 'image/jpeg');
+      geminiContents = {
+        parts: [
+          {
+            inlineData: {
+              mimeType: effectiveMime,
+              data: cleanBase64
+            }
+          },
+          {
+            text: prompt
+          }
+        ]
+      };
+    }
+
+    const ai = getAI();
+    if (ai) {
+      const geminiRaw = await callGeminiResilient(
+        geminiContents,
+        {
+          responseMimeType: 'application/json',
+          temperature: 0.2,
+          timeoutMs: 35000,
+        },
+        'gemini-3.8-flash'
+      );
+
+      const cleanedJson = geminiRaw
+        .replace(/^```(?:json)?\s*/i, '')
+        .replace(/\s*```$/i, '')
+        .trim();
+
+      const parsed = JSON.parse(cleanedJson);
+      const validatedCV = sanitizeParsedCV(parsed, {
+        fullName: parsed.personalInfo?.fullName || 'Namizəd',
+        jobTitle: parsed.personalInfo?.jobTitle || '',
+        photoUrl
+      });
+
+      return res.json({
+        success: true,
+        cvData: validatedCV,
+        fileName: fileName || 'CV Sənədi',
+        source: hasBinary ? 'gemini_multimodal' : 'gemini_text'
+      });
+    }
+
+    // Fallback if AI not available
+    const fallbackCV = parseRawTextToCVFallback(resolvedText || `${fileName || 'Köhnə CV'} ${notes || ''}`);
+    if (photoUrl) (fallbackCV.personalInfo as any).photoUrl = photoUrl;
+    return res.json({
+      success: true,
+      cvData: fallbackCV,
+      fileName: fileName || 'CV Sənədi',
+      source: 'domain_fallback'
+    });
+  } catch (err: any) {
+    console.error('Generate CV from file error:', err);
+    const fallbackCV = parseRawTextToCVFallback(extractedText || `${fileName || 'Köhnə CV'} ${notes || ''}`);
+    if (photoUrl) (fallbackCV.personalInfo as any).photoUrl = photoUrl;
+    return res.json({
+      success: true,
+      cvData: fallbackCV,
+      fileName: fileName || 'CV Sənədi',
+      source: 'resilient_fallback'
+    });
+  }
+});
+
 
 // Helper: Robust Audio Transcription using gemini-3.5-transcribe with resilient gemini-3.8-flash fallback
 async function transcribeAudioWithGemini(cleanBase64: string, rawMimeType?: string): Promise<string> {

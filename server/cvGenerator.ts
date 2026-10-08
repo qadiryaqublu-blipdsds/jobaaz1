@@ -858,3 +858,91 @@ YALNIZ AŞAĞIDAKI JSON STRUKTURUNDA CAVAB VER. HEÇ BİR İZAH VƏ YA ARTIQ MƏ
 }`;
 }
 
+export interface FileUploadCVRequest {
+  fileName?: string;
+  mimeType?: string;
+  extractedText?: string;
+  notes?: string;
+  language?: string;
+  photoUrl?: string;
+  hasBinary?: boolean;
+}
+
+export function buildFileUploadCVPrompt(req: FileUploadCVRequest): string {
+  return `Sən beynəlxalq səviyyəli Baş HR Mütəxəssisi və Peşəkar CV Tərtibatçısısan.
+İstifadəçi sənə mövcud CV faylını${req.fileName ? ` ("${req.fileName}")` : ''} təqdim etmişdir.
+${req.extractedText && req.extractedText.trim().length > 0 ? `\nFAYLDAN ÇIXARILMIŞ MƏTN:\n"""\n${req.extractedText.trim().slice(0, 16000)}\n"""\n` : ''}
+${req.notes && req.notes.trim().length > 0 ? `\nİSTİFADƏÇİNİN ƏLAVƏ İSTƏYİ / QEYDLƏRİ:\n"${req.notes.trim()}"\n` : ''}
+
+SƏNİN ƏSAS VƏZİFƏN:
+Təqdim olunmuş sənəddəki məlumatları əsas götürərək, namizəd üçün beynəlxalq ATS və rekruter standartlarına tam uyğun, səliqəli, dolğun və peşəkar YENİ CV JSON strukturu yaratmaqdır.
+
+Qaydalar və Tələblər:
+1. "personalInfo":
+   - "fullName": Namizədin ad və soyadını dəqiq tap və qeyd et.
+   - "jobTitle": Əsas vəzifə və ya ixtisasını müasir peşəkar formatda yaz (məsələn, "Senior Software Engineer", "Baş Mühasib", "Layihə Meneceri", "Marketinq Mütəxəssisi").
+   - "email", "phone", "address", "linkedin", "github", "portfolio": Sənəddə mövcud olan bütün əlaqə vasitələrini çıxar.
+   - "summary": Namizədin təcrübəsini, ixtisasını və nailiyyətlərini əks etdirən 3-4 cümləlik yüksək səviyyəli peşəkar xülasə yaz.
+2. "experiences": Sənəddəki bütün iş yerlərini xronoloji ardıcıllıqla çıxar. Hər iş yeri üçün şirkət, vəzifə, şəhər, başlama və bitmə tarixləri (YYYY-MM və ya YYYY) və vəzifə öhdəliklərini ölçülə bilən nəticələrlə zəngin bəndlər (•) şəklində yaz.
+3. "education": Bütün ali məktəb, kollec və ya akademik təhsil məlumatlarını (Universitet, Dərəcə, İxtisas, İllər) əlavə et.
+4. "skills": Namizədin ixtisasına tam uyğun ən azı 8-12 əsas bacarığı təyin edib kateqoriyalara ('Texniki', 'Soft skill', 'Alət / Proqram') ayır.
+5. "languages": Bildiyi dilləri və səviyyələrini ('Ana dili', 'C1-C2 (Sərbəst)', 'B1-B2 (Orta/İşgüzar)', 'A1-A2 (Başlanğıc)') qeyd et.
+6. "projects" və "certificates": Əgər sənəddə layihə və ya sertifikatlar varsa, onları da əlavə et.
+7. Əgər bəzi sahələr sənəddə natamam qeyd olunubsa, namizədin peşə kontekstinə uyğun dolğun və peşəkar məzmunla tamamla.
+
+YALNIZ AŞAĞIDAKI JSON STRUKTURUNDA CAVAB VER. HEÇ BİR İZAH VƏ YA MARKDOWN BLOKU ƏLAVƏ ETMƏ:
+{
+  "personalInfo": {
+    "fullName": "Ad Soyad",
+    "jobTitle": "Vəzifə",
+    "email": "email@example.com",
+    "phone": "+994 ...",
+    "address": "Bakı, Azərbaycan",
+    "linkedin": "",
+    "github": "",
+    "portfolio": "",
+    "summary": "Peşəkar xülasə..."
+  },
+  "experiences": [
+    {
+      "id": "exp-1",
+      "company": "Şirkət",
+      "position": "Vəzifə",
+      "location": "Bakı",
+      "startDate": "2021",
+      "endDate": "İndiyədək",
+      "current": true,
+      "description": "• Əsas öhdəlik və nailiyyət\\n• Layihə idarəçiliyi və nəticələr"
+    }
+  ],
+  "education": [
+    {
+      "id": "edu-1",
+      "institution": "Universitet / Təhsil müəssisəsi",
+      "degree": "Bakalavr",
+      "fieldOfStudy": "İxtisas",
+      "startDate": "2016",
+      "endDate": "2020",
+      "current": false
+    }
+  ],
+  "skills": [
+    {
+      "id": "sk-1",
+      "name": "Bacarıq",
+      "level": "Əla / Ekspert",
+      "category": "Texniki"
+    }
+  ],
+  "languages": [
+    {
+      "id": "lang-1",
+      "language": "Azərbaycan dili",
+      "proficiency": "Ana dili"
+    }
+  ],
+  "projects": [],
+  "certificates": []
+}`;
+}
+

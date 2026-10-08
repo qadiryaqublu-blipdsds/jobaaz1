@@ -19,7 +19,8 @@ import {
   ChevronDown,
   Globe,
   CheckCircle2,
-  Camera
+  Camera,
+  UploadCloud
 } from 'lucide-react';
 
 interface CVCreatorHeaderProps {
@@ -32,6 +33,7 @@ interface CVCreatorHeaderProps {
   onOpenAiModal: () => void;
   onOpenImageAiModal?: () => void;
   onOpenSocialModal?: () => void;
+  onOpenFileUploadModal?: () => void;
   onOpenClearModal: () => void;
   onLoadSampleData: () => void;
   onSaveData: () => void;
@@ -61,6 +63,7 @@ export const CVCreatorHeader: React.FC<CVCreatorHeaderProps> = ({
   onOpenAiModal,
   onOpenImageAiModal,
   onOpenSocialModal,
+  onOpenFileUploadModal,
   onOpenClearModal,
   onLoadSampleData,
   onSaveData,
@@ -254,7 +257,19 @@ export const CVCreatorHeader: React.FC<CVCreatorHeaderProps> = ({
               )}
             </div>
 
-            {/* 2. Quick AI Fill, LinkedIn/FB & Image OCR Buttons */}
+            {/* 2. Quick AI File Upload, LinkedIn/FB & Image OCR Buttons */}
+            <button
+              id="btn-cv-header-file-ai"
+              type="button"
+              onClick={onOpenFileUploadModal || onOpenAiModal}
+              className="inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-xs font-bold transition-all shadow-2xs cursor-pointer shrink-0"
+              title="Köhnə CV faylınızı (PDF, Word, Şəkil, TXT) yükləyərək yeni CV yaradın"
+            >
+              <UploadCloud className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+              <span className="hidden sm:inline">Fayldan CV</span>
+              <span className="sm:hidden text-[11px]">Fayl</span>
+            </button>
+
             <button
               id="btn-cv-header-social-ai"
               type="button"
@@ -263,7 +278,7 @@ export const CVCreatorHeader: React.FC<CVCreatorHeaderProps> = ({
               title="LinkedIn və ya Facebook profil linkinizlə dərhal CV yaradın"
             >
               <Globe className="w-3.5 h-3.5 text-blue-600 shrink-0" />
-              <span className="hidden sm:inline">LinkedIn / FB ilə</span>
+              <span className="hidden sm:inline">LinkedIn / FB</span>
               <span className="sm:hidden text-[11px]">Sosial</span>
             </button>
 
@@ -384,6 +399,20 @@ export const CVCreatorHeader: React.FC<CVCreatorHeaderProps> = ({
                       <Save className="w-4 h-4 text-emerald-600" />
                       <span>{saveSuccess ? '✓ Yadda Saxlanıldı!' : 'CV-ni Yadda Saxla'}</span>
                     </button>
+
+                    {onOpenFileUploadModal && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onOpenFileUploadModal();
+                          setIsMenuOpen(false);
+                        }}
+                        className="w-full text-left px-3 py-2 hover:bg-slate-50 flex items-center gap-2 text-emerald-700 font-semibold"
+                      >
+                        <UploadCloud className="w-4 h-4 text-emerald-600" />
+                        <span>Köhnə CV Faylı Yüklə (PDF/Word/Şəkil)</span>
+                      </button>
+                    )}
 
                     <button
                       type="button"
