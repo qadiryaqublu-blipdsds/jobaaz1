@@ -137,13 +137,13 @@ export const AzerbaijanCandidateMap: React.FC<AzerbaijanCandidateMapProps> = ({
       {/* Main Map Canvas & Live Regional Info Panel */}
       <div className="p-4 sm:p-5 grid grid-cols-1 lg:grid-cols-12 gap-5 items-center">
         {/* Interactive SVG Map */}
-        <div className="lg:col-span-8 bg-slate-900 rounded-xl p-3 sm:p-4 relative overflow-hidden border border-slate-800 shadow-inner">
+        <div className="lg:col-span-8 bg-slate-50/90 rounded-2xl p-3 sm:p-4 relative overflow-hidden border border-slate-200 shadow-xs">
           {/* Subtle grid lines background */}
-          <div className="absolute inset-0 bg-[radial-gradient(#334155_1px,transparent_1px)] [background-size:16px_16px] opacity-40 pointer-events-none" />
+          <div className="absolute inset-0 bg-[radial-gradient(#cbd5e1_1px,transparent_1px)] [background-size:16px_16px] opacity-60 pointer-events-none" />
 
           {/* Map Compass Tag */}
-          <div className="absolute top-3 left-3 z-10 flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-800/90 border border-slate-700 text-slate-300 text-[10px] font-mono">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+          <div className="absolute top-3 left-3 z-10 flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-white/95 border border-slate-200 text-slate-700 text-[10px] font-mono shadow-2xs">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
             <span>AZƏRBAYCAN REGİONLARI</span>
           </div>
 
@@ -152,7 +152,7 @@ export const AzerbaijanCandidateMap: React.FC<AzerbaijanCandidateMapProps> = ({
             <svg
               viewBox="0 0 800 490"
               className="w-full h-full select-none"
-              style={{ filter: 'drop-shadow(0 4px 12px rgba(0, 0, 0, 0.4))' }}
+              style={{ filter: 'drop-shadow(0 2px 6px rgba(0, 0, 0, 0.08))' }}
             >
               {/* Region Polygons */}
               {CANDIDATE_REGIONS.map((region) => {
@@ -165,22 +165,22 @@ export const AzerbaijanCandidateMap: React.FC<AzerbaijanCandidateMapProps> = ({
                     ? stats[region.id]?.eligible || 0
                     : stats[region.id]?.total || 0;
 
-                // Color logic based on status
-                let fill = '#1e293b'; // slate-800
-                let stroke = '#334155'; // slate-700
+                // Light & sleek color logic based on status
+                let fill = '#e2e8f0'; // slate-200
+                let stroke = '#cbd5e1'; // slate-300
                 let strokeWidth = 1.5;
 
                 if (isSelected) {
                   fill = '#2563eb'; // blue-600
-                  stroke = '#60a5fa'; // blue-400
+                  stroke = '#1d4ed8'; // blue-700
                   strokeWidth = 2.5;
                 } else if (isHovered) {
-                  fill = '#3b82f6'; // blue-500
-                  stroke = '#93c5fd';
+                  fill = '#60a5fa'; // blue-400
+                  stroke = '#2563eb';
                   strokeWidth = 2;
                 } else if (regionCandidateCount > 0) {
-                  fill = '#1e3a5f'; // soft slate blue with candidates
-                  stroke = '#475569';
+                  fill = '#bfdbfe'; // soft pastel blue for regions with candidates
+                  stroke = '#93c5fd';
                 }
 
                 return (
@@ -207,7 +207,7 @@ export const AzerbaijanCandidateMap: React.FC<AzerbaijanCandidateMapProps> = ({
                       {regionCandidateCount > 0 && !isSelected && (
                         <circle
                           r="10"
-                          fill="rgba(59, 130, 246, 0.2)"
+                          fill="rgba(37, 99, 235, 0.2)"
                           className="animate-ping opacity-75"
                         />
                       )}
@@ -215,8 +215,8 @@ export const AzerbaijanCandidateMap: React.FC<AzerbaijanCandidateMapProps> = ({
                       {/* Pin Circle */}
                       <circle
                         r={isSelected ? 10 : 8}
-                        fill={isSelected ? '#ffffff' : regionCandidateCount > 0 ? '#38bdf8' : '#64748b'}
-                        stroke={isSelected ? '#1d4ed8' : '#0f172a'}
+                        fill={isSelected ? '#ffffff' : regionCandidateCount > 0 ? '#2563eb' : '#94a3b8'}
+                        stroke={isSelected ? '#1d4ed8' : '#ffffff'}
                         strokeWidth="2"
                       />
 
@@ -224,7 +224,7 @@ export const AzerbaijanCandidateMap: React.FC<AzerbaijanCandidateMapProps> = ({
                       <text
                         y={3}
                         textAnchor="middle"
-                        fill={isSelected ? '#1e3a8a' : '#0f172a'}
+                        fill={isSelected ? '#1e3a8a' : '#ffffff'}
                         fontSize="9"
                         fontWeight="900"
                         fontFamily="sans-serif"
@@ -237,11 +237,11 @@ export const AzerbaijanCandidateMap: React.FC<AzerbaijanCandidateMapProps> = ({
                       <text
                         y={isSelected ? 22 : 18}
                         textAnchor="middle"
-                        fill={isSelected ? '#93c5fd' : '#cbd5e1'}
+                        fill={isSelected ? '#1e40af' : '#475569'}
                         fontSize="10"
                         fontWeight={isSelected ? 'bold' : '600'}
                         fontFamily="sans-serif"
-                        className="pointer-events-none drop-shadow-xs"
+                        className="pointer-events-none drop-shadow-2xs"
                       >
                         {region.centerCity}
                       </text>
@@ -253,18 +253,18 @@ export const AzerbaijanCandidateMap: React.FC<AzerbaijanCandidateMapProps> = ({
           </div>
 
           {/* Map legend footer */}
-          <div className="mt-2 pt-2 border-t border-slate-800 flex items-center justify-between text-[11px] text-slate-400">
+          <div className="mt-2 pt-2 border-t border-slate-200 flex items-center justify-between text-[11px] text-slate-500">
             <div className="flex items-center gap-3">
               <span className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-blue-500" />
+                <span className="w-2.5 h-2.5 rounded-full bg-blue-600" />
                 Seçilmiş Region
               </span>
               <span className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-sky-400" />
+                <span className="w-2.5 h-2.5 rounded-full bg-blue-300" />
                 Namizədləri olan region
               </span>
             </div>
-            <span className="text-[10px] text-slate-500 hidden sm:inline">
+            <span className="text-[10px] text-slate-400 hidden sm:inline">
               Məlumatlar real namizəd anketləri əsasında yenilənir
             </span>
           </div>
@@ -428,14 +428,14 @@ export const AzerbaijanCandidateMap: React.FC<AzerbaijanCandidateMapProps> = ({
               onClick={() => onSelectRegion(isSelected ? 'all' : region.id)}
               className={`px-3 py-1 rounded-xl text-xs font-semibold shrink-0 transition-colors cursor-pointer border flex items-center gap-1.5 ${
                 isSelected
-                  ? 'bg-slate-900 text-white border-slate-900 shadow-2xs'
+                  ? 'bg-blue-600 text-white border-blue-600 shadow-2xs'
                   : 'bg-white text-slate-700 border-slate-200 hover:border-slate-300'
               }`}
             >
               <span>{region.shortName}</span>
               <span
                 className={`text-[10px] font-bold px-1.5 py-0.2 rounded-full ${
-                  isSelected ? 'bg-slate-700 text-white' : 'bg-slate-100 text-slate-600'
+                  isSelected ? 'bg-blue-700 text-white' : 'bg-slate-100 text-slate-600'
                 }`}
               >
                 {count}

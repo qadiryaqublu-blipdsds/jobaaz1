@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { Vacancy, Application, Company, ApplicationStatus, JobOffer, JobOfferTemplate, OfferAuditLog, User, UserRole, CVTemplateType } from '../../types';
+import { Vacancy, Application, Company, ApplicationStatus, JobOffer, JobOfferTemplate, OfferAuditLog, User, UserRole, CVTemplateType, BusinessTabType } from '../../types';
 import { CVRenderer } from '../cv-templates/CVRenderer';
 import { CV_TEMPLATES } from '../cv-templates/templateRegistry';
 import { downloadCVAsPDF, generateCVFileName } from '../../utils/pdfExport';
@@ -18,6 +18,13 @@ import { CandidateComparatorModal } from './CandidateComparatorModal';
 import { EmployerCostCalculatorModal } from './EmployerCostCalculatorModal';
 import { JobiaAICandidateEvaluatorModal } from './JobiaAICandidateEvaluatorModal';
 import { CandidateTalentPool } from './CandidateTalentPool';
+import { SmartCVPoolView } from './smart-cv-pool/SmartCVPoolView';
+import { SmartFormsView } from '../smart-forms/SmartFormsView';
+import { InterviewReminderManager } from './interviews/InterviewReminderManager';
+import { InterviewSchedulerModal } from './interviews/InterviewSchedulerModal';
+import { EmailHistoryTab } from './interviews/EmailHistoryTab';
+import { CompanyTeamManagementTab } from './CompanyTeamManagementTab';
+import { OpenCVCatalogView } from '../common/OpenCVCatalogView';
 import { ModalPortal } from '../common/ModalPortal';
 import { useLanguage } from '../../context/LanguageContext';
 import {
@@ -77,7 +84,9 @@ import {
   CheckSquare,
   Square,
   UserCheck,
-  Palmtree
+  Palmtree,
+  Calendar,
+  Video
 } from 'lucide-react';
 import { VacationCalculatorView } from '../candidate/VacationCalculatorView';
 
@@ -103,8 +112,8 @@ interface BusinessDashboardProps {
   onShareToGoogleChat?: (applicant: Application) => void;
   onOpenAuthModal?: (mode?: 'login' | 'register', role?: UserRole) => void;
   onOpenPricingModal?: () => void;
-  businessTab?: 'vacancies' | 'applicants' | 'offers' | 'analytics' | 'templates' | 'company-profile' | 'talent-pool' | 'vacation-calculator';
-  onBusinessTabChange?: (tab: 'vacancies' | 'applicants' | 'offers' | 'analytics' | 'templates' | 'company-profile' | 'talent-pool' | 'vacation-calculator') => void;
+  businessTab?: BusinessTabType;
+  onBusinessTabChange?: (tab: BusinessTabType) => void;
 }
 
 export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
@@ -133,11 +142,11 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
   onBusinessTabChange,
 }) => {
   const { language, t } = useLanguage();
-  const [activeTab, setActiveTab] = useState<'vacancies' | 'applicants' | 'offers' | 'analytics' | 'templates' | 'company-profile' | 'talent-pool' | 'vacation-calculator'>(
+  const [activeTab, setActiveTab] = useState<BusinessTabType>(
     businessTab || 'vacancies'
   );
-  const [gateViewTab, setGateViewTab] = useState<'portal' | 'talent-pool'>(
-    businessTab === 'talent-pool' ? 'talent-pool' : 'portal'
+  const [gateViewTab, setGateViewTab] = useState<'portal' | 'talent-pool' | 'smart-cv-pool'>(
+    businessTab === 'talent-pool' ? 'talent-pool' : businessTab === 'smart-cv-pool' ? 'smart-cv-pool' : 'portal'
   );
 
   // Sync external businessTab changes
@@ -146,11 +155,13 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
       setActiveTab(businessTab);
       if (businessTab === 'talent-pool') {
         setGateViewTab('talent-pool');
+      } else if (businessTab === 'smart-cv-pool') {
+        setGateViewTab('smart-cv-pool');
       }
     }
   }, [businessTab]);
 
-  const handleTabSwitch = (tab: 'vacancies' | 'applicants' | 'offers' | 'analytics' | 'templates' | 'company-profile' | 'talent-pool' | 'vacation-calculator') => {
+  const handleTabSwitch = (tab: BusinessTabType) => {
     setActiveTab(tab);
     if (onBusinessTabChange) {
       onBusinessTabChange(tab);
@@ -176,6 +187,10 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
   const [editingOffer, setEditingOffer] = useState<JobOffer | undefined>(undefined);
   const [isTemplatesModalOpen, setIsTemplatesModalOpen] = useState(false);
   const [selectedAuditLogOffer, setSelectedAuditLogOffer] = useState<{ id: string; name: string } | null>(null);
+
+  // Automated 24h Interview Reminders Modal
+  const [isInterviewSchedulerOpen, setIsInterviewSchedulerOpen] = useState(false);
+  const [interviewCandidateApp, setInterviewCandidateApp] = useState<Application | null>(null);
 
   // Interactive Employer Feature States
   const [applicantViewMode, setApplicantViewMode] = useState<'kanban' | 'table'>('kanban');
@@ -356,6 +371,25 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
             </button>
 
             <button
+              id="gate-view-tab-smart-cv-pool"
+              onClick={() => {
+                setGateViewTab('smart-cv-pool');
+                onBusinessTabChange?.('smart-cv-pool');
+              }}
+              className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 whitespace-nowrap transition-all cursor-pointer ${
+                gateViewTab === 'smart-cv-pool'
+                  ? 'bg-blue-600 text-white shadow-sm'
+                  : 'text-blue-700 bg-blue-50 hover:bg-blue-100'
+              }`}
+            >
+              <Sparkles className="w-4 h-4 text-amber-400" />
+              <span>Ağıllı CV Baza & Skorinq</span>
+              <span className="px-1.5 py-0.2 rounded-full text-[9px] font-black bg-blue-600 text-white">
+                Yeni
+              </span>
+            </button>
+
+            <button
               id="gate-view-tab-portal"
               onClick={() => {
                 setGateViewTab('portal');
@@ -382,15 +416,23 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
             </button>
             <button
               onClick={() => onOpenAuthModal?.('register', 'business')}
-              className="px-3.5 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs flex items-center gap-1.5 transition-colors cursor-pointer"
+              className="px-3.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs"
             >
-              <UserPlus className="w-3.5 h-3.5 text-slate-300" />
+              <UserPlus className="w-3.5 h-3.5 text-blue-100" />
               <span>Yeni Müəssisə Qeydiyyatı</span>
             </button>
           </div>
         </div>
 
-        {gateViewTab === 'talent-pool' ? (
+        {gateViewTab === 'smart-cv-pool' ? (
+          <div className="space-y-4">
+            <SmartCVPoolView
+              activeCompany={activeCompany}
+              vacancies={vacancies}
+              onOpenAuthModal={() => onOpenAuthModal?.('login', 'business')}
+            />
+          </div>
+        ) : gateViewTab === 'talent-pool' ? (
           <div className="space-y-4">
             <CandidateTalentPool
               currentUser={null}
@@ -443,9 +485,9 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
                 <button
                   id="business-gate-register-btn"
                   onClick={() => onOpenAuthModal?.('register', 'business')}
-                  className="w-full sm:w-auto px-6 py-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-sm shadow-sm flex items-center justify-center gap-2 transition-all cursor-pointer"
+                  className="w-full sm:w-auto px-6 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm shadow-xs flex items-center justify-center gap-2 transition-all cursor-pointer"
                 >
-                  <UserPlus className="w-4 h-4 text-slate-300" />
+                  <UserPlus className="w-4 h-4 text-blue-100" />
                   <span>
                     {language === 'en'
                       ? 'Register New Enterprise'
@@ -691,13 +733,115 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
         </button>
 
         <button
+          id="btn-business-tab-team-users"
+          onClick={() => handleTabSwitch('team-users')}
+          className={`px-3.5 py-2 rounded-lg whitespace-nowrap transition-all flex items-center gap-1.5 cursor-pointer font-bold ${
+            activeTab === 'team-users'
+              ? 'bg-purple-600 text-white shadow-xs'
+              : 'text-purple-800 bg-purple-50 hover:bg-purple-100'
+          }`}
+          title="Bir şirkət daxilində çoxsaylı istifadəçilər, rollar (HR Direktoru, Menecer, Recruiter) və fəaliyyət audit jurnalı"
+        >
+          <Users className="w-3.5 h-3.5" />
+          <span>Komanda & Rollar</span>
+          <span className="px-1.5 py-0.2 rounded-full text-[9px] font-black bg-purple-600 text-white">
+            RBAC
+          </span>
+        </button>
+
+        <button
+          id="btn-business-tab-open-cv-catalog"
+          onClick={() => handleTabSwitch('open-cv-catalog')}
+          className={`px-3.5 py-2 rounded-lg whitespace-nowrap transition-all flex items-center gap-1.5 cursor-pointer font-bold ${
+            activeTab === 'open-cv-catalog'
+              ? 'bg-blue-600 text-white shadow-xs'
+              : 'text-blue-800 bg-blue-50 hover:bg-blue-100'
+          }`}
+          title="Google və internetdə yayımlanmış təsdiqli Açıq CV Kataloqu"
+        >
+          <Globe className="w-3.5 h-3.5" />
+          <span>Açıq CV Kataloqu</span>
+          <span className="px-1.5 py-0.2 rounded-full text-[9px] font-black bg-blue-600 text-white">
+            SEO
+          </span>
+        </button>
+
+        <button
+          id="btn-business-tab-smart-cv-pool"
+          onClick={() => handleTabSwitch('smart-cv-pool')}
+          className={`px-3.5 py-2 rounded-lg whitespace-nowrap transition-all flex items-center gap-1.5 cursor-pointer font-bold ${
+            activeTab === 'smart-cv-pool'
+              ? 'bg-blue-600 text-white shadow-xs'
+              : 'text-blue-800 bg-blue-50/90 hover:bg-blue-100'
+          }`}
+          title="Toplu və tək CV idxalı, vəzifələr üzrə uyğunluq dərəcəsi və biznes rekrutinq həlləri"
+        >
+          <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+          <span>Ağıllı CV Baza & Skorinq</span>
+          <span className="px-1.5 py-0.2 rounded-full text-[9px] font-black bg-blue-600 text-white">
+            Yeni
+          </span>
+        </button>
+
+        <button
+          id="btn-business-tab-smart-forms"
+          onClick={() => handleTabSwitch('smart-forms')}
+          className={`px-3.5 py-2 rounded-lg whitespace-nowrap transition-all flex items-center gap-1.5 cursor-pointer font-bold ${
+            activeTab === 'smart-forms'
+              ? 'bg-blue-600 text-white shadow-xs'
+              : 'text-indigo-800 bg-indigo-50/90 hover:bg-indigo-100'
+          }`}
+          title="AI Sənəd Şablonları, Ağıllı Formalar və Rəqəmsal İmzalama Modulu"
+        >
+          <FileText className="w-3.5 h-3.5 text-indigo-600" />
+          <span>Ağıllı Formalar & E-İmza</span>
+          <span className="px-1.5 py-0.2 rounded-full text-[9px] font-black bg-emerald-600 text-white">
+            AI
+          </span>
+        </button>
+
+        <button
+          id="btn-business-tab-interviews"
+          onClick={() => handleTabSwitch('interviews')}
+          className={`px-3.5 py-2 rounded-lg whitespace-nowrap transition-all flex items-center gap-1.5 cursor-pointer font-bold ${
+            activeTab === 'interviews'
+              ? 'bg-blue-600 text-white shadow-xs'
+              : 'text-blue-900 bg-blue-50/90 hover:bg-blue-100'
+          }`}
+          title="24 Saatlıq Avtomatik SMTP Xatırlatma Sistemi və Müsahibə Təqvimi"
+        >
+          <Calendar className="w-3.5 h-3.5 text-blue-600" />
+          <span>Müsahibələr & 24h Xatırlatma</span>
+          <span className="px-1.5 py-0.2 rounded-full text-[9px] font-black bg-blue-600 text-white">
+            SMTP
+          </span>
+        </button>
+
+        <button
+          id="btn-business-tab-email-history"
+          onClick={() => handleTabSwitch('email-history')}
+          className={`px-3.5 py-2 rounded-lg whitespace-nowrap transition-all flex items-center gap-1.5 cursor-pointer font-bold ${
+            activeTab === 'email-history'
+              ? 'bg-blue-600 text-white shadow-xs'
+              : 'text-indigo-900 bg-indigo-50/90 hover:bg-indigo-100'
+          }`}
+          title="Avtomatlaşdırılmış müsahibə xatırlatma e-poçtlarının göndəriş tarixçəsi, zaman damğaları və çatdırılma statusları"
+        >
+          <Mail className="w-3.5 h-3.5 text-indigo-600" />
+          <span>E-poçt Tarixçəsi</span>
+          <span className="px-1.5 py-0.2 rounded-full text-[9px] font-black bg-indigo-600 text-white">
+            Log
+          </span>
+        </button>
+
+        <button
           onClick={() => handleTabSwitch('offers')}
           className={`px-3.5 py-2 rounded-lg whitespace-nowrap transition-all flex items-center gap-1.5 cursor-pointer font-bold ${
             activeTab === 'offers' ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
           }`}
         >
           <Award className="w-3.5 h-3.5" />
-          <span>Müsahibə & Təkliflər ({companyOffers.length})</span>
+          <span>İş Təklifləri ({companyOffers.length})</span>
         </button>
 
         <button
@@ -1102,20 +1246,20 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
 
           {/* Floating Comparison Sticky Alert if Candidates are Selected */}
           {selectedCandidateIds.length > 0 && (
-            <div className="bg-gradient-to-r from-indigo-900 via-blue-900 to-slate-900 text-white p-3.5 rounded-xl shadow-md border border-indigo-700 flex flex-wrap items-center justify-between gap-3 text-xs animate-fade-in">
+            <div className="bg-blue-50/95 border border-blue-200 text-blue-950 p-3.5 rounded-xl shadow-xs flex flex-wrap items-center justify-between gap-3 text-xs animate-fade-in">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center text-cyan-300">
+                <div className="w-8 h-8 rounded-lg bg-blue-100 border border-blue-200 flex items-center justify-center text-blue-600">
                   <Scale className="w-4 h-4" />
                 </div>
                 <div>
-                  <h4 className="font-bold text-white text-xs">
+                  <h4 className="font-bold text-slate-900 text-xs">
                     {language === 'en'
                       ? `${selectedCandidateIds.length} candidate(s) selected for comparison`
                       : language === 'ru'
                       ? `${selectedCandidateIds.length} канд. выбрано для сравнения`
                       : `${selectedCandidateIds.length} namizəd müqayisə üçün seçildi`}
                   </h4>
-                  <p className="text-[11px] text-indigo-200">
+                  <p className="text-[11px] text-blue-700 font-medium">
                     {language === 'en'
                       ? 'Analyze qualifications, experience, skills, and ATS matching metrics side-by-side'
                       : language === 'ru'
@@ -1129,7 +1273,7 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
                 <button
                   type="button"
                   onClick={() => setIsComparatorModalOpen(true)}
-                  className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white font-black rounded-lg shadow-xs flex items-center gap-1.5 transition-colors cursor-pointer"
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-black rounded-lg shadow-2xs flex items-center gap-1.5 transition-colors cursor-pointer"
                 >
                   <Scale className="w-3.5 h-3.5" />
                   <span>
@@ -1139,7 +1283,7 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
                 <button
                   type="button"
                   onClick={() => setSelectedCandidateIds([])}
-                  className="px-3 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg font-semibold transition-colors cursor-pointer"
+                  className="px-3 py-2 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-lg font-semibold transition-colors cursor-pointer"
                 >
                   {language === 'en' ? 'Clear Selection' : language === 'ru' ? 'Сбросить' : 'Seçimi Təmizlə'}
                 </button>
@@ -1170,6 +1314,10 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
                 const existingOffer = companyOffers.find((o) => o.applicationId === app.id || o.candidateEmail === app.candidateEmail);
                 handleStartInterviewWorkflow(app, existingOffer);
               }}
+              onOpenInterviewScheduler={(app) => {
+                setInterviewCandidateApp(app);
+                setIsInterviewSchedulerOpen(true);
+              }}
               selectedCandidateIds={selectedCandidateIds}
               onToggleCandidateSelection={toggleCandidateSelection}
               onOpenJobiaAIEvaluation={(app) => {
@@ -1195,13 +1343,13 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
                   </p>
                 </div>
               ) : (
-                filteredApplicants.map((app) => {
+                filteredApplicants.map((app, appIdx) => {
                 const existingAppOffer = companyOffers.find((o) => o.applicationId === app.id || o.candidateEmail === app.candidateEmail);
                 const isSelected = selectedCandidateIds.includes(app.id);
 
                 return (
                   <div
-                    key={app.id}
+                    key={`biz-applicant-${app.id || 'app'}-${appIdx}`}
                     className={`bg-white p-5 rounded-xl border shadow-sm transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${
                       isSelected ? 'border-blue-500 ring-2 ring-blue-200' : 'border-slate-200 hover:border-blue-300'
                     }`}
@@ -1274,6 +1422,20 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
                         <span>{language === 'en' ? 'AI Analysis' : language === 'ru' ? 'ИИ-анализ' : 'Jobia AI Analizi'}</span>
                       </button>
 
+                      {/* Automated 24h Interview Reminder Scheduler button */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setInterviewCandidateApp(app);
+                          setIsInterviewSchedulerOpen(true);
+                        }}
+                        className="px-3 py-2 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold text-xs flex items-center gap-1.5 transition-colors cursor-pointer border border-blue-200"
+                        title="Müsahibə Təyin Et və 24 Saat Önədən Avtomatik SMTP Xatırlatmasını Aktivləşdir"
+                      >
+                        <Calendar className="w-3.5 h-3.5 text-blue-600" />
+                        <span>Müsahibə & 24h Xatırlatma</span>
+                      </button>
+
                       {/* One-Click Interview & Offer trigger */}
                       <button
                         onClick={() => handleStartInterviewWorkflow(app, existingAppOffer)}
@@ -1297,6 +1459,30 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
             </div>
           )}
         </div>
+      )}
+
+      {/* TAB: Scheduled Interviews & Automated 24h SMTP Reminders */}
+      {activeTab === 'interviews' && (
+        <InterviewReminderManager
+          company={activeCompany}
+          onOpenEmailHistory={() => handleTabSwitch('email-history')}
+        />
+      )}
+
+      {/* TAB: Automated Interview Reminder Email History */}
+      {activeTab === 'email-history' && (
+        <EmailHistoryTab
+          company={activeCompany}
+          onOpenCandidateDetail={(email) => {
+            const app = applications.find(
+              (a) => a.candidateEmail?.toLowerCase() === email.toLowerCase()
+            );
+            if (app) {
+              setSelectedApplicant(app);
+            }
+          }}
+          onNavigateToInterviews={() => handleTabSwitch('interviews')}
+        />
       )}
 
       {/* TAB 3: Job Offers & Acceptance Process */}
@@ -1461,7 +1647,7 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
                       type="button"
                       disabled={isUploadingLogo}
                       onClick={() => logoFileInputRef.current?.click()}
-                      className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-lg flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer disabled:opacity-60"
+                      className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-lg flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer disabled:opacity-60"
                     >
                       {isUploadingLogo ? (
                         <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -1667,6 +1853,26 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
         />
       )}
 
+      {/* TAB: SMART CV POOL & RECRUITING SOLUTIONS */}
+      {activeTab === 'smart-cv-pool' && (
+        <SmartCVPoolView
+          activeCompany={activeCompany}
+          vacancies={vacancies}
+          onOpenAuthModal={() => onOpenAuthModal?.('login', 'business')}
+        />
+      )}
+
+      {/* TAB: SMART FORMS & E-SIGNATURE */}
+      {activeTab === 'smart-forms' && (
+        <div className="space-y-4">
+          <SmartFormsView
+            currentUser={currentUser}
+            activeCompany={activeCompany}
+            onOpenAuthModal={() => onOpenAuthModal?.('login', 'business')}
+          />
+        </div>
+      )}
+
       {/* TAB: VACATION CALCULATOR (HR & ƏMƏKHAQQI) */}
       {activeTab === 'vacation-calculator' && (
         <div className="space-y-4">
@@ -1676,6 +1882,23 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
             activeCompany={activeCompany}
             onOpenAuthModal={onOpenAuthModal}
           />
+        </div>
+      )}
+
+      {/* TAB: MULTI-USER TEAM & RBAC PERMISSIONS */}
+      {activeTab === 'team-users' && (
+        <CompanyTeamManagementTab
+          activeCompany={activeCompany}
+          currentUser={currentUser}
+          onCompanySwitch={setActiveCompany}
+          availableCompanies={companies}
+        />
+      )}
+
+      {/* TAB: OPEN CV CATALOG (PUBLIC RECRUITER SEARCH) */}
+      {activeTab === 'open-cv-catalog' && (
+        <div className="space-y-4">
+          <OpenCVCatalogView />
         </div>
       )}
 
@@ -2442,6 +2665,22 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
           }
         }}
       />
+
+      {/* 24h Automated SMTP Interview Scheduler Modal */}
+      {isInterviewSchedulerOpen && (
+        <InterviewSchedulerModal
+          isOpen={isInterviewSchedulerOpen}
+          onClose={() => {
+            setIsInterviewSchedulerOpen(false);
+            setInterviewCandidateApp(null);
+          }}
+          company={activeCompany}
+          candidateApp={interviewCandidateApp}
+          onSaved={() => {
+            handleTabSwitch('interviews');
+          }}
+        />
+      )}
 
       {/* PDF Export Floating Progress & Toast */}
       <PDFDownloadProgressToast

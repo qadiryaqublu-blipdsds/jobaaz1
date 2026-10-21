@@ -15,7 +15,9 @@ import {
   UserSubscription,
   SubscriptionPlan,
   BillingCycle,
-  AppNotification
+  AppNotification,
+  BusinessTabType,
+  CandidateTabType
 } from './types';
 import { 
   SAMPLE_VACANCIES, 
@@ -88,6 +90,8 @@ import { SalaryCalculatorView } from './components/candidate/SalaryCalculatorVie
 import { VacationCalculatorView } from './components/candidate/VacationCalculatorView';
 import { DeepCVAnalyzerView } from './components/candidate/cv-analyzer/DeepCVAnalyzerView';
 import { CVCreator } from './components/candidate/CVCreator';
+import { PracticeInterviewView } from './components/candidate/PracticeInterviewView';
+import { SmartFormsView } from './components/smart-forms/SmartFormsView';
 import { ProfessionalNetworkView } from './components/network/ProfessionalNetworkView';
 import { AuthModal } from './components/auth/AuthModal';
 import { VerifyAccountModal } from './components/auth/VerifyAccountModal';
@@ -103,6 +107,11 @@ import { StatusErrorView } from './components/common/StatusErrorView';
 import { LegalInfoModal, LegalModalType } from './components/common/LegalInfoModal';
 import { MobileFrozenBottomBar } from './components/MobileFrozenBottomBar';
 import { ModalBottomLogo } from './components/ModalBottomLogo';
+import { GuestJobPostingModal } from './components/common/GuestJobPostingModal';
+import { OpenCVManagerModal } from './components/candidate/OpenCVManagerModal';
+import { OpenCVCatalogView } from './components/common/OpenCVCatalogView';
+import { AICreditWalletModal } from './components/common/AICreditWalletModal';
+import { PRE_INDEXED_WEB_VACANCIES } from './services/webVacancyAggregator';
 import { 
   resendVerificationEmail, 
   checkAndSyncVerificationStatus, 
@@ -197,8 +206,8 @@ function mergeVacancyLists(remoteVacancies: Vacancy[], localVacancies: Vacancy[]
 export default function App() {
   // Navigation & Role State
   const [currentRole, setCurrentRole] = useState<UserRole>('candidate');
-  const [candidateTab, setCandidateTab] = useState<'jobs' | 'nearby-map' | 'my-applications' | 'salary-trends' | 'salary-calculator' | 'vacation-calculator' | 'calculia' | 'google-chat' | 'cv-analyzer' | 'cv-creator' | 'network'>('jobs');
-  const [businessTab, setBusinessTab] = useState<'vacancies' | 'applicants' | 'offers' | 'analytics' | 'templates' | 'company-profile' | 'talent-pool' | 'vacation-calculator'>('vacancies');
+  const [candidateTab, setCandidateTab] = useState<CandidateTabType>('jobs');
+  const [businessTab, setBusinessTab] = useState<BusinessTabType>('vacancies');
   const [calculiaSubTab, setCalculiaSubTab] = useState<'calculia' | 'vacatia'>('calculia');
   const [analyzerPrefillText, setAnalyzerPrefillText] = useState<string>('');
   const [selectedCompanyFilter, setSelectedCompanyFilter] = useState<string>('Hamısı');
@@ -245,6 +254,9 @@ export default function App() {
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [profileModalTab, setProfileModalTab] = useState<'profile' | 'settings' | 'security'>('settings');
   const [isGlobalJobAlertModalOpen, setIsGlobalJobAlertModalOpen] = useState(false);
+  const [isGuestJobModalOpen, setIsGuestJobModalOpen] = useState(false);
+  const [isOpenCVModalOpen, setIsOpenCVModalOpen] = useState(false);
+  const [isAICreditWalletOpen, setIsAICreditWalletOpen] = useState(false);
 
   const handleOpenProfileModal = (initialTab: 'profile' | 'settings' | 'security' = 'settings') => {
     if (!currentUser) {
@@ -780,7 +792,7 @@ export default function App() {
 
         if (tabParam) {
           const candidateTabs = ['jobs', 'nearby-map', 'my-applications', 'salary-trends', 'salary-calculator', 'vacation-calculator', 'calculia', 'google-chat', 'cv-analyzer', 'cv-creator', 'network'];
-          const businessTabs = ['vacancies', 'applicants', 'offers', 'analytics', 'templates', 'company-profile', 'talent-pool', 'vacation-calculator'];
+          const businessTabs = ['vacancies', 'applicants', 'interviews', 'offers', 'analytics', 'templates', 'company-profile', 'talent-pool', 'smart-cv-pool', 'smart-forms', 'vacation-calculator'];
 
           if (candidateTabs.includes(tabParam)) {
             setCandidateTab(tabParam as any);
@@ -822,6 +834,7 @@ export default function App() {
   // Modals & Drawers State
   const [selectedJobForDetail, setSelectedJobForDetail] = useState<Vacancy | null>(null);
   const [selectedJobForInterview, setSelectedJobForInterview] = useState<Vacancy | null>(null);
+  const [selectedJobForPractice, setSelectedJobForPractice] = useState<Vacancy | null>(null);
   const [isPostJobModalOpen, setIsPostJobModalOpen] = useState(false);
   const [editingVacancy, setEditingVacancy] = useState<Vacancy | null>(null);
   const [isGoogleChatModalOpen, setIsGoogleChatModalOpen] = useState(false);
@@ -1330,12 +1343,18 @@ export default function App() {
     return Array.from(map.values());
   }, [companies, vacancies]);
 
-  // 2. Published Vacancies: Vacancies approved by admin (isApproved === true && status === 'published')
+  // 2. Published Vacancies: Vacancies approved by admin + All Web Indexed Portals (Boss.az, HelloJob, JobSearch, Rabota, LinkedIn, etc.)
   const publishedVacancies = useMemo(() => {
-    return vacancies.filter((v) => {
+    const internalPublished = vacancies.filter((v) => {
       // Must be approved by admin with published status
       return v.isApproved === true && v.status === 'published';
     });
+
+    // Merge pre-indexed web vacancies from national portals
+    const internalIds = new Set(internalPublished.map((v) => v.id));
+    const webVacancies = PRE_INDEXED_WEB_VACANCIES.filter((wv) => !internalIds.has(wv.id));
+
+    return [...internalPublished, ...webVacancies];
   }, [vacancies]);
 
   // Submit Job Application (Supports both registered candidates with active CV & guest applicants with file attachments)
@@ -2235,6 +2254,9 @@ export default function App() {
           onOpenPricing={() => setIsPricingViewOpen(true)}
           onLogout={handleLogout}
           onPostJobClick={handleAttemptPostJob}
+          onOpenGuestJobModal={() => setIsGuestJobModalOpen(true)}
+          onOpenOpenCVModal={() => setIsOpenCVModalOpen(true)}
+          onOpenAICreditWallet={() => setIsAICreditWalletOpen(true)}
           onOpenIntroTour={() => setIsIntroTourOpen(true)}
           onToggleMobileSidebar={() => setIsMobileSidebarOpen(!isMobileSidebarOpen)}
           isSidebarCollapsed={isSidebarCollapsed}
@@ -2349,6 +2371,15 @@ export default function App() {
                     userCV={candidateCV}
                     currentUser={currentUser}
                     onShowToast={showToast}
+                    onNavigateToTab={(tab) => {
+                      if (['analytics', 'offers', 'talent-pool', 'smart-cv-pool', 'smart-forms', 'vacancies', 'applicants'].includes(tab)) {
+                        setCurrentRole('business');
+                        setBusinessTab(tab as any);
+                      } else {
+                        setCurrentRole('candidate');
+                        setCandidateTab(tab as any);
+                      }
+                    }}
                   />
                 )}
 
@@ -2430,6 +2461,28 @@ export default function App() {
                     onViewOffer={(offer) => setActivePortalOffer(offer)}
                     currentUser={currentUser}
                     onOpenAuthModal={(mode, role) => handleOpenAuth(mode || 'login', role || 'candidate')}
+                    onNavigateToPractice={(roleTitle, companyName) => {
+                      if (roleTitle) {
+                        const matched = vacancies.find(
+                          (v) =>
+                            v.title.toLowerCase().includes(roleTitle.toLowerCase()) ||
+                            (companyName && v.companyName.toLowerCase().includes(companyName.toLowerCase()))
+                        );
+                        if (matched) {
+                          setSelectedJobForPractice(matched);
+                        }
+                      }
+                      setCandidateTab('practice-interview');
+                    }}
+                  />
+                )}
+
+                {candidateTab === 'smart-forms' && (
+                  <SmartFormsView
+                    currentUser={currentUser}
+                    activeCompany={activeCompany}
+                    candidateCV={candidateCV}
+                    onOpenAuthModal={() => handleOpenAuth('login', 'candidate')}
                   />
                 )}
 
@@ -2451,6 +2504,24 @@ export default function App() {
                         candidateCV={candidateCV}
                       />
                     </div>
+                  </div>
+                )}
+
+                {candidateTab === 'practice-interview' && (
+                  <PracticeInterviewView
+                    vacancies={vacancies}
+                    initialVacancy={selectedJobForPractice}
+                    onSelectVacancyForPrep={(vac) => {
+                      setSelectedJobForInterview(vac);
+                    }}
+                  />
+                )}
+
+                {candidateTab === 'open-cv' && (
+                  <div className="space-y-4">
+                    <OpenCVCatalogView
+                      onOpenCandidateManager={() => setIsOpenCVModalOpen(true)}
+                    />
                   </div>
                 )}
               </div>
@@ -2631,6 +2702,10 @@ export default function App() {
         <InterviewPrepModal
           vacancy={selectedJobForInterview}
           onClose={() => setSelectedJobForInterview(null)}
+          onOpenVoicePractice={(vac) => {
+            setSelectedJobForPractice(vac);
+            setCandidateTab('practice-interview');
+          }}
         />
       )}
 
@@ -2965,6 +3040,66 @@ export default function App() {
         showToast={showSubmittedCvToast}
         fileName={submittedCvFileName}
         onDismissToast={dismissSubmittedCvToast}
+      />
+
+      {/* Guest Job Posting Modal (Qeydiyyatsız Elan Yerləşdir) */}
+      <GuestJobPostingModal
+        isOpen={isGuestJobModalOpen}
+        onClose={() => setIsGuestJobModalOpen(false)}
+        onSubmitGuestVacancy={(vacData, contact) => {
+          const newJob: Vacancy = {
+            id: `guest-vac-${Date.now()}`,
+            title: vacData.title || 'Vakansiya',
+            companyId: `guest-comp-${Date.now()}`,
+            companyName: vacData.companyName || contact.name || 'Müəssisə',
+            companyLogo: `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(vacData.companyName || contact.name || 'Company')}`,
+            companyVerified: false,
+            category: vacData.category || 'Maliyyə və Mühasibat',
+            city: vacData.city || 'Bakı',
+            location: vacData.city || 'Bakı',
+            description: vacData.description || '',
+            requirements: vacData.requirements || [],
+            responsibilities: vacData.responsibilities || [],
+            benefits: vacData.benefits || [],
+            skills: vacData.skills || [],
+            minSalary: vacData.minSalary,
+            maxSalary: vacData.maxSalary,
+            currency: 'AZN',
+            deadline: vacData.deadline || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+            employmentType: vacData.employmentType || 'Tam ştat',
+            experienceLevel: vacData.experienceLevel || 'Orta (Mid-level, 1-3 il)',
+            status: 'pending_review',
+            isApproved: false,
+            postedDate: new Date().toISOString().split('T')[0],
+            isFeatured: false,
+            viewsCount: 1,
+            applicantsCount: 0,
+            contactPhone: contact.phone,
+          };
+          setVacancies((prev) => [newJob, ...prev]);
+          showToast('✅ Elanınız göndərildi! 2 saat ərzində yoxlanılaraq dərc olunacaq.');
+          setIsGuestJobModalOpen(false);
+        }}
+      />
+
+      {/* Candidate Open CV Publishing & Visibility Manager Modal */}
+      <OpenCVManagerModal
+        isOpen={isOpenCVModalOpen}
+        onClose={() => setIsOpenCVModalOpen(false)}
+        currentUser={currentUser}
+        candidateCV={candidateCV}
+        onOpenCatalog={() => {
+          setIsOpenCVModalOpen(false);
+          setCandidateTab('open-cv');
+        }}
+      />
+
+      {/* AI Credit Wallet & Monetization Modal */}
+      <AICreditWalletModal
+        isOpen={isAICreditWalletOpen}
+        onClose={() => setIsAICreditWalletOpen(false)}
+        userId={currentUser?.id || 'guest-user'}
+        userName={currentUser?.fullName || 'İstifadəçi'}
       />
     </div>
   );

@@ -1,0 +1,787 @@
+
+JOBIA.AZ
+Texniki Həll
+Süni intellekt əsaslı işə qəbul, CV idarəetməsi və HR rekruitinq avtomatlaşdırma platforması
+Hədəf bazar ilkin olaraq:  Azərbaycan
+Dillər:  Azərbaycan, ingilis, rus
+Tarix:  Oktyabr 2026
+ 
+Mündəricat
+1. Layihənin ümumi məqsədi	2
+2. Sayt strukturu və inkişaf arxitekturası	3
+3. AI və sadə həllər (hibrid yanaşma)	4
+4. İstifadəçi növləri və giriş sistemi	6
+5. Bir şirkət daxilində bir neçə istifadəçi	7
+6. Şirkət profili və qeydiyyatsız vakansiya	8
+7. Namizəd profili və CV bazası	9
+8. CV yaratmaq (sadə qurucu və AI ilə)	10
+9. Açıq CV: axtarış sistemlərində görünmə (ödənişli xidmət) – müzakirə edilməli	11
+10. CV analizi və ATS uyğunluğu	13
+11. LinkedIn profilinin analizi (Aİ həllər peşəkar profil üçün) 	14
+12. Vakansiyaların yaradılması və idarə olunması (standard və Aİ əsaslı)	14
+13. Namizəd və vakansiyanın AI ilə uyğunlaşdırılması	15
+14. Namizədlər üçün avtomatik vakansiya botu	15
+15. Müraciətlərin və işə qəbul prosesinin idarə olunması	16
+16. Namizədlərin müqayisəsi	16
+17. Sənəd şablonları və ərizələrin doldurulması (əlavə ödəniş edəcəm)	17
+18. Elektron təsdiq və imza prosesi (əlavə ödəniş edəcəm)	18
+19. Elektron təsdiq və imza prosesi (əlavə ödəniş edəcəm)	18
+20. HR kalkulyatorları	18
+21. HR analitika və hesabatlar	19
+22. AI xidmətləri, kredit və ödəniş sistemi (yəni hər həməliiyat ai ilə nə qədər xərci var nə qədər marjası	20
+23. Bildiriş sistemi	22
+24. Administrator paneli	22
+25. Məlumatların təhlükəsizliyi və məxfiliyi	23
+26. İstifadə rahatlığı və dizayn	23
+27. Texniki keyfiyyət və etibarlılıq tələbləri	24
+28. Əsas istifadə ssenariləri	24
+29. İşlərin mərhələlərlə həyata keçirilməsi	26
+30. Qəbul meyarları və sınaq	27
+31. Gələcək inkişaf yol xəritəsi	28
+32. Yekun tələb	28
+ 
+1. Layihənin ümumi məqsədi
+1.1. Platforma nədir?
+Jobia.az Azərbaycan əmək bazarı üçün hazırlanan süni intellekt (AI) əsaslı işə qəbul, CV idarəetməsi və HR avtomatlaşdırma platformasıdır. Platforma üç əsas tələbi bir yerdə həll edir: namizədlər iş tapır, şirkətlər uyğun işçi seçir, HR komandaları gündəlik işlərini rəqəmsal şəkildə idarə edir.
+JOBİA- JOB İNTELLİGENCE&AUTOMATION
+1.2. Əsas məqsədlər
+•	Namizədlərin CV-lərini yaratmaq, təkmilləşdirmək və təhlil etmək.
+•	Vakansiyaları yaratmaq, yayımlamaq və idarə etmək.
+•	CV bazasını avtomatik formalaşdırmaq və təhlil etmək.
+•	Namizədlərlə vakansiyaları AI vasitəsilə uyğunlaşdırmaq.
+•	Namizədlərə uyğun vakansiyaları avtomatik göndərmək.
+•	İşəgötürənlərə namizədləri müqayisə etmək və seçimi sürətləndirmək imkanı vermək.
+•	Bir şirkət hesabı altında bir neçə HR istifadəçisinin işləməsini təmin etmək. 
+•	Ərizələri, daxili sənədləri, təsdiqləri və HR formalarını rəqəmsallaşdırmaq.
+•	Əməkhaqqı, məzuniyyət və digər HR hesablamalarını avtomatlaşdırmaq.
+•	AI xidmətləri üçün ödəniş və kredit sistemi tətbiq etmək.
+•	Şirkətlərə işə qəbul və HR üzrə analitik hesabatlar təqdim etmək.
+1.3. Dil və interfeys
+Platforma Azərbaycan dilində tam işləməlidir. Mümkün olduqda Azərbaycan, ingilis və rus dilləri dəstəklənməlidir. İnterfeys sadə, anlaşıqlı və mobil cihazlara uyğun olmalıdır.
+1.4. Əsas dizayn prinsipləri
+•	Sadəlik və sürət: saytın əsas əməliyyatları (qeydiyyat, CV, vakansiya, müraciət) AI olmadan, sürətli və öz tempində işləməlidir.
+•	AI istəyə bağlıdır: AI yalnız real fayda verən yerlərdə istifadə olunur. Vacib olmayan hissələrdə sadə həllər (formalar, şablonlar, filtrlər) əsas yol olur.
+•	Modul quruluş: hər funksiya ayrıca modul kimi qurulur ki, yenisini əlavə etmək və ya köhnəni dəyişmək asan olsun.
+•	İdarə olunan konfiqurasiya: qiymət, limit, mərhələ, forma və paketlər proqramçı olmadan admin paneldən dəyişdirilir.
+•	Gəlir imkanları: AI xidmətləri ilə yanaşı, namizədlər üçün ödənişli “Açıq CV” kimi AI-sız xidmətlər də satıla bilir. (Yəni namizəd cv- sini yaradanda o xüsusi düymə klik edəndə onun cv-si vebdə işəgötürənlərin qarşsıına çıxır. – belə ki, məsələn işəgötürəm mühsaib axtarırsa onun axtardığı x namizəd googleda adı və cv si və ya profili olmaqla görünür.
+1.5. Bu versiyada əlavə olunanlar
+Yenilik	Harada təsvir olunub
+Sayt strukturu, modul arxitekturası və genişlənmə qaydaları	“Sayt strukturu və inkişaf arxitekturası” bölməsi
+AI olmadan işləyən sadə həllər (hibrid yanaşma)	“AI və sadə həllər” bölməsi
+Sadə (AI-sız) CV qurucusu	“CV yaratmaq” bölməsi
+Açıq CV: Google və digər axtarış platformalarında görünmə (namizəd ödəyir)	“Açıq CV” bölməsi
+Gələcək inkişaf yol xəritəsi	“Gələcək inkişaf yol xəritəsi” bölməsi
+
+2. Sayt strukturu və inkişaf arxitekturası
+Sayt elə qurulmalıdır ki, istifadəçi nə axtardığını tez tapsın, komanda isə yeni funksiyaları mövcud hissələrə toxunmadan əlavə edə bilsin.
+2.1. Sayt xəritəsi
+Hissə	Kim üçün	Əsas səhifələr
+İctimai hissə	Hamı (qeydiyyatsız)	Ana səhifə, vakansiya axtarışı, vakansiya səhifəsi, şirkət səhifələri, Açıq CV kataloqu, qiymətlər, dəstək və tez-tez verilən suallar, giriş və qeydiyyat, qeydiyyatsız vakansiya yaratma (qedyiyytasız vakansiya üçün email ilə vakansiya məılumatalrını işəgötürən göndərir) admin özü manual əlavə edir.
+Namizəd kabineti	İş axtaranlar	Profilim, CV-lərim, CV analizi, Açıq CV, Vakansiyalar, Müraciətlərim, Bildirişlər, Ödənişlər
+İşəgötürən kabineti	HR və işəgötürənlər	Şirkətim, Vakansiyalar, CV bazası, Açıq CV kataloqu, Namizədlər, İşə qəbul prosesi, Sənədlər, HR kalkulyatorları, Analitika, sənədlər
+Şirkət idarəetməsi	Şirkət administratoru	İstifadəçilər, rollar və icazələr, paketlər, kredit balansı, fəaliyyət tarixçəsi
+Admin paneli	Platforma administratoru	İstifadəçilər, şirkətlər, vakansiyalar, Açıq CV moderasiyası, qiymətlər, paketlər, ödənişlər, şikayətlər, analitika
+
+2.2. Modul quruluşu
+Platforma aşağıdakı müstəqil modullardan ibarət olmalıdır. Hər modulun öz vəzifəsi var və digər modullarla yalnız aydın əlaqə nöqtələri vasitəsilə danışır.
+Modul	Vəzifəsi
+İstifadəçilər və giriş	Qeydiyyat, giriş, hesab təhlükəsizliyi
+Şirkətlər, rollar və icazələr	Şirkət profili, çoxlu istifadəçi, rol və icazələr
+Vakansiyalar	Yaratma, yayımlama, statuslar, təsdiq
+CV və namizəd profili	Profil, CV qurucusu, CV faylları və versiyaları
+Açıq CV	Namizədin razılığı ilə CV-nin açıq yayımı, müddət və ödəniş
+Axtarış və uyğunlaşdırma	Filtr axtarışı, uyğunluq balı, vakansiya botu
+Müraciətlər və işə qəbul	Mərhələlər, müsahibələr, qeydlər
+Sənədlər və təsdiq	Şablonlar, təsdiq marşrutları, arxiv
+HR kalkulyatorları	Əməkhaqqı, məzuniyyət və digər hesablamalar – bunalr sadə həllərdir kki saydan istifadəni artırsın.)
+Bildirişlər	Platforma daxili və e-poçt bildirişləri (sonra Telegram və votsap və s s.)
+Ödəniş və kreditlər	Balans, paketlər, ödəniş tarixçəsi, geri qaytarma
+Hesabat və analitika	HR göstəriciləri, AI və gəlir hesabatları
+AI sahəsi	Bütün AI xidmətləri vahid yerdən idarə olunur (istəyə bağlı)
+Admin paneli	Platformanın idarə edilməsi və konfiqurasiyası
+
+2.3. Genişlənmə qaydaları
+•	Yeni modul əlavə edilərkən mövcud işləyən modullar pozulmamalıdır.
+•	Hər funksiya admin paneldən ayrıca aktiv və ya söndürülə bilməlidir (məsələn, AI funksiyası, Açıq CV, toplu emal).
+•	Qiymət, limit, mərhələ adları, formalar və paketlər kodu dəyişmədən konfiqurasiya olunmalıdır.
+•	Bütün mətnlər tərcümə fayllarında saxlanılmalıdır ki, yeni dil əlavə etmək asan olsun.
+•	Platformanın əsas əməliyyatları ayrıca xidmət interfeysi (API) vasitəsilə əlçatan olmalıdır; bu, gələcəkdə mobil tətbiq və inteqrasiyalar üçün zəruridir.
+•	Məlumat standart formatda (Excel, CSV, PDF) ixrac və idxal oluna bilməlidir.
+•	Hər dəyişiklik tarixçədə saxlanılmalı, yeni versiyalar sınaqdan keçirilib vebə buraxılmalıdır.
+2.4. Sürət və performans
+•	Uzun siyahılar səhifələnməli, cədvəllərdə axtarış və filtr olmalıdır.
+•	Uzun əməliyyatlar (toplu CV emalı, hesabat, bildiriş göndərmə) arxa planda icra olunmalı, istifadəçi gözləmədən işini davam etdirə bilməlidir.
+•	Əməliyyat bitəndə istifadəçiyə bildiriş göndərilməli, gedişat göstərilməlidir.
+•	Tez-tez istifadə olunan səhifələr (vakansiya siyahısı, kataloq) keşlənməli, yüklənmə sürətli olmalıdır.
+•	Fayl və şəkil ölçüləri məhdudlaşdırılmalı, mobil şəbəkədə də rahat işləməlidir.
+3. AI və sadə həllər (hibrid yanaşma)
+Əsas qayda: Sayt AI olmadan da tam işləməlidir. AI sürət və rahatlıq artıran əlavə imkandır, məcburi şərt deyil.
+3.1. Niyə hibrid yanaşma?
+•	Sürət: sadə əməliyyatlar AI gözləmədən dərhal icra olunur.
+•	Etibarlılıq: AI xidməti işləməsə də sayt dayanmır.
+•	Xərc: AI yalnız lazım olanda çağırılır, bu da həm istifadəçi, həm platforma üçün xərci azaldır. (həm də əlavə ödəniş ximəti kimi gəlir mənbəyi ola bilər) 
+•	Sadə istifadəçi üçün rahatlıq: texnologiyaya yadlar AI-sız, adi formalarla işləyə bilir.
+3.2. Funksiyalar üzrə sadə həll və AI imkanı
+Funksiya	Sadə həll (AI-sız, həmişə işləyir)	AI ilə əlavə imkan (istəyə bağlı)
+CV yaratmaq	Addım-addım forma, hazır CV şablonları, PDF yükləmə	AI suallar verir və mətni peşəkar yazır
+CV-dən məlumat çıxarma	Sahələr əl ilə doldurulur, fayl əlavə kimi saxlanılır	AI faylı oxuyub sahələri avtomatik doldurur
+CV analizi	Yoxlama siyahısı: boş sahələr, format, əlaqə məlumatı, uzunluq	AI dərin analiz, ATS balı və tövsiyələr
+LinkedIn analizi	Hazır yoxlama siyahısı və ümumi tövsiyələr	AI profil təhlili və nümunə mətnlər
+Vakansiya mətni	Peşə qrupları üzrə hazır şablonlar və doldurma formu	AI mətni sıfırdan yazır (istəyə bağlı ödənişli) 
+Namizəd–vakansiya uyğunluğu	Qayda əsaslı bal: təcrübə, şəhər, əməkhaqqı, bacarıq açar sözləri	AI izahlı uyğunluq və dərin müqayisə
+CV bazasında axtarış	Filtrlər və açar söz axtarışı	AI ilə mənaya görə axtarış
+Vakansiya botu	Seçilmiş filtrlərə görə e-poçt bildirişi	AI ilə daha dəqiq sıralama
+Namizədlərin müqayisəsi	Cədvəl şəklində müqayisə	AI qısa xülasə və tövsiyə
+Hesabatlar	Standart hesablanan göstəricilər	AI şərh və təkliflər
+Ərizə (hr form) doldurma	Adi forma	Səsli doldurma
+
+3.3. Texniki qaydalar
+•	AI əməliyyatları arxa planda (növbə ilə) icra olunur, nəticə hazır olanda istifadəçiyə bildirilir.
+•	AI cavab vermirsə, əsas iş dayanmır: istifadəçiyə sadə yol təklif olunur və ya əməliyyat sonra təkrarlanır.
+•	Hər AI funksiyası admin paneldən ayrıca aktiv və ya söndürülə bilir.
+•	Sadə həllər pulsuzdur (və ya aşağı qiymətlidir); kredit yalnız AI ilə əlavə imkanlar üçün tutulur.
+•	AI nəticəsi həmişə istifadəçiyə yoxlama və təsdiq üçün göstərilir.
+4. İstifadəçi növləri və giriş sistemi
+Hər istifadəçi yalnız özünə aid məlumatları və ona verilmiş icazələr çərçivəsində funksiyaları görə bilməlidir.
+4.1. İstifadəçi qrupları
+№	İstifadəçi qrupu
+1	İş axtaran namizəd
+2	Şirkət və işəgötürən
+3	Şirkət daxilində HR əməkdaşı
+4	Şirkət rəhbəri və ya administratoru
+5	Platformanın ümumi administratoru
+
+4.2. Namizəd hesabı
+Namizəd aşağıdakı imkanlara malik olmalıdır:
+•	Qeydiyyatdan keçmək və şəxsi hesab yaratmaq; şəxsi məlumatlarını əlavə etmək və dəyişdirmək.
+•	CV yükləmək, CV-ni AI ilə yaratmaq və yeniləmək.
+•	CV təhlili və ATS uyğunluq analizi aparmaq; LinkedIn profilini təhlil etdirmək.
+•	İş təcrübəsini, təhsilini və bacarıqlarını qeyd etmək.
+•	Vakansiyalara müraciət etmək və müraciətlərinin statusunu izləmək.
+•	Özünə uyğun vakansiyalar üzrə avtomatik bildirişlər almaq.
+•	Vakansiyaları saxlamaq; CV versiyalarını saxlamaq və yükləmək.
+•	Ödənişli AI xidmətlərinin tarixçəsinə baxmaq.
+•	CV -ni vebdə açıq görünüb görünməməsini seçə bilmək.
+4.3. İşəgötürən hesabı
+İşəgötürən qeydiyyatdan sonra şirkət profili yarada və ya mövcud şirkətə qoşula bilməlidir. İşəgötürənin əsas funksiyaları:
+•	Vakansiya yaratmaq, yayımlamaq, redaktə etmək, dayandırmaq və bağlamaq.
+•	Namizədlərin müraciətlərini görmək; CV bazasında axtarış aparmaq.
+•	CV-ləri ayrı-ayrılıqda və ya toplu əlavə etmək; avtomatik təhlil aparmaq.
+•	Namizədləri uyğunluq faizinə görə sıralamaq və müqayisə etmək.
+•	Namizədləri seçilmiş siyahıya əlavə etmək; müsahibə mərhələlərini idarə etmək.
+•	Namizədlərə status bildirişləri göndərmək.
+•	AI vasitəsilə vakansiya mətni və sənədlər hazırlamaq.
+•	Şirkət üzrə HR hesabatlarına baxmaq.
+5. Bir şirkət daxilində bir neçə istifadəçi
+Vacib: Bu funksiya platformanın əsas tələblərindən biridir.
+5.1. Ümumi qayda
+Bir şirkət hesabı daxilində bir neçə ayrı istifadəçi hesabı yaradılmalıdır. Hər istifadəçinin öz giriş məlumatları, şəxsi profili və fəaliyyət tarixçəsi olmalıdır. Məsələn, bir şirkətdə bu istifadəçilər işləyə bilər:
+•	HR direktoru, HR meneceri
+•	İşə qəbul üzrə mütəxəssis, əlavə HR mütəxəssisləri
+•	Şöbə rəhbəri, şirkət rəhbəri
+•	Yalnız hesabatlara baxan əməkdaş
+Bütün bu istifadəçilər eyni şirkətə bağlıdır və icazələri daxilində şirkətin vakansiyalarını, namizəd bazasını və işə qəbul proseslərini görə bilirlər.
+5.2. Şirkət administratoru
+Şirkəti platformaya ilk əlavə edən və ya administrator təyin olunan şəxs bu rolu alır. O, aşağıdakıları edə bilməlidir:
+•	Yeni istifadəçi yaratmaq və ya dəvət göndərmək (ad, soyad, vəzifə, əlaqə məlumatları).
+•	İstifadəçinin girişini aktivləşdirmək və ya dayandırmaq; işdən ayrılan əməkdaşın girişini ləğv etmək.
+•	İstifadəçiyə rol təyin etmək və hər istifadəçinin icazələrini ayrıca müəyyən etmək.
+•	İstifadəçinin əvvəlki əməliyyat tarixçəsini saxlamaq.
+•	Şirkət üzrə ümumi məlumat və hesabatları idarə etmək.
+•	Şirkətin AI kreditlərini və istifadə limitlərini izləmək; istifadəçilər üzrə fəaliyyət hesabatını görmək.
+5.3. Rollar və icazələr
+Sistem hazır rollarla yanaşı, fərdi icazə təyin etməyə də imkan verməlidir.
+Rol	Əsas icazələr
+Şirkət administratoru	Bütün şirkət funksiyaları, istifadəçilərin idarə edilməsi, icazələr və ödənişlər
+HR direktoru	Vakansiyalar, namizədlər, işə qəbul prosesi və HR hesabatları
+HR meneceri	Vakansiyalar, CV bazası, müraciətlər və işə qəbul mərhələləri
+Recruiter	Təyin olunmuş vakansiyalar və namizədlər üzrə əməliyyatlar
+Şöbə rəhbəri	Öz şöbəsinə aid vakansiyalar və ona təqdim edilən namizədlər
+Hesabat istifadəçisi	İcazə verilmiş hesabatlara baxış
+Məhdud istifadəçi	Administratorun seçdiyi konkret funksiyalar
+
+İcazələr ayrıca əməliyyatlar üzrə təyin edilməlidir: baxış, yaratma, redaktə, silmə, təsdiq və ixrac. Məsələn, bir HR mütəxəssisi CV-ləri görə bilər, amma digər istifadəçiləri idarə edə və ödəniş parametrlərini dəyişə bilməz.
+5.4. Məlumatların bölüşdürülməsi və fəaliyyət tarixçəsi
+Şirkətin səlahiyyətli istifadəçiləri eyni məlumatla işləyir. HR 1 vakansiya yaradanda HR 2 onu öz hesabında görür. HR 2 namizədin statusunu dəyişəndə digər icazəli istifadəçilər yenilənmiş statusu görür.
+Eyni zamanda hər əməliyyat qeyd olunmalıdır:
+•	Kim vakansiya yaradıb və ya redaktə edib?
+•	Kim CV əlavə edib?
+•	Kim namizədin statusunu dəyişib?
+•	Kim müsahibə təyin edib və ya sənədi təsdiq edib?
+•	Əməliyyat nə vaxt icra olunub?
+İstifadəçilərin giriş məlumatları paylaşılmamalıdır. Hər kəs yalnız öz hesabından istifadə etməlidir.
+5.5. Bir neçə şirkətlə işləmək
+Eyni istifadəçi gələcəkdə bir neçə şirkətlə işləyirsə, icazəsi olan şirkətlər arasında keçid edə bilməlidir. Keçid zamanı yalnız həmin şirkətin məlumatları görünməli, başqa şirkətin məlumatlarına giriş olmamalıdır.
+6. Şirkət profili və qeydiyyatsız vakansiya
+6.1. Şirkət profili
+Sahə	Qeyd
+Şirkətin adı	Məcburi
+VÖEN	Tələb olunduqda
+Fəaliyyət sahəsi	Sənaye və ya sektor
+Ünvan, telefon, e-poçt, veb-sayt	Əlaqə məlumatları
+Şirkət haqqında	Qısa təqdimat və loqo
+İşçi sayı	Və digər əlavə məlumatlar
+
+Şirkət məlumatlarını yalnız müvafiq icazəsi olan istifadəçilər redaktə edə bilər.
+6.2. Qeydiyyatdan keçmədən vakansiya yaratmaq
+İşəgötürən vakansiya yaratmaq üçün əvvəlcədən qeydiyyata məcbur edilməməlidir. Qeydiyyatsız istifadəçi aşağıdakı məlumatları doldura bilər:
+•	Şirkətin adı, əlaqələndirici şəxs, telefon və ya e-poçt.
+•	Vəzifənin adı, iş yeri, əməkhaqqı, iş qrafiki.
+•	İş təcrübəsi və təhsil tələbi.
+•	Vəzifə öhdəlikləri və namizədə tələblər.
+•	Son müraciət tarixi.
+Mətni özü yaza və ya AI ilə hazırlada bilər. Vakansiya göndərildikdən sonra sistem onu şirkət hesabına bağlamaq üçün qeydiyyat və ya əlaqənin təsdiqini təklif edir.
+Qayda: Vakansiya yayımdan əvvəl yoxlama və təsdiqdən keçə bilər. Eyni şirkət üçün dublikat vakansiyaların qarşısı alınmalıdır.
+7. Namizəd profili və CV bazası
+7.1. Namizəd məlumatları
+Namizəd yalnız zəruri məlumatla qeydiyyatdan keçə bilər, qalanını sonradan əlavə edər. Profil bu məlumatları əhatə edə bilər:
+•	Ad, soyad, əlaqə məlumatları, yaşadığı şəhər və region.
+•	Arzu olunan vəzifə, iş təcrübəsi, təhsil.
+•	Peşəkar bacarıqlar, dil və kompüter bilikləri.
+•	Sertifikatlar, təlimlər, əlavə nailiyyətlər.
+•	Arzu olunan əməkhaqqı, iş qrafiki, işə başlamağa hazırlıq müddəti, işləmək istədiyi ərazi.
+•	CV faylları və versiyaları, portfolio, LinkedIn keçidi.
+7.2. CV-nin yüklənməsi və avtomatik oxunması
+CV PDF, DOCX və digər dəstəklənən formatlarda yüklənə bilər. Sistem məlumatları avtomatik oxuyub uyğun sahələrə yerləşdirir (ad, əlaqə, təcrübə, təhsil, bacarıqlar, dillər, sertifikatlar).
+Qayda: Çıxarılan məlumat saxlanmazdan əvvəl istifadəçiyə göstərilməli, o isə düzəliş edib təsdiq etməlidir. Sistem CV-də olmayan məlumatı fakt kimi uydurmamalıdır; tapılmayan sahə boş qalmalı və ya “məlumat göstərilməyib” kimi işarələnməlidir.
+AI olmadan: AI işləmədikdə və ya istifadəçi istəmədikdə, CV əl ilə doldurula bilər; fayl olduğu kimi saxlanılır və sahələr istifadəçi tərəfindən yazılır.
+7.3. Toplu CV yükləmə
+İstifadəçi bir və ya çoxlu CV əlavə edərək baza yarada bilər. Proses belə gedir:
+1.	İstifadəçi faylları seçir.
+2.	Sistem faylları yoxlayır.
+3.	Hər CV ayrıca oxunur.
+4.	Məlumatlar standart sahələrə çıxarılır.
+5.	Təkrarlanan CV-lər müəyyən edilir.
+6.	Oxunmayan və ya problemli fayllar ayrıca göstərilir.
+7.	İstifadəçiyə nəticələrin xülasəsi təqdim olunur.
+8.	İstifadəçi nəticələri yoxlayır və bazaya əlavə edilməsini təsdiqləyir.
+Prosesdən əvvəl istifadəçi neçə CV emal ediləcəyini və ümumi AI xərcini görməlidir. Uğurlu və uğursuz fayllar ayrı göstərilir, uğursuz fayllara görə ödəniş tutulmur.
+7.4. CV bazasında axtarış
+İşəgötürən bu meyarlarla axtarış edə bilər:
+Qrup	Meyarlar
+Peşə	Vəzifə və peşə, sənayedə təcrübə, iş təcrübəsi
+Təhsil və bacarıq	Təhsil səviyyəsi, bacarıqlar, dil bilikləri, sertifikatlar
+Yer və şərtlər	Region və şəhər, əməkhaqqı gözləntisi, iş qrafiki, işə başlama müddəti
+Uyğunluq	Vakansiyaya uyğunluq faizi
+
+Nəticələr uyğunluq səviyyəsinə görə sıralana bilməlidir.
+8. CV yaratmaq (sadə qurucu və AI ilə)
+Namizəd CV-ni iki yolla yarada bilər: sadə qurucu ilə (AI-sız) və ya AI köməyi ilə. Seçim namizədindir.
+8.1. Sadə CV qurucusu (AI-sız)
+•	Addım-addım forma: şəxsi məlumat, təcrübə, təhsil, bacarıqlar, dillər, sertifikatlar.
+•	Bir neçə hazır CV şablonu və dizayn seçimi.
+•	Dərhal önizləmə və PDF olaraq yükləmə.
+•	Bütün sahələr sonradan dəyişdirilə bilir, bir neçə CV versiyası saxlanılır.
+Bu yol pulsuzdur və AI-dan asılı deyil.
+8.2. AI ilə CV yaratmaq
+Namizəd istəsə, AI suallar verir və cavablara əsasən CV hazırlayır.
+AI-nin verəcəyi suallar
+•	Hansı vəzifədə işləmək istəyirsiniz?
+•	Əvvəlki iş yerləriniz və orada gördüyünüz işlər hansılardır?
+•	Əsas nailiyyətləriniz hansılardır?
+•	Hansı proqramları bilirsiniz?
+•	Təhsiliniz və sertifikatlarınız hansılardır?
+•	Hansı dilləri bilirsiniz?
+Suallara yazılı cavab vermək və ya səslə danışmaq mümkün olmalıdır.
+Nəticə və redaktə
+•	AI cavablara əsasən peşəkar CV hazırlayır.
+•	İstifadəçi CV-ni redaktə edə, dizaynını dəyişə və PDF və ya digər formatda yükləyə bilir.
+•	Müxtəlif vəzifələr üçün bir neçə CV versiyası saxlanıla bilir (məsələn, HR meneceri və HR direktoru üçün ayrı versiyalar).
+Qayda: AI istifadəçinin təsdiqləmədiyi iş təcrübəsi, nailiyyət, sertifikat və ya təhsil məlumatı əlavə etməməlidir.
+8.3. CV yaradılarkən açıq yayım seçimi
+CV hazır olduqda namizədə “CV-mi açıq yayımla” seçimi göstərilir. Seçildikdə CV Google və digər axtarış platformalarında tapıla bilən açıq səhifəyə çevrilir. Ətraflı qaydalar növbəti bölmədədir.
+9. Açıq CV: axtarış sistemlərində görünmə (ödənişli xidmət)
+9.1. Məqsəd
+Namizəd, məsələn, aqronom kimi iş axtarırsa, işəgötürən Google-da və ya digər axtarış sistemində “aqronom CV Bakı” yazanda onun açıq CV səhifəsini rahat tapa bilməlidir. Bu, namizədin işəgötürənlər tərəfindən daha asan tapılmasına xidmət edir.
+Vacib: Açıq CV yalnız namizəd açıq razılıq verəndə və xidmət haqqını ödəyəndə aktivləşir. Standart halda hər CV bağlıdır.
+9.2. Namizədin addımları
+1.	Namizəd CV-ni yaradır və ya mövcud CV-ni seçir.
+2.	CV-nin sonunda “CV-mi açıq yayımla” seçimi görünür (standart olaraq söndürülü).
+3.	Sistem nələrin açıq göstəriləcəyini izah edir, namizəd razılığı aydın şəkildə təsdiqləyir.
+4.	Namizəd göstəriləcək məlumatları seçir.
+5.	Sistem açıq CV-nin önizləməsini göstərir.
+6.	Paket və qiymət göstərilir, namizəd ödəniş edir.
+7.	Ödəniş təsdiqləndikdən sonra CV yayımlanır və namizədə unikal keçid verilir.
+8.	Müddət bitdikdə CV avtomatik gizlədilir; namizəd istəsə müddəti uzada bilər.
+9.3. Açıq səhifədə nələr göstərilir
+Məlumat	Qayda
+Vəzifə və peşə (məs. Aqronom)	Göstərilir
+Şəhər və region	Göstərilir
+Təcrübə, bacarıqlar, təhsil, dillər	Namizədin seçdiyi qədər göstərilir
+Ad və soyad	Namizəd seçir: tam ad və ya ad və soyadın ilk hərfi
+Şəkil	İstəyə bağlıdır
+Telefon və e-poçt	Standart olaraq gizlidir; əlaqə platforma vasitəsilə qurulur. Namizəd istəsə göstərə bilər
+Dəqiq ünvan, doğum tarixi, ailə vəziyyəti, şəxsiyyət sənədi məlumatları	Heç vaxt açıq göstərilmir
+
+9.4. Axtarış sistemlərində tapılma şərtləri
+•	Hər açıq CV üçün ayrıca, oxunaqlı keçid (məsələn: jobia.az/cv/aqronom-baki-123).
+•	Səhifə başlığı və qısa təsvir avtomatik yaradılır (vəzifə və şəhər əsasında).
+•	Axtarış sistemlərinin başa düşdüyü strukturlaşdırılmış məlumat və sayt xəritəsi (sitemap) hazırlanır.
+•	Səhifə sürətli açılır və mobil cihazlarda düzgün görünür.
+•	CV gizlədiləndə və ya müddəti bitəndə səhifə dərhal sayt xəritəsindən çıxarılır və axtarışdan silinməsi üçün işarə qoyulur.
+•	Platformanın öz “Açıq CV kataloqu” olur: peşə, şəhər və təcrübə üzrə (aqronom, mühasib, sürücü və s.).
+•	Namizəd öz keçidini LinkedIn, Telegram, WhatsApp və digər yerlərdə paylaşa bilir.
+Dürüst qeyd: Google və digər axtarış sistemləri nəticələri öz qaydaları ilə göstərir. Platforma yalnız tapılma şəraitini yaradır; konkret sıraya və ya sürətə zəmanət verilmir. Bu, namizədə ödənişdən əvvəl açıq yazılmalıdır.
+9.5. İşəgötürən tərəfdən istifadə
+•	Açıq CV kataloqunda peşə, şəhər, təcrübə və bacarıq üzrə axtarış.
+•	Axtarış sistemindən gələn işəgötürən namizədin səhifəsində birbaşa “Əlaqə saxla” düyməsini görür.
+•	Əlaqə sorğusu namizədə gedir; namizəd qəbul etdikdən sonra əlaqə məlumatı açılır.
+•	İşəgötürən namizədi öz CV bazasına əlavə edə bilər (namizədin razılığı ilə).
+•	Spamın qarşısını almaq üçün gündəlik sorğu limiti qoyulur.
+9.6. Ödəniş və müddət
+Paket	Müddət	Qeyd
+Qısa	1 ay	Sınaq üçün
+Standart	3 ay	Ən çox seçilən
+İllik	12 ay	Endirimli qiymət
+Önə çıxarılmış (əlavə)	Seçilmiş müddət	Kataloqda yuxarıda göstərilir və “Önə çıxarılmış” nişanı ilə aydın işarələnir
+
+•	Qiymətləri və paketləri administrator idarə edir.
+•	Ödəniş real təsdiqlənmədən CV yayımlanmır; eyni ödəniş iki dəfə tutulmur.
+•	Yayımdan əvvəl CV qısa yoxlamadan (moderasiya) keçir. Uyğun olmadıqda ödəniş geri qaytarılır.
+•	Müddət bitməzdən əvvəl namizədə xəbərdarlıq göndərilir (məsələn, 7 gün və 1 gün əvvəl).
+•	Namizəd razılığı geri götürərsə, qalan müddət üçün qayda əvvəlcədən açıq göstərilməlidir.
+9.7. Məxfilik və nəzarət
+•	Namizəd razılığı istənilən vaxt geri götürə bilər; CV dərhal gizlədilir.
+•	Hər dəyişiklik və razılıq tarixçədə saxlanılır.
+•	Saxta, təhqiramiz və ya uyğunsuz CV-lər moderasiya ilə bloklanır.
+•	Həssas məlumat heç vaxt açıq göstərilmir; yaş, cins, ailə vəziyyəti kimi ayrı-seçkilik yarada bilən sahələr tələb olunmur.
+•	Kütləvi avtomatik məlumat çəkilməsindən (scraping) və spamdan qorunma tətbiq olunur.
+•	Axtarış sistemlərindəki köhnə nüsxənin yenilənməsi üçün silinmə sorğusu mexanizmi olmalıdır.
+•	Namizəd statistikanı görür: baxış sayı və əlaqə sorğuları.
+•	Şəxsi məlumatlar haqqında qüvvədə olan qanunvericiliyə uyğunluq təmin edilir.
+10. CV analizi və ATS uyğunluğu
+ATS (Applicant Tracking System) şirkətlərin CV-ləri avtomatik oxuyan sistemidir. Platforma CV-ni təhlil edərək namizədə konkret nəticələr verməlidir.
+10.1. Analiz istiqamətləri
+•	CV-nin strukturu və oxunaqlılığı.
+•	Dil və yazı səhvləri.
+•	İş təcrübəsinin təqdimatı və nailiyyətlərin konkretliyi.
+•	Bacarıqların uyğunluğu.
+•	ATS üçün uyğun format.
+•	Çatışmayan əsas məlumatlar.
+•	Güclü və zəif tərəflər.
+10.2. Konkret vakansiya ilə müqayisə
+İstifadəçi vakansiya seçdikdə sistem CV-ni həmin vakansiyanın tələbləri ilə müqayisə edir və göstərir:
+•	Ümumi uyğunluq balı və tələblər üzrə uyğunluq.
+•	CV-də olan uyğun bacarıqlar və çatışmayan bacarıqlar.
+•	Təcrübə və təhsil uyğunluğu.
+•	Yaxşılaşdırılmalı hissələr və tövsiyə olunan düzəlişlər.
+Qayda: Balın necə hesablandığı aydın izah edilməlidir. Bal işə qəbul zəmanəti kimi təqdim olunmamalıdır. Sistem CV-də olmayan məlumatı əlavə etmədən, mövcud məlumatı daha düzgün ifadə etməyi təklif edir.
+11. LinkedIn profilinin analizi
+Namizəd LinkedIn keçidini daxil edərək analiz sifariş edə bilər. Profil birbaşa oxunmursa, sistem profil mətnini və ya ekran görüntülərini istəyə bilər.
+11.1. Analiz nələri əhatə edir?
+•	Başlıq və peşəkar təqdimat, “Haqqımda” bölməsi.
+•	İş təcrübəsinin keyfiyyəti və nailiyyətlərin ifadəsi.
+•	Bacarıqların və açar sözlərin uyğunluğu.
+•	Profilin hədəf vəzifəyə uyğunluğu.
+•	LinkedIn və CV arasında uyğunsuzluqlar.
+•	Gücləndirmə üçün tövsiyələr.
+Nəticədə istifadəçiyə konkret düzəlişlər və nümunə mətnlər verilməlidir.
+Qayda: Sistem LinkedIn hesabına icazəsiz daxil olmamalı, məlumatı yalnız qanuni və icazəli üsullarla əldə etməlidir.
+12. Vakansiyaların yaradılması və idarə olunması
+12.1. Vakansiya sahələri
+Qrup	Sahələr
+Əsas	Vəzifənin adı, şirkət və şöbə, iş yeri, iş rejimi
+Şərtlər	Əməkhaqqı və əlavə ödənişlər, müraciət üçün son tarix
+Tələblər	İş təcrübəsi, təhsil, dil tələbləri, üstünlük verilən bacarıqlar
+Məzmun	Vəzifə öhdəlikləri, namizədə tələblər, əlavə məlumatlar
+
+12.2. AI vasitəsilə vakansiya mətni
+İşəgötürən yalnız vəzifənin adını və əsas məlumatları yazmaqla tam mətn hazırlada bilər. AI aşağıdakıları yarada bilər:
+•	Vəzifənin məqsədi və əsas öhdəliklər.
+•	Tələb olunan bilik və bacarıqlar.
+•	Təhsil və təcrübə tələbləri.
+•	İş şəraiti və namizəd üçün üstünlüklər.
+•	Elanın qısa və tam versiyası.
+Mətn redaktə oluna və təsdiqdən sonra yayımlana bilməlidir.
+AI olmadan: İşəgötürən AI-sız da hazır peşə şablonlarından seçib, yalnız boş yerləri doldurmaqla vakansiya yarada bilər.
+12.3. Vakansiya statusları
+№	Status
+1	Qaralama
+2	Təsdiq gözləyir
+3	Aktiv
+4	Müvəqqəti dayandırılıb
+5	Bağlanıb
+6	Arxivləşdirilib
+
+Vakansiyanı kimin yaratdığı, dəyişdirdiyi və bağladığı qeyd olunmalıdır.
+13. Namizəd və vakansiyanın AI ilə uyğunlaşdırılması
+Bu, sistemin əsas funksiyalarından biridir. Uyğunlaşdırma zamanı bu amillər nəzərə alınır:
+•	İş təcrübəsi, bacarıqlar, təhsil, dil bilikləri.
+•	Vəzifə üzrə tələblər və iş yeri.
+•	Əməkhaqqı gözləntisi və iş qrafiki.
+•	Namizədin işə başlama müddəti və digər müvafiq meyarlar.
+Hər uyğunlaşdırma üçün nəticə və qısa izah verilməlidir.
+Sadə rejim: AI olmadan da qayda əsaslı bal hesablanır (təcrübə, şəhər, əməkhaqqı, bacarıq açar sözləri). AI izahı və dəqiqliyi artırır.
+Nümunə: “Namizəd vakansiyaya 84% uyğun gəlir. Əsas uyğunluqlar: 5 illik müvafiq təcrübə, tələb olunan proqram bilikləri və uyğun dil səviyyəsi. Əsas çatışmazlıq: elanda tələb olunan konkret sertifikat CV-də göstərilməyib.”
+•	CV-də olmayan məlumat namizədin çatışmazlığı kimi qəti göstərilməməli, “məlumat göstərilməyib” ifadəsi işlədilməlidir.
+•	Uyğunluq balı ilkin seçimə kömək edir, yekun işə qəbul qərarını insan verir.
+14. Namizədlər üçün avtomatik vakansiya botu
+Namizəd hər gün vakansiyaları özü axtarmamalıdır. Sistem profilə uyğun vakansiyaları tapır, uyğunluğa görə sıralayır və göndərir.
+AI olmadan: Bot seçilmiş filtrlərə (vəzifə, şəhər, əməkhaqqı) görə də işləyir. AI yalnız sıralamanı dəqiqləşdirir.
+14.1. Namizədin seçə biləcəyi parametrlər
+•	İstədiyi vəzifələr, şəhər və regionlar.
+•	Minimum əməkhaqqı və iş qrafiki.
+•	Təcrübə səviyyəsi və maraqlandığı sahələr.
+•	Bildirişlərin tezliyi (hər gün və ya seçilmiş tezlik).
+14.2. Botun işləmə qaydası
+1.	Namizəd profil yaradır və ya CV yükləyir.
+2.	Sistem peşəkar profili təhlil edir.
+3.	Aktiv vakansiyalarla uyğunluq hesablanır.
+4.	Ən uyğun vakansiyalar ilk sırada göstərilir.
+5.	Namizədə bildiriş göndərilir.
+6.	Namizəd vakansiyanı açıb müraciət edir.
+7.	Namizəd istədiyi vaxt bildirişləri dayandıra və ya dəyişə bilir.
+Qaydalar: Eyni vakansiya təkrar göndərilməməlidir, yeni vakansiyalar əvvəlkilərdən fərqləndirilməlidir. İlkin mərhələdə bildirişlər platformada və e-poçtla göndərilir, sonra Telegram və digər kanallar əlavə oluna bilər. Namizədin əlaqə məlumatı və CV-si icazəsiz başqalarına göstərilməməlidir.
+15. Müraciətlərin və işə qəbul prosesinin idarə olunması
+Hər vakansiya üzrə müraciətlər ayrıca idarə edilir. Şirkət mərhələləri öz ehtiyacına uyğun dəyişə bilməlidir.
+15.1. Müraciət mərhələləri
+Mərhələ qrupu	Mərhələlər
+Qəbul və ilkin baxış	Yeni müraciət → İlkin baxış → AI analizi → HR qiymətləndirməsi
+Müsahibələr	Telefon müsahibəsi → Birinci müsahibə → İkinci müsahibə → Test tapşırığı → Yekun qiymətləndirmə
+Təklif	Təklif hazırlanması → Təklif qəbul edildi / rədd edildi
+Yekun nəticə	İşə qəbul olundu, Ehtiyat namizəd, Rədd edildi
+
+15.2. Hər namizəd üçün saxlanan məlumat
+•	Müraciət tarixi və vakansiya, cari status.
+•	Müsahibə qeydləri və qiymətləndirmələr.
+•	Məsul HR əməkdaşı və növbəti addım.
+•	Daxili qeydlər və status dəyişikliklərinin tarixçəsi.
+Bir neçə HR işləyərkən hər namizəd üzrə məsul şəxs təyin etmək mümkün olmalıdır.
+16. Namizədlərin müqayisəsi
+İşəgötürən bir neçə namizədi seçib eyni cədvəldə müqayisə edə bilər.
+16.1. Müqayisə meyarları
+•	Təcrübə müddəti və müvafiq sahədə təcrübə.
+•	Təhsil, peşəkar bacarıqlar, dil bilikləri, sertifikatlar.
+•	Əməkhaqqı gözləntisi və vakansiya üzrə uyğunluq.
+•	Güclü tərəflər və əlavə yoxlama tələb edən məqamlar.
+Qayda: Müqayisə yalnız işlə əlaqəli meyarlara əsaslanmalı, şəxsi və həssas xüsusiyyətlər əsasında ayrı-seçkilik yaratmamalıdır.
+17. Sənəd şablonları və ərizələrin doldurulması
+17.1. Hazır və fərdi şablonlar
+Şirkətlər öz sənəd və ərizə şablonlarını yarada bilməlidir. Nümunələr:
+Qrup	Sənəd növləri
+İşə qəbul və çıxış	İşə qəbul ərizəsi, işdən çıxma ərizəsi
+İcazə və məzuniyyət	Məzuniyyət ərizəsi, icazə ərizəsi, ezamiyyət ərizəsi, iş vaxtının dəyişdirilməsi ərizəsi
+Maliyyə	Əməkhaqqı avansı ərizəsi, maddi yardım ərizəsi
+Digər	Təlimdə iştirak ərizəsi, işçi məlumatlarının dəyişdirilməsi forması, digər daxili HR formaları
+
+17.2. Şablon redaktoru
+Şirkət yeni forma yarada və ya mövcud formanı dəyişə bilər. Əlavə oluna bilən sahələr:
+•	Mətn, tarix, rəqəm.
+•	Seçim siyahısı və çoxlu seçim.
+•	İşçi məlumatları, şöbə və vəzifə, sənəd nömrəsi.
+•	İmza sahəsi, təsdiq edən şəxslər, əlavə fayllar.
+Şirkət sahələrin adını, sırasını, məcburi olub-olmamasını və təsdiq qaydasını təyin edir. Hazır formalar şirkətin şablon kitabxanasında saxlanır.
+17.3. Səsli doldurma
+Yazı yazmaqda çətinlik çəkən və ya kompüterdən az istifadə edən əməkdaşlar üçün səsli doldurma dəstəklənməlidir. İşçi formanı açır və mikrofona danışır.
+Nümunə: “Mən, Əhməd Məmmədov, 15 oktyabr tarixində ailə vəziyyətimlə əlaqədar bir günlük icazə istəyirəm.”
+Sistem danışığı mətnə çevirir və ərizənin növünü, adı, tarixi, səbəbi, müddəti və digər məlumatı uyğun sahələrə yerləşdirir. Sonra formanı ekranda göstərir.
+İşçi bunları edə bilməlidir:
+•	Mətni yoxlamaq və səhvləri düzəltmək.
+•	Məlumatı yenidən səslə dəyişmək.
+•	Formanı təsdiqləmək; yalnız təsdiqdən sonra göndərmək.
+İşçinin verə biləcəyi əmrlərə nümunələr: “Tarixi dəyiş”, “Səbəb hissəsinə ailə vəziyyətimi yaz”, “Bir günlük icazə istəyirəm”, “Ərizəni mənə göstər”, “Mətni düzəlt”, “Təsdiq üçün göndər”.
+Qaydalar: Səsli doldurma Azərbaycan dilində işləməli, tarix və rəqəmləri düzgün tanımağa çalışmalıdır. Sistem danışığı anlamırsa, həmin sahəni işçiyə təsdiq üçün qaytarmalıdır. İşçinin təsdiqi olmadan ərizə heç vaxt avtomatik göndərilməməlidir.
+18. Elektron təsdiq və imza prosesi
+Şirkət sənədlərin təsdiqi üçün mərhələli proses yarada bilməlidir. Hər sənəd növü üçün ardıcıllıq fərqli ola bilər.
+Nümunə axın: İşçi → Birbaşa rəhbər → HR → Maliyyə → Direktor
+18.1. Sistemin dəstəkləməli olduğu imkanlar
+•	Sənədin təsdiqə göndərilməsi və təsdiq edən şəxsin müəyyənləşdirilməsi.
+•	Təsdiq və ya rədd qərarı; rədd səbəbinin qeyd edilməsi.
+•	Düzəliş üçün geri qaytarılma.
+•	Təsdiq tarixi və tarixçəsi; sənəd versiyalarının saxlanması.
+•	PDF çıxarış; elektron imza və ya imza sahəsi.
+Hüquqi qeyd: Ekranda çəkilən sadə imza bütün hallarda rəsmi elektron imza ilə eyni deyil. Rəsmi hüquqi imza tələb olunan sənədlər üçün uyğun elektron imza xidməti ayrıca inteqrasiya edilməlidir.
+19. Daxili şirkət sənədləri və işçi sorğuları
+Şirkət daxilində sənəd və sorğuların idarəsi üçün ayrıca bölmə olmalıdır.
+19.1. Bölməyə daxil olanlar
+•	İşçi ərizələri, daxili müraciətlər, rəhbərliyə və HR sorğuları.
+•	Əmr layihələri.
+•	Təsdiq gözləyən, təsdiqlənmiş və rədd edilmiş sənədlər.
+•	Şablonlar və sənəd arxivi.
+Hər sənədin nömrəsi, tarixi, statusu, yaradıcısı və məsul şəxsi görünməlidir. Səlahiyyətli istifadəçilər sənədləri axtara, filtrləyə və icazələri çərçivəsində yükləyə bilməlidir.
+20. HR kalkulyatorları
+Platformada gündəlik HR əməliyyatlarını sadələşdirən kalkulyatorlar olmalıdır. İlkin mərhələdə nəzərdə tutulanlar:
+Qrup	Kalkulyatorlar
+Əməkhaqqı	Ümumi və xalis məbləğ, işəgötürənin ümumi xərci, vergi və tutulmalar, əməkhaqqı büdcəsi
+Məzuniyyət və haqq-hesab	Məzuniyyət günləri, məzuniyyət haqqı, son haqq-hesab
+İş vaxtı	İş vaxtı və artıq iş saatları, gecə iş saatları, növbəli qrafiklər
+Kadr göstəriciləri	İşə qəbul müddəti, işçi dövriyyəsi, işçi sayının planlaşdırılması
+
+Qaydalar: Hesablamalarda qüvvədə olan qanunvericilik və müvafiq tarixdə tətbiq edilən qaydalar nəzərə alınmalıdır. Vergi və əmək qanunu dəyişdikdə parametrlər yenilənə bilməlidir. Nəticələr istifadə olunan fərziyyələrlə göstərilməli, hüquqi və maliyyə baxımından vacib nəticələr istifadəçi tərəfindən yoxlana bilməlidir.
+21. HR analitika və hesabatlar
+Şirkətlər üçün məlumatların vizual və anlaşıqlı göstərildiyi hesabat bölməsi hazırlanmalıdır.
+21.1. Əsas göstəricilər
+Qrup	Göstəricilər
+Vakansiyalar	Aktiv və bağlanmış vakansiya sayı, vakansiya üzrə müraciət sayı, bağlanma müddəti, uyğun namizəd sayı
+Namizəd axını	Mərhələlər üzrə bölgü, işə qəbul sayı və müddəti, müsahibədən işə qəbula keçid faizi, təklifin qəbul faizi
+Mənbə və xərc	İşə qəbul mənbələri, işə qəbul xərcləri, AI xidmətlərinin istifadəsi və xərcləri
+Komanda	HR əməkdaşları üzrə iş yükü
+
+Hesabatlar tarix, şöbə, vakansiya, HR əməkdaşı və digər meyarlarla filtrlənə, Excel və ya CSV formatında ixrac oluna bilməlidir.
+21.2. HR komandası üzrə hesabat
+Bir şirkətdə bir neçə HR olduqda onların fəaliyyəti müqayisə oluna bilməlidir:
+•	İdarə etdiyi vakansiyaların sayı və baxdığı CV-lərin sayı.
+•	Əlaqə saxladığı namizədlər və təyin etdiyi müsahibələr.
+•	İşə qəbul nəticələri və vakansiyaların bağlanma müddəti.
+•	Gecikmiş tapşırıqlar.
+Bu göstəricilər iş yükünü və prosesin effektivliyini anlamaq üçündür və yalnız ölçülə bilən məlumatlara əsaslanmalıdır.
+22. AI xidmətləri, kredit və ödəniş sistemi
+Əsas prinsip: İstifadəçi xidmətin qiymətini əvvəlcədən bilməli, uğurlu nəticə almadan xidmət haqqı tutulmamalıdır.
+22.1. Pulsuz ilk istifadə
+Hər AI funksiyası üçün ilk dəfə pulsuz sınaq verilə bilər: ilk CV analizi, ilk CV yaradılması, ilk LinkedIn analizi, ilk vakansiya mətni, ilk CV uyğunlaşdırması, ilk CV-nin bazaya əlavə edilməsi.
+•	Pulsuz limit istifadəçi hesabı ilə bağlı saxlanmalıdır.
+•	Səhifəni yeniləmək, hesabdan çıxıb girmək və ya brauzeri dəyişmək limiti sıfırlamamalıdır.
+•	Qaydalar namizəd və şirkət hesabları üçün fərqli ola bilər.
+22.2. Ödənişli istifadə
+№	Ödəniş variantı
+1	Hər əməliyyat üçün ödəniş
+2	AI kreditlərinin alınması
+3	Aylıq paket
+4	Şirkət üçün ümumi istifadə paketi
+5	Toplu CV emalı üçün ayrıca paket
+6	Namizədin Açıq CV xidməti (müddətli paket, AI-sız)
+
+Qiymətlər administrator tərəfindən dəyişdirilə bilməlidir.
+22.3. AI kreditlərinin hesablanması
+Əməliyyatın dəyəri xidmətin növündən və həcmindən asılıdır. Məsələn, bir CV-nin qısa təhlili ilə 500 CV-nin toplu emalı eyni qiymətdə olmamalıdır. Hesablamada bunlar nəzərə alınır:
+•	Xidmət növü və emal edilən CV sayı.
+•	Məlumatın həcmi və əməliyyatın mürəkkəbliyi.
+•	AI xidmətinin real xərci və platformanın satış qiyməti.
+•	Əməliyyatın nəticəsi.
+Kreditlərin dəyəri administrator tərəfindən idarə olunmalı və əməliyyatdan əvvəl istifadəçiyə göstərilməlidir.
+Qeyd: Sadə (AI-sız) funksiyalar pulsuzdur və ya aşağı qiymətlidir. Kredit yalnız AI ilə əlavə imkanlar üçün tutulur.
+22.4. Toplu CV emalında ödəniş
+Nümunə: şirkət 100 CV yüklədikdə sistem aşağıdakı məlumatı göstərir.
+Göstərici	Nümunə
+Yüklənmiş CV sayı	100
+Emal üçün uyğun fayllar	96
+Problemli fayllar	4
+Təxmini ümumi xərc	Əməliyyatdan əvvəl göstərilir
+Hər CV üzrə qiymət / kredit	Əməliyyatdan əvvəl göstərilir
+Faktiki emal edilmiş CV sayı	Emal bitdikdən sonra
+İstifadə olunmuş kreditlər	Emal bitdikdən sonra
+
+İstifadəçi məbləği görüb təsdiqlədikdən sonra emal başlayır. Yalnız uğurla emal olunan nəticələrə görə ödəniş hesablanır; uğursuz emalda tutulmuş kreditlər bərpa edilir.
+22.5. Ödənişin tutulması və geri qaytarılması
+1.	İstifadəçi xidməti seçir.
+2.	Sistem qiyməti göstərir.
+3.	İstifadəçi əməliyyatı təsdiqləyir.
+4.	Sistem kreditin mövcudluğunu yoxlayır.
+5.	Əməliyyat icra edilir.
+6.	Nəticə uğurludursa, uyğun məbləğ tutulur.
+7.	Uğursuz olarsa, kredit bərpa edilir və ya ödəniş ləğv olunur.
+8.	Əməliyyat tarixçəsi saxlanılır.
+Qayda: Eyni əməliyyat texniki səbəbdən təkrar göndərilərsə, istifadəçidən səhvən iki dəfə ödəniş tutulmamalıdır.
+22.6. Şirkət paketləri
+Şirkətlər üçün aylıq və ya illik paketlər yaradıla bilər. Paketə daxil ola bilər:
+•	Müəyyən sayda vakansiya və CV emalı.
+•	Müəyyən həcmdə AI kreditləri.
+•	Namizədlərin müqayisəsi və HR hesabatları.
+•	Çoxsaylı istifadəçilər, istifadəçi və rol idarəetməsi.
+•	Prioritet dəstək.
+Paketlərin tərkibi və qiyməti administrator tərəfindən idarə olunur. Şirkət administratoru ümumi kredit balansını və hər istifadəçinin sərfiyyatını görür, istifadəçilər üçün limit təyin edə bilər.
+22.7. AI xərc hesabatı
+Platforma hər AI əməliyyatı üzrə daxili uçot aparır:
+•	Əməliyyatı edən istifadəçi və şirkət, əməliyyat növü və tarixi.
+•	Emal edilmiş fayl sayı.
+•	Real AI xidməti xərci və istifadəçidən tutulan məbləğ.
+•	Əməliyyatın nəticəsi və geri qaytarılmış kreditlər.
+Hesabat yalnız səlahiyyətli administratorlara açıqdır. Məqsəd hər xidmət üzrə xərci, gəliri və gəlirliliyi hesablamaqdır.
+22.8. Ödəniş və hesablaşmalar
+Ödəniş bölməsi bunları dəstəkləməlidir: qiymətin göstərilməsi, paket seçimi, kredit balansı, ödəniş tarixçəsi, əməliyyatın statusu, ödəniş təsdiqi, uğursuz ödənişlərin qeydi, geri qaytarma tarixçəsi və şirkət üzrə hesablaşmalar. Uyğun yerli və beynəlxalq ödəniş provayderləri ilə inteqrasiya edilə bilər.
+Qayda: Ödəniş statusu real nəticəyə əsaslanmalıdır. Uğurlu ödəniş təsdiqlənmədən ödənişli xidmət verilməməli, uğursuz əməliyyat üçün təkrar-təkrar məbləğ tutulmamalıdır.
+23. Bildiriş sistemi
+Platforma istifadəçilərə vacib hadisələr barədə bildiriş göndərməlidir.
+İstifadəçi	Bildirişlər
+Namizəd	Yeni uyğun vakansiya, müraciətin qəbulu və status dəyişikliyi, müsahibə dəvəti və vaxt dəyişikliyi, iş təklifi, AI əməliyyatının tamamlanması, kredit balansının azalması, əlaqə sorğusu, Açıq CV müddətinin bitməsi
+İşəgötürən	Yeni müraciət, uyğun namizəd tapılması, müsahibənin yaxınlaşması, təsdiq gözləyən sənəd, vakansiyanın son tarixi, kredit balansının azalması, ödənişin nəticəsi, AI emalının tamamlanması, Açıq CV üçün əlaqə sorğusuna cavab
+Şirkət istifadəçiləri	Yeni istifadəçinin qoşulması, icazələrin dəyişməsi, yeni təsdiq tapşırığı, rədd edilmiş sənəd, məsul şəxsin dəyişməsi
+
+İstifadəçilər bildiriş parametrlərini idarə edə bilər. Zəruri təhlükəsizlik və hesab bildirişləri ayrıca qaydada saxlanılır.
+24. Administrator paneli
+Platformanın ümumi administratoru üçün ayrıca idarəetmə paneli yaradılmalıdır.
+24.1. Administratorun idarə etdikləri
+Qrup	Bölmələr
+İstifadəçilər və məzmun	İstifadəçilər, şirkətlər, namizədlər, vakansiyalar, vakansiya təsdiqləri, Açıq CV moderasiyası
+AI və qiymətlər	AI xidmətlərinin siyahısı (hər birini ayrıca aktiv/söndürmək), AI qiymətləri, pulsuz limitlər, kredit və şirkət paketləri, Açıq CV paketləri
+Maliyyə	Ödənişlər, geri qaytarmalar, AI xərcləri və gəlirləri
+Dəstək	Sistem bildirişləri, şikayətlər, istifadəçi dəstəyi, ümumi analitika
+
+Administrator xidmətləri aktivləşdirə və ya dayandıra bilməlidir.
+Qayda: Qiymət, pulsuz limit və kredit qaydaları dəyişdikdə yeni qaydalar yalnız sonrakı əməliyyatlara tətbiq olunur, əvvəlki əməliyyatların tarixçəsi dəyişməz qalır.
+25. Məlumatların təhlükəsizliyi və məxfiliyi
+CV-lər, əlaqə məlumatları, əməkdaş sənədləri və şirkət məlumatları qorunmalıdır.
+•	İstifadəçi yalnız icazəsi olan məlumata daxil ola bilir.
+•	Şirkətlərin məlumatları bir-birindən ayrılır.
+•	CV-lər icazəsiz şəxslərə göstərilmir.
+•	İstifadəçi hesabları fərdi olur, şirkət daxilində rol və icazələr tətbiq olunur.
+•	Vacib əməliyyatlar tarixçədə saxlanır; giriş və həssas dəyişikliklər yoxlana bilir.
+•	Şəxsi məlumatların saxlanması və silinməsi üçün qaydalar mövcuddur.
+•	İstifadəçi öz məlumatlarının necə istifadə olunduğu barədə aydın məlumat alır.
+•	Məlumatların ehtiyat nüsxələri və bərpası təmin olunur.
+AI analizində istifadə olunan CV məlumatları yalnız xidmətin məqsədi və istifadəçinin verdiyi icazə çərçivəsində işlənməlidir.
+26. İstifadə rahatlığı və dizayn
+26.1. Əsas tələblər
+•	Kompüter və mobil telefonlarda düzgün işləməlidir.
+•	Menyular anlaşıqlı, ən çox istifadə olunan funksiyalar asan əlçatan olmalıdır.
+•	Formlar mərhələli doldurula bilməlidir.
+•	Xətalar sadə dildə izah edilməlidir.
+•	Uzun əməliyyatlarda prosesin gedişi göstərilməlidir.
+•	AI nəticələri oxunaqlı təqdim olunmalıdır.
+•	Cədvəllərdə axtarış və filtrləmə olmalıdır.
+•	İstifadəçi səhvən məlumat itirməməli, saxlamazdan əvvəl təsdiq imkanı olmalıdır.
+26.2. Əsas menyular
+İstifadəçi	Menyu bölmələri
+Namizəd	Profilim, CV-lərim, CV analizi, Vakansiyalar, Müraciətlərim, Bildirişlər, Ödənişlər
+İşəgötürən	Şirkətim, İstifadəçilər, Vakansiyalar, CV bazası, Namizədlər, İşə qəbul prosesi, Sənədlər, HR kalkulyatorları, Analitika, Ödənişlər
+
+27. Texniki keyfiyyət və etibarlılıq tələbləri
+Əsas tələb: Platformanın bütün funksiyaları real işləməlidir. Yalnız ekranda görünən, lakin əməliyyat aparmayan düymə və bölmələr qəbul edilmir.
+27.1. Yoxlanmalı məsələlər
+•	Qeydiyyat və giriş; məlumatların düzgün saxlanması və dəyişdirilməsi.
+•	CV fayllarının yüklənməsi, oxunması və AI nəticələrinin alınması.
+•	Vakansiyaların yaradılması və bağlanması; müraciətlərin saxlanması.
+•	Şirkət istifadəçilərinin idarəsi və icazələrin düzgün tətbiqi.
+•	Ödəniş və kreditlərin hesablanması; uğursuz əməliyyatların idarəsi.
+•	Bildirişlərin göndərilməsi; hesabatların düzgün hesablanması; məlumatların ixracı.
+•	Mobil görünüş.
+•	AI söndürülmüş halda əsas funksiyaların (CV qurucusu, vakansiya, müraciət, filtr axtarışı) işləməsi.
+•	Açıq CV-nin yayımı, gizlədilməsi və müddətinin bitməsi.
+AI funksiyası cavab vermədikdə sistem anlaşıqlı xəta göstərməli, əməliyyatın uğursuz olduğunu bildirməli və kreditləri düzgün idarə etməlidir. Eyni əməliyyatın təkrar icrası dublikat vakansiya, namizəd və ya ödəniş yaratmamalıdır.
+28. Əsas istifadə ssenariləri
+28.1. Ssenari 1: Namizəd CV yaradır və iş tapır
+1.	Namizəd qeydiyyatdan keçir.
+2.	Şəxsi məlumatlarını daxil edir.
+3.	AI vasitəsilə CV yaradır.
+4.	CV-ni təhlil etdirir.
+5.	İstədiyi vəzifələri və əməkhaqqı gözləntisini qeyd edir.
+6.	Sistem uyğun vakansiyaları tapır və ən uyğunları ilk sırada göstərir.
+7.	Bot yeni uyğun vakansiyaları göndərir.
+8.	Namizəd müraciət edir.
+9.	Statusu şəxsi kabinetdə izləyir.
+28.2. Ssenari 2: Şirkət toplu CV bazası yaradır
+1.	HR istifadəçisi şirkət hesabına daxil olur.
+2.	CV bazası bölməsini açır.
+3.	Bir və ya bir neçə CV yükləyir.
+4.	Sistem faylları oxuyur və məlumatları çıxarır.
+5.	Emal qiyməti göstərilir.
+6.	İstifadəçi ödənişli emalı təsdiqləyir.
+7.	Sistem CV-ləri təhlil edir.
+8.	Uğurlu və uğursuz nəticələr göstərilir.
+9.	Uğurlu CV-lər bazaya əlavə olunur.
+10.	HR uyğun namizədləri axtarır və müqayisə edir.
+28.3. Ssenari 3: Bir şirkətdə bir neçə HR əməkdaşı işləyir
+1.	Şirkət administratoru şirkət hesabı yaradır.
+2.	HR direktoru və digər əməkdaşları dəvət edir.
+3.	Hər istifadəçiyə rol və icazə təyin edir.
+4.	HR 1 vakansiya yaradır.
+5.	HR 2 vakansiyanı və müraciətləri görür.
+6.	HR 2 namizədi ilkin mərhələdən müsahibəyə keçirir.
+7.	HR direktoru dəyişiklik tarixçəsini görür.
+8.	Şirkət rəhbəri hesabatlara baxır.
+9.	Hər istifadəçi yalnız öz icazələrinə uyğun əməliyyat edir.
+28.4. Ssenari 4: İşçi səslə ərizə doldurur
+1.	İşçi kabinetdən məzuniyyət ərizəsini açır.
+2.	Səsli doldurmanı seçir.
+3.	Ərizəsini danışaraq izah edir.
+4.	Sistem danışığı mətnə çevirir və sahələrə yerləşdirir.
+5.	İşçi formanı ekranda yoxlayır və lazım olsa düzəldir.
+6.	Ərizəni təsdiqləyir.
+7.	Sistem ərizəni müəyyən edilmiş rəhbərə göndərir.
+8.	İşçi statusu izləyir.
+28.5. Ssenari 5: İşəgötürən AI ilə vakansiya yaradır
+1.	İşəgötürən vəzifənin adını daxil edir.
+2.	Əsas tələbləri qeyd edir.
+3.	AI vakansiya mətni hazırlayır.
+4.	İşəgötürən mətni yoxlayıb redaktə edir.
+5.	Vakansiyanı təsdiqləyib yayımlayır.
+6.	Sistem uyğun namizədləri tapır.
+7.	İşəgötürən namizədləri uyğunluq üzrə sıralayır.
+8.	Seçilmiş namizədləri işə qəbul prosesinə daxil edir.
+28.6. Ssenari 6: Namizəd Açıq CV ilə axtarış sistemlərində tapılır
+1.	Aqronom namizəd sadə qurucu ilə CV hazırlayır.
+2.	“CV-mi açıq yayımla” seçimini işarələyir və razılığı təsdiqləyir.
+3.	Göstəriləcək məlumatları seçir (telefon gizli qalır).
+4.	Önizləməyə baxır və paket seçib ödəniş edir.
+5.	CV moderasiyadan keçir və unikal keçidlə yayımlanır.
+6.	İşəgötürən axtarış sistemində və ya Açıq CV kataloqunda “aqronom” axtarır və səhifəni tapır.
+7.	İşəgötürən əlaqə sorğusu göndərir.
+8.	Namizəd sorğunu qəbul edir, əlaqə məlumatı açılır.
+9.	Müddət bitməzdən əvvəl namizədə xəbərdarlıq gəlir; namizəd uzadır və ya CV gizlədilir.
+28.7. Ssenari 7: Kiçik şirkət AI olmadan işləyir
+1.	Şirkət qeydiyyatdan keçir və şirkət profilini doldurur.
+2.	Hazır peşə şablonundan vakansiya yaradır.
+3.	Namizədlər müraciət edir, HR onları filtr və qayda əsaslı uyğunluq balı ilə sıralayır.
+4.	HR namizədləri müqayisə cədvəlində yoxlayır və müsahibə mərhələlərinə keçirir.
+5.	Lazım olsa, istənilən vaxt AI funksiyalarını ayrıca aktivləşdirir.
+29. İşlərin mərhələlərlə həyata keçirilməsi
+Bütün funksiyaları eyni anda tamamlamaq əvəzinə, platforma mərhələli şəkildə işlək vəziyyətə gətirilməlidir.
+Mərhələ	Adı	Əsas məzmun
+1	Əsas platforma	Sayt strukturu və modul əsası, qeydiyyat və giriş, namizəd və şirkət profili, bir şirkətdə bir neçə istifadəçi, rol və icazələr, vakansiyalar (hazır şablonlarla), sadə CV qurucusu, CV yükləmə, filtr axtarışı, müraciətlərin idarəsi, əsas bildirişlər
+2	AI xidmətləri (istəyə bağlı)	AI ilə CV yaratmaq, CV analizi, ATS, LinkedIn analizi, AI ilə vakansiya mətni, CV-dən məlumat çıxarılması, namizəd-vakansiya uyğunlaşdırılması, AI kredit sistemi
+3	CV bazası və analitika	Toplu CV yükləmə, CV bazasında axtarış, Açıq CV kataloqu (platforma daxilində), namizədlərin müqayisəsi, işə qəbul mərhələləri, HR fəaliyyət hesabatları, vakansiya analitikası, AI xərc hesabatları
+4	Sənədlər və daxili avtomatlaşdırma	Sənəd şablonları, şirkət formaları, səsli doldurma, təsdiq marşrutları, elektron imza inteqrasiyası, sənəd arxivi, HR kalkulyatorları
+5	Kommersiyalaşdırma və inkişaf	Ödənişli paketlər, namizədlər üçün ödənişli Açıq CV (axtarış sistemlərində görünmə, önə çıxarma), aylıq və illik abunə, toplu AI xidmətləri, vakansiya botunun genişləndirilməsi, yeni bildiriş kanalları, ətraflı analitika, yeni dillər
+
+30. Qəbul meyarları və sınaq
+Hər modul tamamlandıqda yalnız vizual görünüş yox, faktiki işləkliyi də yoxlanmalıdır. İş aşağıdakı hallarda qəbul edilə bilər:
+№	Qəbul meyarı
+1	İstifadəçi qeydiyyatdan keçə və sistemə daxil ola bilir.
+2	Namizəd CV yükləyə, yarada və analiz etdirə bilir.
+3	İşəgötürən vakansiya yarada və müraciətləri görə bilir.
+4	Bir şirkətdə bir neçə fərqli istifadəçi hesabı işləyir.
+5	İstifadəçilərin icazələri düzgün tətbiq olunur.
+6	Şirkət məlumatları digər şirkətlərə açılmır.
+7	CV məlumatları düzgün çıxarılır və istifadəçi tərəfindən yoxlanılır.
+8	AI uyğunlaşdırma nəticələri izahı ilə göstərilir.
+9	Toplu CV emalında uğurlu və uğursuz fayllar ayrılır.
+10	Uğursuz əməliyyatlara görə ödəniş düzgün idarə olunur.
+11	Pulsuz istifadə limiti hesab yeniləməklə sıfırlanmır.
+12	Kreditlər iki dəfə tutulmur.
+13	Səsli doldurulmuş ərizə işçinin təsdiqi olmadan göndərilmir.
+14	Sənəd təsdiqləri tarixçədə saxlanılır.
+15	Hesabatlar real əməliyyat məlumatlarına əsaslanır.
+16	Mobil və kompüter görünüşləri düzgün işləyir.
+17	Əsas düymələr və funksiyalar faktiki əməliyyat həyata keçirir.
+18	Məlumatlar yeniləndikdən sonra düzgün saxlanılır.
+19	Şirkət administratoru istifadəçiləri və icazələri idarə edə bilir.
+20	Hər əməliyyatın nəticəsi istifadəçiyə aydın göstərilir.
+21	AI söndürülmüş olsa da sayt əsas funksiyalarla işləyir.
+22	Açıq CV yalnız namizədin razılığı və təsdiqlənmiş ödənişdən sonra yayımlanır.
+23	Açıq CV-də telefon, e-poçt və həssas məlumat namizədin icazəsi olmadan görünmür.
+24	Razılıq geri götürüləndə və ya müddət bitəndə Açıq CV dərhal gizlədilir.
+25	Əlaqə məlumatı yalnız namizəd əlaqə sorğusunu qəbul etdikdən sonra açılır.
+26	Yeni modul əlavə edildikdə mövcud funksiyalar pozulmur.
+
+31. Gələcək inkişaf yol xəritəsi
+Platforma elə qurulur ki, aşağıdakı imkanlar sonradan ayrıca modul kimi əlavə oluna bilsin. Bu siyahı məcburi plan deyil, inkişaf istiqamətləridir.
+İstiqamət	Nə əlavə oluna bilər
+Mobil tətbiq	iOS və Android tətbiqi, push bildirişlər
+Əlavə bildiriş kanalları	Telegram, WhatsApp və digər kanallar
+Elektron imza	Rəsmi elektron imza xidməti ilə inteqrasiya
+Genişlənmiş HR funksiyaları	Davamiyyət, məzuniyyət balansı, işçi kartı, performans qiymətləndirməsi
+Test və bacarıq qiymətləndirməsi	Namizədlər üçün onlayn testlər, bacarıq sertifikatları
+Şirkət karyera səhifəsi	Hər şirkətin öz brendli vakansiya səhifəsi
+Video müsahibə	Platforma daxilində müsahibə və yazılar
+Üçüncü tərəf inteqrasiyaları	Mühasibat və HR proqramları, ödəniş provayderləri (API ilə)
+Tövsiyə proqramı	Dostunu dəvət et, bonus kredit qazan
+Genişlənmə	Yeni dillər, yeni regionlar, daha ətraflı analitika
+
+Prinsip: Hər yeni funksiya ayrıca modul kimi əlavə olunur, mövcud işləyən hissələrə toxunmur və admin paneldən aktiv/söndürülə bilir.
+32. Yekun tələb
+Jobia.az sadəcə CV yükləmək və vakansiya paylaşmaq üçün sayt olmamalıdır. Platforma namizədlərin iş tapmasını, şirkətlərin işə qəbul prosesini və HR komandalarının gündəlik fəaliyyətini vahid sistemdə birləşdirməlidir.
+32.1. Əsas prioritetlər
+•	İstifadəsi sadə interfeys, real işləyən funksiyalar və öz tempində işləyən sürətli sayt.
+•	AI istəyə bağlıdır: vacib olmayan hissələrdə sadə həllər əsas yol olur.
+•	Namizədlər üçün ödənişli Açıq CV: axtarış sistemlərində görünmə.
+•	Dəqiq CV məlumatları və izah edilə bilən AI analizi.
+•	Uyğun vakansiyaların avtomatik tapılması.
+•	Bir şirkətdə bir neçə istifadəçinin müstəqil hesablarla işləməsi; rol və icazələrin düzgün idarəsi.
+•	Sənədlərin və ərizələrin avtomatlaşdırılması.
+•	AI xidmətlərinin şəffaf ödəniş modeli.
+•	İstifadəçi məlumatlarının qorunması.
+•	Şirkətlər üçün real HR hesabatları.
+•	Gələcəkdə yeni funksiya əlavə etməyə imkan verən çevik quruluş.
+32.2. İcra qaydası
+İlk növbədə mövcud platformanın işləyən funksiyaları qorunmalı, çatışmayan hissələr müəyyənləşdirilməli və bu texniki tapşırığa uyğun olaraq mərhələli şəkildə tamamlanmalıdır. Mövcud işlək funksiyaları yoxlamadan silmək və ya yenidən qurmaq olmaz. Hər yeni modul tamamlandıqda digər modullarla əlaqəsi yoxlanmalı və istifadəçi üçün başdan sona işlək ssenari təmin edilməlidir.
+Əsas nəticə: Jobia.az namizədin CV yaratdığı, uyğun vakansiya tapdığı, şirkətin namizədləri qiymətləndirdiyi, namizədlərin ödənişli Açıq CV ilə axtarış sistemlərində tapıldığı, bir neçə HR əməkdaşının birlikdə işlədiyi, sənədlərin avtomatlaşdırıldığı və AI xidmətlərinin kommersiya məqsədilə satıldığı vahid rəqəmsal HR platforması olmalıdır.

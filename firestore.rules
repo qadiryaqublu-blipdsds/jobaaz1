@@ -120,6 +120,20 @@ service cloud.firestore {
       allow read, write: if true;
     }
 
+    // Signature Records Collection (Biometric signatures, base64 strings, audit trail)
+    match /SignatureRecords/{recordId} {
+      allow read, write: if true;
+    }
+
+    // Smart Documents & Submissions Collection
+    match /smartDocuments/{docId} {
+      allow read, write: if true;
+    }
+
+    match /smartFormSubmissions/{subId} {
+      allow read, write: if true;
+    }
+
     // Platform Settings
     match /platformSettings/{settingId} {
       allow read, write: if true;

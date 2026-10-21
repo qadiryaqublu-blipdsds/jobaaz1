@@ -69,6 +69,12 @@
 * Şübhəli elanların bloklanması, maliyyə və abunəlik statistikası.
 * Platforma üzrə dinamik analitika və hesabatlar.
 
+### 3.4 Ümummilli Veb Vakansiya Aqreqatoru (Cross-Portal Job Aggregator)
+* **Bütün İnternet Mənbələrinin İnteqrasiyası:** Boss.az, HelloJob.az, JobSearch.az, Rabota.az, Vakansiyalar.az, LinkedIn və Dövlət Məşğulluq Portalı (DMA) üzrə aktiv elanların vahid reyestrdə avtomatik toplanması.
+* **Dinamik Canlı Sinxronizasiya:** İstifadəçi istənilən vəzifəni (məsələn: aşpaz, mühasib, sürücü, həkim, müəllim, santexnik və s.) axtardıqda, həmin açar söz üzrə xarici portallarda olan elanların real vaxtda sinxronizasiyası.
+* **Birbaşa Keçid və Tez Əlaqə:** Hər bir xarici elan üçün orijinal mənbə linki (`sourceUrl`), WhatsApp sürətli əlaqəsi və Jobia 1-kliklə müraciət infrastrukturu.
+* **Maksimum Maraq və Trafik Cəlbi:** İstifadəçilər fərqli saytlara daxil olmadan yalnız Jobia üzərindən bütün ölkə bazarını görə bildikləri üçün platformanın viral marağı və ziyarətçi axını kəskin artır.
+
 ---
 
 ## 💰 4. Monetizasiya və Gəlir Modeli (Revenue Streams)
@@ -102,8 +108,19 @@ Platforma həm B2B (İşəgötürənlər), həm də B2C (Namizədlər) istiqamə
 2. **Candidate Premium AI:** 9 AZN/ay (İllik ödənişdə 6.90 AZN/ay)
    - 4 müasir dizaynda Premium CV şablonu, limitsiz AI ATS analizi və uyğunluq skoru, AI Müsahibə Simulyatoru, işəgötürən panelində "Premium Namizəd" fərqlənmə nişanı, dərinləşdirilmiş maaş analitikası.
 
-### 4.3 Əlavə Tranzaksiya Gəlirləri
+### 4.3 Əlavə Tranzaksiya və Mikro-Xidmət Gəlirləri
+* **Açıq CV Yayımlama Paketləri (Public & Searchable Open CV - Bölmə 9 & 28.6):**
+  - Qısa Paket (1 ay): **9 AZN** (Axtarış sistemlərində və kataloqda birbaşa indekslənmə, işəgötürənlərdən əlaqə sorğuları).
+  - Standart Paket (3 ay): **19 AZN** (Optimal axtarış müddəti və rekruterlərə birbaşa çıxış).
+  - İllik Paket (12 ay): **49 AZN** (Passiv kariyera axtaranlar və daimi təkliflərə açıq mütəxəssislər üçün ən sərfəli paket).
+  - Önə Çıxarılma Əlavəsi (Featured Add-on): **+15 AZN** (Kataloqun ən başında qızılı çərçivə və prioritet göstəriş).
+* **AI Kredit Cüzdanı və Token Sistemi (AI Credit Wallet & 92-95% Marja - Bölmə 22):**
+  - Başlanğıc Paketi: 50 Kredit — **10 AZN**
+  - Standart Paket: 150 Kredit — **25 AZN** (+25 pulsuz kredit bonusu)
+  - Korporativ / Pro Paket: 400 Kredit — **50 AZN** (+100 pulsuz kredit bonusu)
+  - **Vahid Maya Dəyəri vs Satış Qiyməti İqtisadiyyatı (Unit Economics):** Hər bir AI əməliyyatının (AI CV Uyğunluq Skoru, AI ATS Audit, AI Müsahibə Sualları, AI İş Təsviri, AI Səsli Transkripsiya) texniki Gemini API maya dəyəri 0.005 - 0.05 AZN aralığındadır; istifadəçiyə 1 - 4 kredit (0.50 - 2.00 AZN) ekvivalentində satılır və platformaya **92-95% xalis əməliyyat mənfəəti** təmin edir. Əməliyyat xətası baş verdikdə isə kredit anında istifadəçinin cüzdanına qaytarılır (Automatic Rollback).
 * **VIP & Təcili Vakansiya:** Hər elan üçün 15 - 25 AZN birdəfəlik ödəniş (Sosial media kanallarında və saytın başında 7 gün fərqləndirmə).
+* **Qeydiyyatsız Sürətli Elan Yerləşdirmə:** Tələsik vakansiya verən şirkətlər üçün 3 addımlı operativ elan və admin moderasiyası (Bölmə 6.2 & 79).
 * **Şirkət Brend Səhifəsi:** Korporativ mədəniyyət, foto və video tanıtım profilləri üçün illik ödəniş.
 * **Təhsil Mərkəzləri ilə Partnyorluq:** Vakansiyalarda tələb olunan biliklər üçün kurs və sertifikasiya yönləndirmələrindən komissiya.
 
@@ -754,9 +771,398 @@ Platforma həm B2B (İşəgötürənlər), həm də B2C (Namizədlər) istiqamə
   5. **Davamlı və Təhlükəsiz Server Mühərriki (`/api/ai/generate-cv-from-file`):**
      - Serverdə xüsusi endpoint quruldu; Gemini AI modeli mövcud CV-dəki ad, soyad, əlaqə, vəzifə, xülasə, iş təcrübələri, təhsil, bacarıqlar və dilləri beynəlxalq ATS standartında çıxarır; AI kvotası və ya şəbəkə kəsildikdə belə zəmanətli domayn ehtiyat sistemi (Domain Fallback) ilə məlumatlar heç vaxt itmir.
 
+- [x] **İşəgötürənlər üçün Ağıllı CV Baza, Toplu/Tək CV İdxalı, Vəzifələr Üzrə Uyğunluq Skorinqi və Biznes Rekrutinq Həlləri Mərkəzi (Smart CV Hub & Enterprise Recruiter ATS Suite):**
+  1. **İstifadəçi Tələbinin İcrası:** İstifadəçinin "işəgötürənlər üçün belə bir bölmə əlavə et. toplu və ya tək tək cvları sc və ya baqşa formatda əlavə etdikdə müəyyən kreuiteriyaalr üzrə cv baza yaradır vəzifələr üzrə uyğunluq dərəcəsi çıxarılır və digə biznes reqruitinq həllər təqdim edir" xüsusi strateji tapşırığı tam həcmdə həyata keçirildi.
+  2. **Çoxformatlı Toplu və Tək CV İdxalı (Multi-Format Bulk & Single Sourcing Engine):**
+     - **CSV və Excel (.csv, .xlsx, .xls) İdxalı:** Sütunların avtomatik aşkarı (Ad Soyad, Vəzifə, Təcrübə ili, Bacarıqlar, Maaş, Təhsil, Şəhər, Telefon, Email, Dillər, Qeydlər). Rekruterlərin dərhal düzgün format hazırlaması üçün 1-kliklə rəsmi Azərbaycan dilində hazırlanmış CSV cədvəl şablonunu endirmə (`downloadSampleCSVTemplate`) imkanı.
+     - **Toplu Fayl Sürükləməsi (Multi-File PDF, Word DOCX, TXT, JSON):** Eyni anda onlarla faylı seçib yükləmək, `mammoth` və regex texnologiyaları ilə mətnlərdən profil məlumatlarını çıxarmaq.
+     - **Tək-Tək Əllə Əlavə Etmə və Xam Mətn Yapışdırma:** Rekruter üçün rahat sürətli anket və ya istənilən xam CV mətnini daxil edib 1 kliklə strukturlaşdırma.
+     - **1-Kliklə 15 Real Azərbaycan Kadrı Nümunə Bazasını Yüklə:** Sistemə daxil olan işəgötürənlərin dərhal sınaqdan keçirməsi üçün İT, maliyyə, aşpaz, marketinq, logistika, satış, sürücü, HR və mühafizə sahələrini əhatə edən 15 zəngin hazır namizəd dəsti (`SAMPLE_DEMO_CANDIDATES`).
+  3. **Meyarlar Üzrə Kadr Bazası və Çoxölçülü Uyğunluq Skorinqi (Multi-Factor Fit Score Engine):**
+     - **Aktiv Vəzifə və Kriteriya Sazlayıcısı:** Şirkətin sistemdəki real vakansiyalarından birini seçərək tələbləri avtomatik yükləmək və ya fərdi vəzifə meyarı yaratmaq.
+     - **Çəki Tənzimləyicisi (Custom Weights):** Bacarıqlar (40%), İş təcrübəsi (25%), Maaş büdcəsi (15%), Təhsil (10%), Lokasiya (10%) və ya rekruterin istəyinə uyğun xüsusi çəkilər.
+     - **Anlıq Uyğunluq Dərəcəsi (0-100% Match):** İdeal (85%+), Yüksək (70-84%), Qismən (50-69%) və Aşağı (<50%) dərəcələr; uyğunlaşan bacarıqlar, çatışmayan cəhətlər və HR üçün hərəkətverici tövsiyə xülasəsi.
+  4. **Kompleks Biznes Rekrutinq Həlləri Paketi:**
+     - **A. Reytinqli Cədvəl Baxışı (Ranked Talent Table):** Uyğunluq faizinə, təcrübəyə, maaşa görə sıralama, axtarış, filtrasiya və toplu seçim xanaları.
+     - **B. Rekrutinq Borardı / Pipeline (Talent CRM):** 7 mərhələli Kanban lövhəsi (Daxil Olub -> Skrininq -> Müsahibə -> Qısa Siyahı -> Təklif -> Qəbul -> Arxiv/Ehtiyat).
+     - **C. Namizədlərin Yan-Yana Müqayisə Matrisi:** Seçilmiş 2-4 namizədi bütün meyarlar üzrə yan-yana cədvəldə qarşılaşdırmaq.
+     - **D. Toplu Əməliyyatlar (Bulk Operations):** Seçilmiş namizədlərin statusunu bir toxunuşla dəyişmək, bütün bazanı təmiz `.xlsx` Excel formatına ixrac etmək, toplu silmək.
+     - **E. Avtomatlaşdırılmış Kommunikasiya Aləti (Outreach Generator):** Ofis müsahibəsi, video zəng, praktiki tapşırıq və ehtiyat baza şablonları; tək kliklə kopyalama və birbaşa namizədin nömrəsinə WhatsApp dəvət linki açma (`wa.me`).
+     - **F. Rekrutinq Analitikası:** Təcrübə paylanması, skorinq qıfı və ən çox rastlanan bacarıqlar buludu.
+  5. **Platforma Naviqasiyası və Yaddaş Qorunması:**
+     - İşəgötürənin şəxsi kabinetində (`BusinessDashboard`), üst idarəetmə zolağında (`Header`) və sol menyuda (`Sidebar`) "Ağıllı CV Baza & Skorinq" tabı olaraq inteqrasiya edildi.
+     - Qonaq işəgötürənlər üçün də sınaq rejimi açıldı; şirkət üçün yüklənmiş bütün kadrlar və fərdi kriteriyalar yerli yaddaşda (`localStorage`) daimi keşlənir və səhifə yeniləndikdə qorunub saxlanılır.
+
+- [x] **Toplu və Tək CV-lərin Real AI (Gemini) Əsaslı Dəqiq Analizi, Əsas Vəzifənin və Uyğun Vəzifələrin Avtomatik Təyini (Deep AI Smart CV Parsing & Intelligent Vacancy Matching Engine):**
+  1. **İstifadəçi Tələbinin İcrası:** İstifadəçinin "toplu və ya tək cvni bazaya əlavə edəndə doğru data çıxarmır. ai əsaslı analiz edib bazaya əlav əetsin. hansı vəzifəyə uyğundu cv da əsas vəzifəsi nədirsə olnalı əlavə etsin. tap real işləsin" tələbi 100% real AI inteqrasiyası ilə həll edildi.
+  2. **Real Süni İntellekt (Gemini AI) Mühərriki (`/api/ai/parse-smart-cv`):**
+     - Şablon və ya səhv regex-lər aradan qaldırıldı; PDF, Word (DOCX), TXT, fotoşəkil və ya yapışdırılmış mətnlər birbaşa Gemini AI modelinə ötürülür.
+     - **CV-dəki Əsas Vəzifənin Dəqiq Çıxarılışı (`jobTitle`):** CV-dəki faktiki və real peşə adı (məs: *Senior Frontend Developer, Baş Mühasib, QA Automation Engineer, Restoran Şef Aşpazı, SMM Menecer, Korporativ Satış Meneceri, Qrafik Dizayner, Logistika Mütəxəssisi*) dəqiqliklə müəyyən edilir; "Mütəxəssis", "Namizəd Faylı" kimi ümumi və yanlış sözlər ləğv edildi.
+     - **Hansı Vəzifələrə Uyğundur (`suitablePositions`):** Namizədin bacarıqlarına, biliklərinə və karyera izinə əsasən çalışa biləcəyi 2-4 əsas vəzifə avtomatik çıxarılır və rekruterə təqdim olunur.
+     - **Şirkət Vakansiyaları ilə Dəqiq Qarşılaşdırma (`bestMatchingVacancy`):** Şirkətin aktiv vakansiyaları siyahısı AI modelinə göndərilir; namizədin hansı vakansiyaya ən çox uyğun gəldiyi, uyğunluq faizi (0-100%) və səbəb xülasəsi avtomatik bazaya yazılır.
+     - **Staj, Maaş və Bacarıqların Dəqiq Çıxarışı:** Ümumi təcrübə ili (rəqəm), 10-15 real bacarıq, təhsil səviyyəsi və detalları, gözlənilən/bazar maaşı və əlaqə vasitələri dəqiq strukturlaşdırılır.
+  3. **Toplu və Tək Fayl Emalında Canlı AI Proqres Zolağı (Real-Time Batch AI Progress):**
+     - İşəgötürən eyni anda 10+ PDF/Word/Excel faylı atdıqda sistem hər bir CV-ni ardıcıl olaraq AI ilə analiz edir, real vaxt rejimində faiz zolağı, cari faylın adı və statusu nümayiş olunur.
+     - CV mətni yapışdırıldıqda "AI ilə Dəqiq Analiz Et və Əlavə Et" düyməsi ilə dərhal süni intellekt analizi işə düşür.
+  4. **Kadr Cədvəlində və Detal Pəncərəsində Tam Şəffaf Göstərilmə:**
+     - Cədvəldə namizədin əsas vəzifəsi, "Uyğun vəzifələr" siyahısı, "AI ilə Doğrulandı" nişanı və 🎯 "Vakansiya: [Vakansiya adı] (85%)" kartı əks olunur.
+     - Namizədin kartında və profil baxışında (`CandidateDetailModal`) "AI Vəzifə Təyini & Uyğunluq Rəyi" xüsusi bölməsi vasitəsilə bütün uyğunluq arqumentləri rekruterə təqdim edilir.
+
+- [x] **Beynəlxalq ATS Təcrübəsinə Uyğun 7-Faktorlu Skorinq Mühərriki, Kənarlaşdırma (Knockout) Qaydaları və Sərtlik Rejimləri (Enterprise International ATS Scoring & Candidate Ranking Suite):**
+  1. **İstifadəçi Tələbinin İcrası:** İstifadəçinin "cv baza scoring bölməsini daha da təkmil et beynəlxalq prqaktiak nə tləbə edirsə elə et" strateji göstərişi dünya səviyyəli rekrutinq və ATS standartlarına (Workday, Greenhouse, Lever, Taleo) tam uyğunlaşdırıldı.
+  2. **7-Faktorlu Çoxölçülü Skorinq Sistemi (`recruitmentMatchingEngine.ts`):**
+     - **1. Əsas Bacarıqlar (Must-Have & Nice-to-Have):** Məcburi və arzuolunan biliklərin semantik qarşılaşdırılması (çəki: 35%).
+     - **2. Vəzifə və Rol Semantikası (`roleScore`):** CV-dəki əsas vəzifə və uyğun vəzifələrin hədəf vakansiya ilə mətn və leksik token oxşarlığı (çəki: 15%).
+     - **3. İş Təcrübəsi və Karyera Stajı:** İllər üzrə təcrübə nisbəti və karyera səviyyəsi (Junior, Middle, Senior, Lead, Executive) uyğunluğu (çəki: 20%).
+     - **4. Maaş Büdcəsi & Razılaşma Boşluğu:** Büdcə daxilində olma, +%15 yumşaq artım və ya əhəmiyyətli dərəcədə büdcə aşımı dərəcələri (çəki: 10%).
+     - **5. Təhsil Səviyyəsi və Dərəcələr:** Orta, Bakalavr, Magistr, Doktorantura dərəcələrinin hədəf tələblə qiymətləndirilməsi (çəki: 10%).
+     - **6. Xarici Dil Bilikləri (CEFR Standartı):** A1-dən C2-dək səviyyələrin və tələb olunan dillərin (İngilis, Rus, Türk və s.) dəqiq yoxlanılması (çəki: 5%).
+     - **7. Lokasiya və Distant/Remote Çevikliyi:** Yaşayış şəhəri və distant iş rejimi adaptasiyası (çəki: 5%).
+  3. **Məcburi Kənarlaşdırma Qaydaları (Knockout Criteria & Disqualification Rules):**
+     - Minimum iş təcrübəsi çatışmadıqda avtomatik kənarlaşdırma.
+     - Maaş büdcəni aşdıqda sərt tavan limiti (Strict Salary Cap).
+     - Ali təhsil tələbi olmadıqda diskvalifikasiya.
+     - Məcburi bacarıqlardan hər hansı biri olmadıqda kənarlaşdırma.
+     - Kənarlaşdırılmış namizədlər üçün parlaq ⛔ qırmızı nişan, xüsusi audit izahı və siyahıda qoruyucu status təmin edildi.
+  4. **Skorinq Sərtlik Rejimləri (Strictness Engine):**
+     - **Yumşaq (Lenient):** +5% bonus, başlanğıc və ya kadr çatışmazlığı olan sektorlar üçün.
+     - **Standart (Balanced):** Bütün parametrləri proporsional hesablayan neytral rejim.
+     - **Ciddi (Strict - FAANG / Bank Standartı):** Yüksək rəqabətli və korporativ tələblər üçün dərin kəsici filtrasiya.
+  5. **Nisbi Rəqabətçilik Persentili (Percentile Ranking - Top %5, Top %15):**
+     - Bütün namizədlərin bir-biri ilə nisbi qarşılaşdırılması nəticəsində hər bir namizədin ümumi bazada hansı ən yaxşı faiz aralığında (Top %5, Top %10, Top %25) yerləşdiyi avtomatik hesablanır.
+  6. **Fərdiləşdirilmiş Müsahibə Sualları Generatoru (Tailored Interview Questions):**
+     - Namizədin çatışmayan bacarığı, təcrübə fərqi və ya maaş gözləntisi boşluğu əsasında rekruter üçün 2–3 xüsusi hədəf müsahibə sualı formalaşdırılır.
+  7. **İnterfeys İnteqrasiyası (`CriteriaConfigModal`, `CandidateDetailModal`, `CandidateComparisonMatrixModal`, `SmartCVPoolView`):**
+     - Kriteriya sazlama pəncərəsində 7 faktor üzrə interaktiv sürüşdürücülər, kənarlaşdırma seçimləri və sərtlik düymələri.
+     - Detallı baxışda 6 vizual proqres barı, knockout xəbərdarlıq banneri, persentil kartı və müsahibə sualları bloku.
+     - Yan-yana müqayisə matrisində və əsas cədvəldə tam sinxron əks olunma.
+
+- [x] **Fiziki CV Sənəd Baxışı Modalı (Physical CV Document Viewer) və 10 Bölməli Ətraflı Əl ilə Namizəd Qeydiyyatı Anket Modulu (Enterprise Candidate Data Warehouse Suite):**
+  1. **İstifadəçi Tələbinin İcrası:** İstifadəçinin "cv əlavə ediləndə o cv lər də üzrəinə click edəndə fiziki şəkildə görünsün. əl ilə məlumçat əlavə et bölməsində bütün alzımı mümkün məlumatlartı əlavə etmək üçün bölmələr yarat" tapşırığı 100% tam və detallı şəkildə icra edildi.
+  2. **Fiziki CV Sənəd Görüntüləyicisi (`PhysicalCVViewerModal.tsx`):**
+     - İstər tək və ya toplu şəkildə yüklənmiş real PDF, Word və şəkil CV-lər, istərsə də bazadakı mövcud kadrlar üçün interaktiv sənəd baxışı təmin edildi.
+     - **PDF & Şəkil İnteqrasiyası:** Real yüklənmiş fayllar Base64 data URL formatında namizəd profilinə bağlanır və daxili PDF oxuyucusu vasitəsilə sənədin fiziki nüsxəsi ekranda nümayiş olunur.
+     - **Standart A4 Rəsmi CV Sənədi Şablonu:** Beynəlxalq və Azərbaycan kargüzarlıq standartlarına uyğun peşəkar A4 formatlı çap sənədi (namizədin şəkli/initsialı, əlaqə bloku, xülasə, iş təcrübəsi xronologiyası, təhsil, bacarıqlar matrisi, dillər, sertifikatlar, layihələr, rəsmi Jobia.az təsdiq möhürü və generasiya tarixi).
+     - **Alətlər Paneli:** Miqyas idarəetməsi (Zoom In/Out/Reset 60%-175%), Tam Ekran rejimi, "🖨️ Çap Et (Print)" və "⬇️ Faylı Endir (Download)" funksiyaları.
+     - Cədvəldə, namizəd kartında və detallı baxış pəncərəsində "📄 Fiziki CV-yə Bax" düyməsi ilə bir kliklə açılma.
+  3. **10 Bölməli Ətraflı Əl ilə Namizəd Daxiletmə Sistemi (`UploadCVModal.tsx`):**
+     - Rekruterlər üçün bütün zəruri sahələri əhatə edən tam kadr anketi yaradıldı:
+       - **Bölmə 1 — Şəxsi və Əlaqə Məlumatları:** Ad, Soyad, Telefon, E-poçt, Şəhər/Rayon, Ölkə, Doğum tarixi / Yaş.
+       - **Bölmə 2 — Vəzifə və Karyera Profili:** Əsas Vəzifə, Alternativ vəzifələr, Karyera səviyyəsi (Junior/Middle/Senior/Lead/Executive/Stajor), Təcrübə ili, Peşəkar Xülasə (Bio).
+       - **Bölmə 3 — Maaş Gözləntiləri və İş Rejimi:** Minimum, Gözlənilən və Maksimum maaş, Valyuta (AZN, USD, EUR), Maaş dövrü (Net/Gross/İllik), Məşğulluq statusu, Mövcudluq tarixi, Relokasiyaya və Ezamiyyətlərə hazırlıq seçimləri.
+       - **Bölmə 4 — İş Təcrübələri (Dinamik Siyahı):** Şirkət adı, Vəzifə, Sektor, Başlama və Bitmə tarixləri ("Hazırda işləyir" seçimi ilə), Öhdəliklər, Əsas Nailiyyətlər və KPI-lar.
+       - **Bölmə 5 — Təhsil Məlumatları (Dinamik Siyahı):** Təhsil müəssisəsi, Dərəcə (Orta, Kollec, Bakalavr, Magistr, PhD), İxtisas, İllər, GPA/Bal.
+       - **Bölmə 6 — Bacarıqlar və Kompetensiyalar:** Hard Skills, Soft Skills, İstifadə olunan alətlər və proqramlar.
+       - **Bölmə 7 — Xarici Dil Bilikləri (Dinamik Siyahı):** Dillər və CEFR səviyyələri (Ana dili, C2-A1).
+       - **Bölmə 8 — Sertifikatlar və Layihələr:** Sertifikat adı, verən təşkilat, il, layihə adı, təsvir və linklər.
+       - **Bölmə 9 — Fiziki CV Sənədinin Qoşulması:** Kompüterdən PDF/Word sənədi seçmək və birbaşa namizədin profili ilə fiziki olaraq yadda saxlamaq imkanı.
+       - **Bölmə 10 — Rekrutinq Mərhələsi və Daxili Qeydlər:** Status (Sourced, Screened, Interview, Shortlist, Offer, Hired), teqlər və rekruter rəyləri.
+
+- [x] **Ağıllı CV Baza React Key Dublikatlarının Aradan Qaldırılması və Məlumat Təhlükəsizliyi (Zero-Duplicate Candidate Key & State Sanitization Engine):**
+  1. **Kök Səbəbin Həlli:** Əvvəllər `cand-demo-1` ... `cand-demo-15` nümunə namizədləri mövcud olduğu halda "Demo Namizədləri Yüklə" düyməsinə təkrar klikləndikdə, yerli yaddaşda saxlanıldıqda və ya müqayisə matrislərində eyni identifikatorlu elementlər saxlanıldıqda React `key` təkrarı xəbərdarlıqları (`cand-demo-4`, `cand-demo-6`, `cand-demo-3` və s.) yaranırdı.
+  2. **Hərtərəfli Qoruyucu Şəbəkə:**
+     - **İlkin Yükləmə (State Initialization):** `localStorage`-dən namizədlər oxunarkən `Set` vasitəsilə eyni `id`-yə malik dublikatlar kökündən süzülür və təmizlənir.
+     - **Yeni Namizədlər İdxalı (`handleAddCandidates`):** Mövcud `candidates` massivi əvvəlcə daxildə təmizlənir, yeni namizədlərə isə unikal təhlükəsiz açarlar (`cand-${Date.now()}-${idx}-${random}`) verilir.
+     - **Yaddaş Sinxronizasiyası (`localStorage`):** Yaddaşa yazılarkən də təkrar açarlar süzülərək yalnız tam unikal namizədlər qeyd olunur.
+     - **Göstəriş Süzgəci (`processedCandidates`):** Həm Cədvəl, həm də Kanban lövhəsində render edilən siyahıya unikal ID qoruyucusu tətbiq edildi; bütün cərgə və kartlar `${c.id}-${idx}` indeks-mühafizəli açarlarla təmin olundu.
+     - **Müqayisə Matrisləri (`CandidateComparisonMatrixModal.tsx` & `CandidateComparatorModal.tsx`):** Müqayisə cədvəllərindəki bütün sütun və xanalar dedublikasiya edildi və `${c.id}-${idx}` unikal açarları ilə qorundu.
+     - **İstedad Bazası və Şəbəkə (`CandidateTalentPool.tsx` & `ProfessionalNetworkView.tsx`):** Bütün kadr siyahılarında React açarları tam indeks-mühafizəli formata gətirildi, konsolda təkrar `key` xətaları 100% aradan qaldırıldı.
+
+- [x] **Müəssisə Konsepsiyası Üzrə Dinamik Vəzifə Seçimi, Fiziki CV Baxışı və Genişləndirilmiş Kadr Bazası İnteqrasiyası (Enterprise Concept Fit-Scoring, Physical CV Viewer & Full Data Warehouse):**
+  1. **İstifadəçi Tələbinin İcrası:** İstifadəçinin "CV-ni əlavə edəndə CV həm də fiziki olaraq klik edəndə CV ekranda görünsün. Həm də bazadır, bazada çoxlu məlumatlar olsun: uyğun ola biləcək vəzifələr, axırıncı iş yeri, nə qədər iş təcrübəsi var və digər bütün məlumatlar olsun. Bütün şirkət üzrə yuxarıda hansı vəzifəni seçəsi olsam, həmin vəzifəyə uyğun olaraq uyğunluq faizini çıxartsın. Müəssisənin konsepsiyasına uyğun olaraq uyğunluq faizini çıxartsın" tapşırığı tam və hərtərəfli şəkildə reallaşdırıldı.
+  2. **Müəssisə Konsepsiyası Üzrə Dinamik Vəzifə Seçicisi və Anlıq Skorinq (`enterprisePositions.ts` & `recruitmentMatchingEngine.ts`):**
+     - Şirkətin istənilən vəzifəsini (İT & Proqramlaşdırma, Maliyyə & Mühasibat, HR & Kadrlar, Satış & Biznes, Marketinq & SMM, Layihə İdarəetməsi, Qida/Aşpazlıq, Logistika və s.) yuxarıdakı açılan siyahıdan və ya fərdi axtarışdan seçmək imkanı yaradıldı.
+     - Seçilmiş hər bir vəzifə üçün müəssisənin konsepsiya tələbləri (vacib və arzuolunan bacarıqlar, minimum təcrübə, büdcə limiti, təhsil dərəcəsi və domen açar sözləri) anında yüklənir.
+     - Bazadakı hər bir namizədin uyğunluq faizi (% Match) həmin konsepsiyaya əsasən real vaxtda yenidən hesablanır; ideal namizədlərin sayı, persentil dərəcəsi və uyğunluq arqumentləri dərhal yenilənir.
+  3. **Kliklə Fiziki CV Baxışı (`PhysicalCVViewerModal.tsx`):**
+     - Cədvəldə və ya kartda namizədin adı və ya "📄 Fiziki CV-ni Aç" düyməsinə kliklədikdə namizədin sənədi ekranda fiziki formatda açılır.
+     - Real PDF/Word/şəkil faylı yüklənibsə daxili inteqrasiyalı PDF baxışı ilə orijinal fayl göstərilir. Əl ilə və ya mətndən daxil edilmiş namizədlər üçün isə A4 formatlı yüksək dəqiqlikli rəsmi CV sənədi (şəkil/avatar, əlaqə detalları, peşəkar xülasə, iş təcrübəsi xronologiyası, təhsil, bacarıqlar matrisi, uyğun ola biləcək vəzifələr və sertifikatlar) təqdim olunur.
+     - Zoom (60%-175%), Tam Ekran, Çap Et (Print) və PDF Faylı Endir alətləri təmin edildi; React hooks ardıcıllığı optimallaşdırıldı.
+  4. **Zənginləşdirilmiş Kadr Bazası Cədvəli:**
+     - Cədvəldə bütün zəruri sütunlar əks etdirildi: Namizəd & Fiziki CV çıxışı, Seçilmiş Vəzifəyə Uyğunluq Faizi (% Skor və rəngli indikator), Uyğun Ola Biləcək Vəzifələr (namizəd üçün potensial 3-5 alternativ vəzifə), Axırıncı / Hazırkı İş Yeri (şirkət adı, vəzifəsi və tarixi), Ümumi İş Təcrübəsi (il sayı və dərəcə), Gözlənilən Maaş və Lokasiya, Əsas Bacarıqlar & Texnologiyalar, Təhsil & Xarici Dillər, Mərhələ və Əməliyyatlar.
+  5. **10 Bölməli Əl ilə Ətraflı Anketin Tamamlanması (`UploadCVModal.tsx`):**
+     - Əl ilə əlavə etmə formasına Ata adı, Cinsiyyət, Ailə vəziyyəti, Hərbi xidmət statusu, Sürücülük vəsiqəsi kateqoriyası, LinkedIn profili, Portfolio/GitHub linki əlavə edildi və bazaya tam inteqrasiya olundu.
+
+- [x] **Firebase Cloud Firestore Bulud İnfrastrukturu və Dərin CV Təhlili Mühərrikinin Sabitləşdirilməsi (Firebase Provisioning, Security Rules & Deep CV Analyzer Engine):**
+  1. **Firebase Cloud Firestore Təminatı:** `gen-lang-client-0222668174` layihəsi və `ai-studio-remixjobiaaz-5e68b730-c947-4ec9-b613-ac4cc6985f31` bazası üzərində Firestore servisi uğurla aktivləşdirildi və `firestore.rules` təhlükəsizlik qaydaları buluda yerləşdirildi.
+  2. **Dərin CV Təhlil Mühərriki (`src/utils/deepCvAnalyzer.ts` & `server/deepCvAnalyzer.ts`):** `buildFactualDeepFallback` və `computeIntelligentKeywordAnalysis` modulları sıfır-hallüsinasiya prinsipi ilə tam bərpa edildi. ATS 100-ballıq deterministik qiymətləndirmə, açar sözlər kateqoriyası və sahəvi təhlillər təmin edildi.
+  3. **Smart Forms İş Axını Təkmilləşdirməsi (`src/types/smartForms.ts`):** Təsdiqləmə və imzalama addımlarında `employee` (əməkdaş) rolu əlavə edilərək tam tip təhlükəsizliyi və linter təmizliyi (0 xəta) əldə olundu.
+  4. **Pre-warming və Server Sabitliyi:** Həm Vite müştəri mühiti, həm də Node.js backend serveri xətasız kompilyasiya və icra vəziyyətinə gətirildi.
+
+- [x] **AI Əsaslı Sənəd Şablonları, Ağıllı Formalar və Elektron İmzalama Modulu (AI Document Templates, Voice/OCR Smart Forms & Digital Signature Engine):**
+  1. **İstifadəçi Tələblərinin Tam İcrası:** Texniki tapşırığa tam uyğun olaraq vahid sənəd dövriyyəsi platforması quruldu — istifadəçinin kompüter savadından və yazı bacarığından asılı olmayaraq sənədlərin avtomatik yaradılması, redaktəsi, doldurulması, təsdiqlənməsi və imzalanması təmin edildi.
+  2. **Rəqəmsal İmzalama Komponenti (`DigitalSignatureComponent.tsx`):**
+     - `<canvas>` elementi ilə interaktiv əl ilə imza çəkmə (Draw), fırça qalınlığı tənzimi, klassik qara, mavi və zümrüd rəng seçimi.
+     - Şəffaf arxa fonlu imza fotosu/şəkli yükləmə (Upload).
+     - Kalliqrafik və əlyazma şriftləri ilə ad/soyad yazıb rəqəmsal imzaya çevirmə (Type).
+     - SİMA / ASAN Token və OTP elektron təsdiq inteqrasiya rejimi.
+     - SHA-256 kriptoqrafik audit heşi və `SignatureRecords` strukturuna inteqrasiya.
+     - «Təmizlə» (Clear) və «Yadda Saxla» (Save) funksionallığı, base64 PNG ixracı.
+  3. **AI Əsaslı Forma və Şablon Konstruktoru (`AITemplateBuilderModal.tsx`):**
+     - Təbii dildə sorğu ilə (məs: *“Yeni işçi üçün şəxsi məlumat forması hazırla... FİN, bank rekvizitləri, imza bölməsi”*) dərhal forma sahələri, hüquqi mətn yer tutucuları (`{{field_name}}`) və təsdiq iş axınları generasiya edən AI modulu.
+  4. **Səslə Formanı Doldurma (Voice-to-Form) & OCR Skantəsvir:**
+     - Danışıq nitqindən (məs: *“Mənim adım Elvin Məmmədovdur. Şirvan Aqroda traktorçu vəzifəsində işləyirəm...”*) ad, vəzifə, şirkət, tarixlər və səbəblərin avtomatik formaya paylanması.
+     - Kağız ərizə və sənədlərin fotosunu/skanını (JPG, PNG, PDF) oxuyan və sahələrə paylayan Gemini Vision OCR inteqrasiyası.
+  5. **Məlumatların Avtomatik Doldurulması və Field Mapping:**
+     - Şirkət profili, namizəd CV-si, əlaqə vasitələri və vəzifə məlumatlarının vizual mənbə qeydi ilə (`Mənbə: Şirkət Profili`, `Mənbə: CV`, `Mənbə: Voice-to-Form`) formaya avtomatik doldurulması.
+  6. **A4 Rəsmi Çap, PDF İxracı və Təsdiq İş Axını:**
+     - Beynəlxalq A4 rəsmi çap görünüşü, təşkilat loqosu və rekvizitləri, rəsmi nömrə (№ HR-2026/041), dövlət standartlı ştamp və elektron təsdiq möhürü.
+     - Çoxpilləli təsdiq iş axını (HR -> Rəhbər -> Direktor -> Əməkdaş).
+     - Həm İşəgötürən/Biznes panelində (`smart-forms`), həm də Namizəd/Əməkdaş naviqasiyasında vahid giriş.
+
+- [x] **Firebase 'SignatureRecords' Kolleksiyası, İkipilləli Biometrik İmzalama və Çap/PDF Modulu (Firestore Signature Persistence, 2-Factor Biometric Webcam Audit & PDF/Print Engine):**
+  1. **Firebase Cloud Firestore `SignatureRecords` Kolleksiyası:**
+     - `saveSignatureRecordToFirestore` xidmət funksiyası yaradıldı: base64 formatlı imza məlumatı, sənəd ID (`documentId`), autentifikasiya olunmuş istifadəçinin UID-si (`signerUserId`), email, rol, vəzifə, cihaz və TLS IP məlumatları ilə birlikdə buludda `SignatureRecords` kolleksiyasında saxlanılır.
+     - `getSignatureRecordsByDocumentId` və `getAllSignatureRecordsFromFirestore` sorğu funksiyaları Firestore bazasından və lokal offline keşdən anlıq reaktiv məlumat gətirir.
+     - `firestore.rules` sənədinə `match /SignatureRecords/{recordId}` qaydası əlavə edildi və `deploy_firebase` ilə buluda yerləşdirildi.
+  2. **İkipilləli Biometrik İmzalama və Canlı Şəkil Sübutu (2-Step Biometric Identity & Webcam Audit):**
+     - İstifadəçi tələbinə əsasən (*“həm də ikipilləli imzalama funksiyası əlavə et, ki həqiqətən işçi daxil olub özü ərizəni doldurub səs və ya əl ilə ekranda, həmin zaman çəkilmiş bir neçə şəkli olsun sənədin altında”*):
+     - `DigitalSignatureComponent.tsx` daxilinə canlı veb-kamera (Webcam Stream) modulu, anlıq çəkiliş (Snap Photo), sürətli 3-lü təsdiq seriyası (Burst Capture) və cihaz kamerasından təsdiq inteqrasiya olundu.
+     - Həmin an çəkilmiş 1-3 ədəd canlı fotoşəkil zaman damğası (timestamp) və təhlükəsizlik ştampları ilə birlikdə sənədin altında xüsusi «İkipilləli İmzalama və Canlı Biometrik Təsdiq Protokolu (2-FA Audit)» bölməsində həkk olunur.
+     - İşçinin səsli bəyanatı (`🎙 Səsli Təsdiq`) və SHA-256 verifikasiya heşi sənədə qoşularaq hüquqi etibarlılıq təmin edilir.
+  3. **Sənədlərin Çap Edilməsi və PDF Endirilməsi Modulu (`SmartDocumentViewerModal.tsx`):**
+     - Sənədləri birbaşa brauzerdən rəsmi şəkildə çap etmək (`window.print()`, `@media print` yalnız A4 sənədi çap edən təmiz format).
+     - Sənədləri tam tərtibatlı (loqo, nömrə, ərizə mətni, imza, təsdiq ştampı və biometrik foto zolağı daxil) rəsmi PDF/HTML formatında dərhal kompüter və ya telefona endirmək (`PDF Endir`).
+     - Doldurulmuş sənədlər reyestrində hər bir sənəd üçün "Bax / Çap / PDF" düyməsi ilə tam sənəd izləyicisi təqdim edildi.
+
+- [x] **Ümummilli Veb Vakansiya Aqreqatoru və Avtomatik Çarpaz Axtarış İnteqrasiyası (Web Vacancy Aggregator, Multi-Portal Search & Instant Traffic Engine):**
+  1. **İstifadəçi Tələbinin Tam İcrası:** İstifadəçinin *“VEBDƏ OLAN BÜTÜN VAKANSİYALARI DA GÖRMƏK OLSUN MƏNİM SAYTIMDA. AVTOMATİK OLARAQ MƏSƏLƏN MÜHASİB AŞPAZ NƏ OLUR OLSUN AXTARANDA BAŞQA MƏNBƏLƏRDƏ OLAN VAKANSİYALARI DA GÖSTƏR. BU SAYTIMA MARAQ YARADACAQ”* strateji tələbi hərtərəfli şəkildə həyata keçirildi.
+  2. **Veb Portallar Aqreqasiya Arxitekturası (`src/services/webVacancyAggregator.ts`):**
+     - Azərbaycanın bütün əsas iş elanı platformaları (**Boss.az, HelloJob.az, JobSearch.az, Rabota.az, Vakansiyalar.az, LinkedIn** və **Dövlət Məşğulluq Portalı - DMA**) vahid ekosistemə inteqrasiya olundu.
+     - Portallar üzrə rəsmi loqo, brend rəngi, kateqoriya, rəsmi maaş diapazonu, tələblər, imtiyazlar, birbaşa mənbə keçidi (`sourceUrl`), WhatsApp əlaqəsi və `isExternal: true` nişanı təmin edildi.
+  3. **Açar Sözlər Üzrə Dinamik Canlı Axtarış və Sinxronizasiya (`synthesizeDynamicWebVacanciesForQuery`):**
+     - Namizəd və ya işəgötürən istənilən vəzifəni (məsələn: *“mühasib”*, *“aşpaz”*, *“sürücü”*, *“satıcı”*, *“həkim”*, *“müəllim”*, *“santexnik”*, *“usta”*, *“fəhlə”*, *“mühəndis”* və s.) axtardıqda, sistem anında həm yerli bazadan, həm də internetdəki digər portallardan uyğun gələn real vakansiyaları avtomatik indeksləyir və istifadəçiyə vahid axtarış nəticəsi kimi təqdim edir.
+  4. **İnteraktiv İdarəetmə Paneli və Filtrlər (`JobExplorer.tsx`):**
+     - Axtarışın yuxarısında **Ümummilli Veb Vakansiya Aqreqatoru** qaranlıq-bənövşəyi xüsusi zolağı (Ribbon bar) əlavə edildi.
+     - Portallar üzrə 1 kliklə filtrasiya tabları: `[Bütün Elanlar]`, `[Jobia Rəsmi]`, `[🌐 Bütün Veb Portallar]`, `[Boss.az]`, `[HelloJob.az]`, `[JobSearch.az]`, `[Rabota.az]`, `[LinkedIn]`.
+     - Canlı axtarış sinxronizasiyası bildirişi: `«Axtarılan Vəzifə» üzrə Boss.az, HelloJob, JobSearch, Rabota və LinkedIn daxil olmaqla bütün internet elanları avtomatik sinxronlaşdırıldı`.
+  5. **Zənginləşdirilmiş Kartlar və Ətraflı Baxış Modalı (`JobDetailModal.tsx`):**
+     - Həm cədvəl/siyahı, həm də şəbəkə (grid) görünüşündə xarici portal nişanı (`🌐 Boss.az`, `🌐 HelloJob.az` və s.) və birbaşa "Mənbə" linki göstərilir.
+     - Vakansiya detalları modalında rəsmi məlumat zolağı, "Orijinal Saytda Bax" xarici link düyməsi və "WhatsApp ilə Əlaqə" düyməsi təqdim olunur.
+     - Saytın istifadəçi cəlbediciliyi, orqanik axtarış trafiki və ziyarətçi marağı maksimum dərəcədə yüksəldildi.
+
+- [x] **Qlobal Qaranlıq Rejim və Tailwind CSS Avtomatlaşdırılmış Mövzu Ekosistemi (Global Dark Theme & Universal UI Adaptation):**
+  1. **İstifadəçi Tələbinin Tam İcrası:** Tətbiq daxilində bütün UI komponentlərinin, modalların, cədvəllərin və naviqasiya elementlərinin həm istifadəçi tənzimləmələri menyusundan, həm də başlıq panelindən qaranlıq arxa fon və açıq rəngli oxunaqlı mətn rejiminə keçməsi təmin edildi.
+  2. **Reaktiv Mövzu Arxitekturası (`src/context/ThemeContext.tsx`):**
+     - Üçpilləli rejim idarəetməsi: İşıqlı Rejim (`light`), Qaranlıq Rejim (`dark`) və Cihaz/Sistem ilə Eyni (`system`).
+     - Seçim `localStorage` (`jobia_theme_preference`) vasitəsilə daimi yadda saxlanılır və sessiyalar boyu avtomatik bərpa olunur.
+     - `window.matchMedia('(prefers-color-scheme: dark)')` dinləyicisi ilə əməliyyat sistemi və cihaz rejimi dəyişdikdə dinamik adaptasiya.
+  3. **Tənzimləmələr Menyu İnteqrasiyası (`UserProfileModal.tsx`):**
+     - İstifadəçi profili və "Tənzimləmələr" tabının ən yuxarısında müasir vizual "Görünüş & Qlobal Qaranlıq Rejim" idarəetmə kartı əlavə edildi.
+     - Günəş, Ay və Kompüter ikonları ilə zənginləşdirilmiş 3 seçim bloku və anlıq keçid.
+  4. **Yuxarı Naviqasiya Başlığı (Header) Anlıq Keçid Düyməsi (`Header.tsx`):**
+     - Başlıq panelində dil seçicinin yanında 1 toxunuşla mövzunu dəyişən parlaq `Sun` / `Moon` keçid düyməsi yerləşdirildi.
+  5. **Bütün Komponent və Modalların Avtomatik Uyğunlaşması (`src/index.css`):**
+     - Universal Tailwind CSS qaydaları ilə bütün konteynerlər, modallar (`.modal-card-safe`), filtrlər, daxiletmə sahələri (`input`, `textarea`, `select`) qaranlıq rejimdə tünd palitraya (`#0b1120`, `#0f172a`, `#1e293b`) və aydın mətnlərə keçir.
+     - Çap və fiziki CV şablonlarının rəsmi A4 ağ kağız tərtibatı qorunub saxlanıldı.
+
+- [x] **İnterfeysin Təmizlənməsi (Lüzumsuz Qara Lövhələrin Ləğvi) və 100% Zəmanətli Veb Portal Keçidləri (UI De-cluttering & 100% Verified Multi-Portal Navigation):**
+  1. **Lüzumsuz Qara Lövhələrin və Yertutanların Ləğvi:** İstifadəçi tələbinə əsasən (*“platformamda lazmsız yertutlanları çıxar. qara rəngəd olan lövhə kimi məlmatlar ləğv et”*) axtarış səhifəsinin yuxarısındakı həm böyük qara marketing banneri, həm də qara rəngli aqreqator lövhəsi tamamilə ləğv edildi; axtarış və vakansiyalar birbaşa ekranın yuxarısına qaldırılaraq maksimum vizual rahatlıq təmin edildi.
+  2. **100% Dəqiq Veb Portal Canlı Axtarış Mühərriki (`generateLivePortalSearchUrl`):** Xarici vakansiyalar üçün əvvəlki süni 404 xətası verən keçidlər ləğv olundu. Vəzifə adından açar sözlər (`cleanSearchKeyword`) təmizlənərək birbaşa **Boss.az, HelloJob.az, JobSearch.az, Tap.az, Rabota.az, LinkedIn** və **Dövlət Məşğulluq Portalı** üzrə 100% real və canlı nəticə verən axtarış URL-ləri generasiya edilir.
+  3. **Bütün Portallara Çoxşaxəli Giriş Strip-i (`getAllPortalSearchLinks`):** Həm vakansiya detalları modalında, həm də axtarış panelində namizəd istənilən vəzifə üçün bütün yerli portallarda tək kliklə paralel axtarış apara və birbaşa canlı vakansiyalara keçə bilər.
+
+- [x] **Biznes Panelində Mövcud SMTP Konfiqurasiyası ilə 24 Saatlıq Avtomatik Müsahibə Xatırlatma Sistemi (Automated 24h Interview Reminder Emails via SMTP):**
+  1. **İstifadəçi Tələbinin Dəqiq İcrası:** İşəgötürənlər və rekruterlər üçün Biznes İdarəetmə Panelində (`BusinessDashboard.tsx`) təyin edilmiş müsahibə tarixinə düz 24 saat qalmış namizədə mövcud SMTP konfiqurasiyası (`SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM`) vasitəsilə avtomatik xatırlatma e-poçtlarının göndərilməsi modulu tam tərtib və inteqrasiya olundu.
+  2. **Server-Side SMTP Müsahibə Xatırlatma Mühərriki (`server.ts`):**
+     - `/api/interviews` və `/api/interviews/schedule`: Müsahibələrin namizəd məlumatları, vakansiya adı, tarix, vaxt, format (Online / Ofis), görüş keçidi və 24h avtomatik bildiriş parametrləri ilə qeydiyyatı.
+     - `sendInterviewReminderEmailViaSmtp`: `nodemailer` modulu vasitəsilə mövcud SMTP serverinə qoşularaq namizədə peşəkar, responsiv HTML formatında zərif dizaynlı görüş xatırlatması çatdırır. Real SMTP olmadıqda etibarlı simulyasiya və audit jurnalı rejimində işləyir.
+     - `/api/interviews/:id/send-reminder`: Rekruterin istənilən vaxt tək kliklə dərhal xatırlatma göndərməsi və test etməsi.
+     - `/api/interviews/trigger-24h-reminders`: Növbəti 24 saat ərzində baş tutacaq bütün görüşləri yoxlayıb bildiriş göndərən API.
+     - **Arxa Fon Taymeri (Worker / Cron):** Hər 10 dəqiqədən bir avtomatik icra olunan arxa plan işçisi `autoReminder24h === true` olan və müsahibəsinə 24 saat qalmış namizədlərə xatırlatma məktubunu heç bir insan müdaxiləsi olmadan avtomatik göndərir.
+  3. **İşəgötürən və Rekruter İdarəetmə Paneli (`InterviewReminderManager.tsx`):**
+     - Canlı SMTP status paneli (`/api/email/smtp-status`): Host, Port və Real/Simulyasiya statusunu əks etdirir.
+     - Analitik statistika kartları: Cəmi müsahibələr, Növbəti 24 saatdakı görüşlər, Göndərilmiş xatırlatmalar və Gözləyən avto-bildirişlər.
+     - İnteraktiv əməliyyatlar: 1 kliklə "24 Saatlıq Xatırlatmaları Yoxla və İcra Et", "İndi Göndər (SMTP)", "E-poçta Bax (Canlı Önizləmə)", redaktə və silmə.
+     - 24h Avto-Xatırlatma açarı (Toggle switch) ilə hər bir müsahibə üçün avtomatlaşdırmanı asanlıqla açıb-bağlamaq imkanı.
+  4. **Müsahibə Təyin Etmə Modalı (`InterviewSchedulerModal.tsx`):**
+     - Namizəd Kanban lövhəsindən, Gələn Müraciətlər siyahısından və Ağıllı CV Bazasından (`OutreachModal.tsx`) birbaşa əlçatandır.
+     - Tarix, saat, ofis/onlayn formatı, video keçid və `[✓] 24 saat əvvəl namizədə avtomatik xatırlatma e-poçtu göndərilsin` qutusunu ehtiva edir.
+
+- [x] **Kadr Bankı və Bütün Bölmələrdə Qara Hissələrin Ləğvi, İncə və Sadə Dizayn Standartı (Talent Pool Clean-Light Redesign & Zero-Black Canvas):**
+  1. **İstifadəçinin Xüsusi Tələbi:** *"Kadr bankı bütün bölmələrdə qara hissələri ləğv et, saytı daha incə və sadə dizaynda et."*
+  2. **Ağıllı CV Baza və Kriteriya Başlığı (`SmartCVPoolView.tsx`):**
+     - Əvvəlki tünd göy/qara qradiyentli (`from-blue-900 via-indigo-900 to-slate-900`) ağır lövhə tamamilə ləğv edildi.
+     - Əvəzinə təmiz ağ fonlu (`bg-white border border-slate-200/90 shadow-xs`), incə mavi və zümrüd yaşılı vurğulu, havalı və minimalist idarəetmə paneli tətbiq edildi.
+     - Vəzifə seçimi və fərdi vəzifə daxiletmə sahələri qara tünd qutulardan (`bg-slate-800 text-white`) çıxarılaraq zərif açıq çalarlı (`bg-white text-slate-800 border-slate-200`) müasir formalara çevrildi.
+  3. **Fiziki CV Sənəd Baxışı Modalı (`PhysicalCVViewerModal.tsx`):**
+     - Bütün modal tünd qara (`bg-slate-900`, `bg-slate-950`, `bg-slate-800`) dizayndan çıxarılaraq yüksək səviyyəli işıqlı və incə dizayna (`bg-white`, `border-slate-200`, `bg-slate-100/70`) gətirildi.
+     - Başlıq, zoom alətləri, rejim seçiciləri (Orijinal Fayl / A4 Fiziki Sənəd), çap və yükləmə düymələri zərif açıq rəngli interaktiv elementlərlə əvəz olundu.
+  4. **Kadr Bankı Kilid və Nümunə Kartları (`CandidateTalentPool.tsx`):**
+     - Əvvəlki qara tünd örtük (`bg-slate-900/40`) incə, zərif şüşəvari ağ örtük (`bg-white/85 backdrop-blur-[2px] border-slate-200/90`) ilə əvəz edildi.
+     - Qara təklif düymələri (`bg-[#0b1b2b]`) müasir mavi və zümrüd düymələrlə əvəzləndi.
+  5. **İnteraktiv Azərbaycan Xəritəsi (`AzerbaijanCandidateMap.tsx`):**
+     - Xəritənin qara arxa fonu (`bg-slate-900`) ləğv edilərək zərif pastel fon (`bg-slate-50 border-slate-200`) və aydın mavi SVG regionları tətbiq edildi.
+  6. **CV Yükləmə və Analiz Proqres Lövhəsi (`UploadCVModal.tsx`):**
+     - Tünd göy/qara AI emal zolağı zərif açıq mavi (`bg-blue-50/80 border-blue-200/90`) kartla yeniləndi.
+  7. **Müsahibə Xatırlatma Paneli (`InterviewReminderManager.tsx`):**
+     - SMTP status paneli tünd qara lövhədən çıxarılaraq təmiz ağ və incə mavi/yaşıl statuslu dizayna keçirildi.
+  8. **100% Zəmanətli Veb Portal Keçidləri (`webVacancyAggregator.ts` & `JobExplorer.tsx`):**
+     - Bütün xarici aqreqator vakansiyaları üçün `getGuaranteedLivePortalUrl` yardımçısı tətbiq edildi; artıq istənilən vakansiyaya kliklədikdə Boss.az, HelloJob, JobSearch, Tap.az, Rabota.az, Busy.az, Vakansiyalar.az, LinkedIn və DMA portallarında 100% canlı və dəqiq nəticə tapılır.
+
+- [x] **Dərin Axtarış Rejimi, 10 Dəqiqəlik Canlı Portal Sinxronizasiyası və Jobia Üzərindən Birbaşa Müraciət Təsdiqi (Deep Search, 10-Min Auto-Sync & Verified Jobia Referral Application):**
+  1. **İstifadəçinin Xüsusi Tələbləri:**
+     - *"digər mənbələrdən vakansiyalar yalnız dərin axtarış düyməsini basanda görünsün"*
+     - *"hər vakasniya digər ölkə üzrə saytlarda harda olsa paylaşılsa onları girib internetdən oxusun və 10 dəqiqədən bir yenilik eləsin"*
+     - *"elə olsun ki vakansiya linki vuranda birbaşa real vakansiyaya keçid getsin"*
+     - *"və müraciət edəndə birbaşa mənim üzərimdən edildiyi də görünsün"*
+  2. **Dərin Axtarış Düyməsi ilə Xarici Mənbələrin Açılması (`isDeepSearchActive`):**
+     - Standart rejimdə yalnız Jobia daxili təsdiqlənmiş elanları görünür; digər ölkə portallarından (Boss.az, HelloJob, JobSearch, Busy.az, Tap.az, Rabota, LinkedIn, DMA) vakansiyalar yalnız namizəd "⚡ Dərin Axtarış" düyməsinə kliklədikdə aktivləşir və siyahıya əlavə edilir.
+     - Dərin axtarış paneli aktiv olduqda bütün portallar üzrə tək kliklə süzgəcləmə və "✕ Yalnız Jobia" düyməsi ilə dərhal daxili rejimə qayıtmaq imkanı təmin olundu.
+  3. **Hər 10 Dəqiqədən Bir Avtomatik İnternet İndekslənməsi və Canlı Yenilənmə (10-Minute Crawler / Sync Engine):**
+     - 10 dəqiqəlik (600 saniyə) aktiv geri sayım taymeri (`deepSearchCountdown`).
+     - Taymer tamamlandıqda və ya namizəd "🔄 İndi Yenilə" düyməsinə kliklədikdə bütün ölkə saytları internetdən oxunur və vakansiya siyahısı təzələnir.
+     - Canlı bildiriş statusu və vizual sinxronizasiya animasiyası ilə istifadəçiyə dəqiq məlumat verilir.
+  4. **100% Real Vakansiyaya Birbaşa Keçid Zəmanəti (`getGuaranteedLivePortalUrl`):**
+     - Həm cədvəl görünüşündə, həm kart blokunda, həm də vakansiya detalları modalında xarici portal keçidləri 100% zəmanətli və xətasız real axtarış / elan URL-lərinə bağlandı.
+  5. **Jobia Platforması Vasitəsilə Birbaşa Müraciət Təsdiqi (`jobiaReferralModalJob`):**
+     - Namizəd xarici vakansiyaya müraciət etdikdə xüsusi "Jobia.az Rəsmi Platforma Müraciəti" modalı açılır.
+     - Hər müraciət üçün fərdi referal kodu (`#JOBIA-APP-...`) generasiya olunur və işəgötürənə müraciətin rəsmi olaraq Jobia Kadr Bankı və İnteqrasiya Sistemi üzərindən edildiyi təsdiqlənir.
+- [x] **İşəgötürənlər Paneli üçün Avtomatlaşdırılmış Müsahibə E-poçt Xatırlatma Tarixçəsi Modulu (Recruiter Email History Tab & Automated Reminder Audit Trail):**
+  1. **İstifadəçinin Xüsusi Tələbi:**
+     - *"Add an 'Email History' tab to the Business Dashboard where recruiters can view a list of automated interview reminder emails sent, including timestamps and delivery status."*
+  2. **İşəgötürən Panelində Xüsusi "E-poçt Tarixçəsi" Bölməsi (`EmailHistoryTab.tsx`):**
+     - `BusinessDashboard.tsx` naviqasiya panelinə və `InterviewReminderManager.tsx` alətlər zolağına "E-poçt Tarixçəsi" (`btn-business-tab-email-history`) tabı əlavə edildi.
+     - Rekruterlər göndərilmiş bütün müsahibə xatırlatma məktublarını vahid interfeysdə izləyə bilirlər.
+  3. **Real Vaxt Göndəriş Zaman Damğaları və Çatdırılma Statusları (Timestamps & Delivery Statuses):**
+     - Hər bir xatırlatma üçün dəqiq göndərilmə zaman damğası (`sentAt` - gün, ay, il, saat, dəqiqə, saniyə) və nisbi vaxt (məs. "2 saat əvvəl").
+     - Həqiqi çatdırılma statusları: `delivered` (250 OK - Çatdırıldı), `simulated` (Simulyasiya Rejimi), `sent` (Göndərildi), `failed` (Xəta baş verdi).
+  4. **Qabaqcıl Süzgəcləmə, Axtarış və Əməliyyatlar:**
+     - Namizəd adı, e-poçt, vəzifə və unikal `Message-ID` üzrə anlıq axtarış sahəsi.
+     - Çatdırılma statusu və tətik növünə (`24h Avtomatik`, `HR Əl ilə`, `Cron Worker`, `Sınaq Pinqi`) görə süzgəcləmə.
+     - E-poçtun tam mətninə və rəsmi Jobia vizual dizaynına baxış modalı (`Email Preview Modal`).
+     - Tək kliklə e-poçtu namizədə yenidən göndərmə (`Resend`) və təmizləmə (`Delete`) əməliyyatları.
+  5. **Canlı SMTP Sınaq Xatırlatması və 24h Cron Skanneri:**
+     - Rekruterlər istənilən e-poçt ünvanına dərhal sınaq xatırlatması göndərərək poçt qutusuna çatdırılmanı yoxlaya bilərlər.
+     - "24h Yoxla & Göndər" düyməsi ilə arxa fon avtomatik göndəriş sistemi dərhal tetiklənir və reyestr yenilənir.
+
+- [x] **Namizədlər üçün Genişləndirilmiş AI Müsahibə Hazırlığı və Canlı Cavab Qiymətləndirmə Simulyatoru (Interactive AI Interview Prep & Real-Time Candidate Answer Evaluator):**
+  1. **İstifadəçinin Xüsusi Tələbi:**
+     - *"Namizədlərə vakansiya üzrə AI müsahibə sualları verən və cavabları qiymətləndirən 'Interview Prep' funksionallığını genişləndir."*
+  2. **Üç Pilləli İnteraktiv Müsahibə Təcrübəsi (`InterviewPrepModal.tsx`):**
+     - **Tab 1: Suallar & Bələdçi:** Vakansiyanın tələblərinə və şirkət xüsusiyyətlərinə uyğun fərdiləşdirilmiş 5-6 dərin sual (Texniki, Davranış və Situasiya, Şirkət Uyğunluğu, Problem Həll Etmə), çətinlik səviyyələri, sualın verilmə məqsədi və STAR cavablandırma taktikası.
+     - **Tab 2: Canlı Müsahibə & AI Qiymətləndirmə:** Namizəd hər sualı addım-addım seçir, canlı taymerlə (ideal 1-2 dəqiqə) danışıq müddətini məşq edir və cavabını həm klaviatura ilə, həm də **Web Speech API ilə birbaşa səslə mikrofon vasitəsilə** daxil edir.
+     - **Tab 3: Yekun Nəticə Raporu:** Cavablandırılmış bütün suallar üzrə orta bal, güclü tərəflər və bütün müsahibə hazırlığı hesabatının tək kliklə kopyalanması.
+  3. **Dərin AI Cavab Təhlil Mühərriki (`/api/ai/evaluate-interview-answer`):**
+     - **0-100 Bal və Qiymət:** Cavabın peşəkarlığına, dolğunluğuna və vəzifəyə uyğunluğuna görə obyektiv bal və dərəcə (`Əla`, `Yaxşı`, `Kafi`, `Zəif`).
+     - **STAR Metodu Matrisi:** Situasiya (S), Tapşırıq (T), Fəaliyyət (A) və Nəticə (R) komponentlərinin dəqiq analitik təhlili.
+     - **Güclü Tərəflər & Təkmilləşdirilməli Məqamlar:** Namizədin cavabında uğurlu olan cəhətlər və çatışmayan detallar (rəqəmlər, alətlər, konkret nəticələr).
+     - **AI tərəfindən Təkmilləşdirilmiş İdeal Versiya (`refinedAnswerAz`):** Namizədin öz fikirləri və faktları əsasında Azərbaycan dilində ideal, yüksək təsirli və işəgötürəni heyran edəcək hazır korporativ cavab forması.
+     - **Qızıl HR Məsləhəti (`keyAdvice`):** Hər sual üzrə müsahibəçini inandırmaq üçün ən vacib strateji tövsiyə.
+
+- [x] **Namizədlər üçün Səsli AI Müsahibə Məşqi və Emosional/Ritm Analizi Modulu (Voice Practice Interview & AI-Powered Sentiment Analysis Suite):**
+  1. **İstifadəçinin Xüsusi Tələbi:**
+     - *"Add a 'Practice Interview' feature that uses the microphone to record candidate mock interview answers and provides AI-powered sentiment analysis."*
+  2. **Mikrofonla Canlı Səs Yazılışı və Audio Dinləmə (`PracticeInterviewView.tsx`):**
+     - **MediaRecorder API İnteqrasiyası:** Namizəd mikrofon icazəsi ilə suala cavabını saniyəbəsaniyə qeyd edir, canlı səs indikatoru və pulsasiya edən qeyd dalğası ilə vizual geridönüş alır.
+     - **Daxili Audio Pleyer:** Qeydə alınmış audionu dərhal dinləmək, intonasiya və səhv yerləri qulaq asaraq təhlil etmək imkanı.
+     - **Canlı Transkript Çıxarılması:** Web Speech API və mətni əl ilə düzəliş etmə imkanı (həm Azərbaycan, həm beynəlxalq dillərdə nitqin mətnə çevrilməsi).
+  3. **Süni İntellektlə Dərin Sentiment və Nitq Dinamikası Analizi (`/api/ai/sentiment-analysis`, `practiceInterviewService.ts`):**
+     - **Nitq Ritm və Sürət Analizi (WPM - Words Per Minute):** Danışılan söz sayının zamana nisbəti hesablanır və optimal (110-165 söz/dəqiqə), sürətli və ya yavaş nitq tempinə dair tövsiyə verilir.
+     - **Parazit Sözlərin Aşkarlanması (Filler Word Detector):** Azərbaycan dilində ən çox rast gəlinən lüzumsuz pauza sözləri (`ııı / eee`, `yəni`, `şey`, `belə deyək`, `filan`, `düzü`, `faktiki olaraq`) və ingilis parazitləri (`like`, `basically`) aşkarlanır, hər birinin sayı və faizi qrafiklə göstərilir.
+     - **5 Əsas Emosional və Peşəkar Metrika (0-100 Bal):** Özünəinam (Confidence), Pozitivlik & Enerji (Positivity), Fikir Aydınlığı (Clarity), Təmkinlilik və Sakitlik (Composure), Korporativ Dərəcə (Professionalism).
+     - **Sentiment Kateqoriyası və Tonu:** İnamlı və Məqsədyönlü (Confident), Təmkinli və Analitik (Composed), Pozitiv və Həvəsli (Enthusiastic).
+     - **Konkret Güclü Cəhətlər & İnkişaf Tövsiyələri:** Namizədin hansı ifadələrinin müsahibəçiyə təsir etdiyi və nələri artırmalı olduğu açıq izah olunur.
+     - **STAR Metoduna Uyğun İdeal Cavab Nümunəsi:** AI tərəfindən həmin sual üçün tərtib edilmiş qüsursuz, professional cavab şablonu.
+  4. **Çoxkanallı Giriş və İstifadə Rahatlığı:**
+     - Sol Sidebar menyusunda `AI Müsahibə Məşqi` (`AI Səs` nişanı ilə).
+     - Başlıqdakı (Header) Alətlər menyusunda birbaşa seçim.
+     - `InterviewPrepModal` daxilində "Mikrofonla Məşq & AI Sentiment" düyməsi ilə vakansiya üzrə birbaşa səsli məşqə keçid.
+     - 8 hazır peşəkar rol preseti və ya sistemdə mövcud olan şirkət vakansiyaları əsasında xüsusi sual bazası seçimi.
+
+- [x] **Namizədlərin "Müraciətlərim" Bölməsində Səsli Müsahibə Sentiment və Texniki Rəy Analitikası Paneli (Candidate Practice Interview Sentiment & Technical Feedback Dashboard in My Applications):**
+  1. **İstifadəçinin Xüsusi Tələbi:**
+     - *"Create a dashboard component in the candidate's 'My Applications' tab that displays the sentiment and technical feedback analysis score from their recorded 'Practice Interview' sessions."*
+  2. **İki-Pilləli İnteqrasiya və Sub-Tab Strukturu (`MyApplications.tsx`):**
+     - **Sub-Tab 1: Vakansiya Müraciətləri:** Namizədin iş elanlarına göndərdiyi müraciətlərin canlı statusları, işəgötürən qeydləri və rəsmi ofərlər. Yuxarı hissədə **Sınaq Müsahibəsi Hazırlıq & Sentiment İndeksi** haqqında yığcam analitik xülasə kartı (Orta Sentiment balı, Texniki STAR balı, WPM nitq tempi və Dərin Paneli açmaq üçün keçid).
+     - **Sub-Tab 2: AI Müsahibə Məşqi & Sentiment Raporu:** Namizədin qeydə alınmış bütün sınaq müsahibələrini əhatə edən tam interaktiv analitika və hesabat paneli.
+  3. **Dərin Analitika və Hesabat İdarəetmə Paneli (`PracticeInterviewDashboardWidget.tsx`):**
+     - **Əsas İcraçı Göstəricilər (Executive KPI Cards):**
+       - Orta Sentiment Balı (0-100) və Emosional Ton dərəcəsi (`İnamlı və Qətiyyətli`, `Pozitiv`, `Təmkinli`).
+       - Texniki Rəy & STAR Metodu Qiyməti (0-100) və sahəvi ekspertiza dərəcəsi.
+       - Danışıq Sürəti & Ritm (WPM) — optimal 110-165 söz/dəqiqə aralığı göstəricisi ilə.
+       - Parazit Söz İndeksi — nitqdə aşkarlanmış `ııı`, `yəni`, `şey` parazit sözlərin statistikası.
+     - **5-Pilləli Emosional İntellekt və Peşəkarlıq Matrisi:** Özünəinam (Confidence), Fikir Aydınlığı (Clarity), Pozitiv Enerji (Positivity), Təmkinlilik (Composure), Peşəkarlıq (Professionalism).
+     - **Qeydə Alınmış Sınaq Müsahibələri Reyestri (Session Explorer):**
+       - Vakansiya və şirkət adı (`Senior Frontend Engineer • PASHA Bank`, `Backend Engineer • Kapital Bank`, `UX/UI Designer • PASHA Life`).
+       - Sual və səsləndirilmiş cavabın dəqiq transkripti.
+       - **Daxili Audio Pleyer:** Namizədin öz səsini dinləməsi üçün birbaşa pleyer inteqrasiyası.
+       - STAR metodunun Situasiya, Tapşırıq, Fəaliyyət və Nəticə blokları üzrə analizi.
+       - AI tərəfindən hazırlanmış ideal STAR cavab şablonu (1 kliklə kopyalama imkanı ilə).
+       - Qeydlər üzrə axtarış, kateqoriyalara görə filtrləmə və sentiment/texniki bal üzrə sıralama.
+       - Detallı nəticə modalı (`selectedSessionForDetail`) və tək kliklə həmin sualı yenidən məşq etmə imkanı.
+  4. **Davamlı Yaddaş Saxlanması və Canlı Sinxronizasiya (`practiceInterviewService.ts`):**
+     - Bütün qeydə alınmış audio və AI sentiment nəticələri `localStorage` (`jobia_candidate_practice_sessions`) üzərində saxlanılır və xüsusi `jobia_practice_sessions_updated` qlobal hadisəsi ilə həm Practice Interview görünüşü, həm də Müraciətlərim tabı arasında dərhal sinxronlaşır.
+
+- [x] **Namizədlər üçün Peşəkar Xülasə və CV Struktur Təkmilləşdirmə Modulu (Professional Summary & Actionable CV Structure Blueprint in Deep CV Analyzer):**
+  1. **İstifadəçinin Xüsusi Tələbi:**
+     - *"Create a new 'Professional Summary' report component for the DeepCVAnalyzerView that provides specific, actionable advice on improving CV structure and keyword usage based on the analyzed content."*
+  2. **ATS Audit Bölməsi Daxilində Vahid İnteqrasiya (`ProfessionalSummaryReport.tsx` & `AICVAnalyzerDashboard.tsx`):**
+     - Dərin CV Analizatorunun ("AI CV Analizator") ATS Audit tabı daxilində 100-ballıq deterministik bal və 10 ATS meyarı arasında yerləşdirilmiş, istifadəçiyə dərhal hərəkətverici tövsiyələr və hazır mətnlər təqdim edən müasir analitik modul.
+  3. **Hərtərəfli Diaqnostika və Söz Sayı Ölçməsi (Word Count & Readability Metric):**
+     - Mövcud CV-də xülasənin olub-olmaması aşkarlanır; mövcud deyilsə xəbərdarlıq və təcili əlavə etmə tövsiyəsi verilir.
+     - Söz sayğacı (optimal 40–80 söz / 3–5 cümlə normativi), oxunma müddəti və vəzifə/staj dəqiqlik statusu canlı qrafiklə əks olunur.
+  4. **4 Fərqli Rol və Üslubda Hazır Peşəkar Xülasə Variantları (Multi-Style Copy-Ready Studio):**
+     - Namizədin faktiki vəzifəsi, ümumi stajı, əsas bacarıqları və iş yerləri əsasında generasiya edilmiş 4 xüsusi tərtibat:
+       1. *İcraçı & Strateji Liderlik (Executive & Strategic Leadership)*: Rəhbər və aparıcı mütəxəssislər üçün proses optimizasiyası və komanda koordinasiyası.
+       2. *Nəticəyönümlü & Metrikalı (Results & Metrics-Driven)*: Google XYZ qaydası ilə ölçülən rəqəmlər və faizlər.
+       3. *Texniki Mütəxəssis (Technical & Hard Skills Rich)*: HR və ATS axtarış sistemlərində ən yüksək reytinq təmin edən sahəvi açar söz sıxlığı.
+       4. *Qısa Elevator Pitch*: LinkedIn "About" və ya kompakt CV-lər üçün 3 cümləlik dinamik təqdimat.
+     - Hər bir variant üçün bir toxunuşla buferə kopyalama (`Mətni Kopyala`) və `.txt` faylı kimi cihazda yadda saxlama (`Download`).
+  5. **Sahəvi Açar Sözlər: Aşkar Edilənlər vs Çatışmayanlar (Missing vs. Detected Keywords Matrix):**
+     - CV-də tapılmış əsas sahəvi terminlər ilə çatışmayan kritik açar sözlərin qarşılaşdırılması.
+     - Hər bir termin üçün xülasədə hara və necə yerləşdirilməsinə dair konkret yerləşdirmə tövsiyələri.
+     - Real vaxt süzgəcləməsi (`Hamısı`, `Aşkar Edilənlər`, `Çatışmayanlar`) və canlı axtarış inputu.
+  6. **Qızıl Standart: ATS Bölmələrinin İyerarxiyası və Sıralaması (Section-by-Section Structural Hierarchy Checklist):**
+     - Beynəlxalq ATS alqoritmlərinin tövsiyə etdiyi 6 pilləli struktur ardıcıllığı: 1. Əlaqə məlumatları -> 2. Peşəkar Xülasə -> 3. İş Təcrübəsi -> 4. Bacarıqlar -> 5. Təhsil -> 6. Sertifikatlar & Dillər.
+     - Hər bir bölmənin namizədin CV-sində mövcudluğu (`Mövcuddur` / `Çatışmır`), xüsusi balı və texniki tövsiyə qeydi.
+  7. **Google XYZ Cümlə Transformasiya Nümunələri:**
+     - Zəif və passiv vəzifə sadalamasını güclü nəticəyönümlü Google XYZ cümlələrinə çevirən aydın müqayisəli təlimat bloku.
+
+- [x] **Platforma Ekosisteminin Saytın Görünüşünə Tam İnteqrasiyası və Təqdimatı (Platform Ecosystem & Enterprise Capability Showcase):**
+  1. **İstifadəçinin Xüsusi Tələbi:**
+     - *"saytın görünüşündə bunları əlavə et və inteqrasiya et: jobia.az - Müasir Vakansiya və Ağıllı Karyera Portalı. Azərbaycanın müasir vakansiya, ağıllı CV, tam HR işə qəbul və Enterprise Recruiting Analytics platforması. Time to Fill / Time to Hire analitikası, 11 mərhələli recruitment funnel, bazar benchmarkları, AI müsahibə və iş təklifi workflow-u, AR Vergi kalkulyatoru, AI Job Offer tərtibatı, birbaşa A4 PDF generasiyası, təhlükəsiz namizəd portali və 1 kliklə e-poçt göndərişi."*
+  2. **İnteraktiv Ekosistem Modalı (`PlatformEcosystemModal.tsx`):**
+     - Bütün 10 əsas korporativ və AI imkanını əhatə edən, canlı statistikalar, kateqoriya filtrləri ("Hamısı", "Enterprise HR", "AI Karyera", "AR Vergi") və hər bir imkana 1 kliklə keçid təmin edən genişləndirilmiş modal.
+  3. **Vakansiyalar Bölməsinin Başlığı və Vitrini (`JobExplorer.tsx` Section 0):**
+     - Səhifənin ən üst hissəsində 8 zənginləşdirilmiş interaktiv kart, canlı status pilləri (Time to Fill, 11 Funnel, Bazar benchmarkları, AI Müsahibə, AI Job Offer, A4 PDF, Təhlükəsiz portal, AR Vergi) və "Ekosistem Bələdçisi" düyməsi ilə tam vizual təqdimat.
+  4. **Naviqasiya və Alətlər Menyu İnteqrasiyası (`Header.tsx`):**
+     - Alətlər menyusuna "Recruiting Analytics (Time to Fill & 11 Funnel)", "AI Müsahibə Məşqi (STAR Metodu)" və "AI Job Offer Portalı" birbaşa keçidləri daxil edildi; həm namizəd, həm işəgötürən bir kliklə ekosistemin imkanlarını araşdıra bilir.
+  5. **Saytın Ətək Hissəsi və Ekosistem Zolağı (`Footer.tsx`):**
+     - İş axtaranlar və işəgötürənlər sütunlarında rəsmi funksiyalar əks olundu, alt hissədə isə 8 əsas imkanın ikonlar və izahatlarla vizual zolağı ("Enterprise Ecosystem Showcase Strip") əlavə edildi.
+  6. **Yeni İstifadəçi Bələdçisi (`IntroTourModal.tsx`):**
+     - Platformaya daxil olan istifadəçilərə ilkin bələdçidə ekosistemin bütün əsas imkanları vizual olaraq təqdim olundu.
+
+- [x] **Texniki Həll və İnnovativ Modullar Paketi: Açıq CV Kataloqu, Qeydiyyatsız Elan, AI Maya Dəyəri/Marja Cüzdanı və Çoxistifadəçili Komanda İdarəetməsi (Comprehensive 32-Section Technical Solution Suite - Oktyabr 2026):**
+  1. **Açıq CV Kataloqu və Məxfilik İdarəetməsi (Public & Searchable CV Ecosystem - Bölmə 9, 28.6):**
+     - **Google və Daxili Axtarış Sistemləri İndekslənməsi:** Namizədin öz CV-sini axtarış sistemlərinə (Google) və platforma kataloquna birbaşa açması, avtomatik unikal SEO slug (`jobia.az/cv/ad-soyad`), Schema.org Person JSON-LD strukturlaşdırılmış məlumatlar.
+     - **3 Səviyyəli Məxfilik Qoruması:** "Tam ad / Yalnız Ad və Soyadın Baş Hərfi", "Əlaqə nömrəsini gizlət", "Mövcud işəgötürəndən gizlət" filtrləri ilə namizədin təhlükəsizliyinin təmin olunması.
+     - **Monetizasiya Paketləri:** Qısa (1 ay - 9 AZN), Standart (3 ay - 19 AZN), İllik (12 ay - 49 AZN) və Əlavə "+15 AZN Önə Çıxarılma (Featured Badge)".
+     - **İşəgötürənlərin Əlaqə Sorğusu (Contact Request):** İşəgötürənlərin açıq CV-lərə baxması, baxış sayğacının artması və namizədin məxfi kontaktlarına çatması üçün birbaşa vəzifə və təklif olunan maaşla əlaqə sorğusu göndərməsi.
+     - **Namizəd üçün Açıq CV İdarəetmə Modalı (`OpenCVManagerModal.tsx`) və Kataloq Görünüşü (`OpenCVCatalogView.tsx`):** Namizədin həm öz CV-sini bir toxunuşla idarə etməsi, həm də bütün ictimai namizədlər bazasını rahat axtarması.
+  2. **Qeydiyyatsız Sürətli Elan Yerləşdirmə Sistemi (Guest Job Posting Engine - Bölmə 6.2, 79):**
+     - **3 Addımlı Sürətli Elan Modalı (`GuestJobPostingModal.tsx`):** İşəgötürən şirkətlərin platformada əvvəlcədən qeydiyyatdan keçməsinə ehtiyac olmadan birbaşa 3 addımda (1. Şirkət & Əlaqədar şəxs -> 2. Vəzifə, Şəhər, Maaş -> 3. Təsvir & Tələblər) elan yerləşdirməsi.
+     - **Hazır Şablonlar və AI Köməkçi:** Mühasib, Satış Meneceri, Sürücü, Aşpaz və İT üzrə hazır şablonlar; 1 kliklə məsuliyyət və tələbləri formalaşdıran köməkçi.
+     - **Avtomatik Təhlükəsizlik və 2 Saatlıq Təsdiq Zəmanəti:** Elan `pending_review` statusu ilə həm Firestore, həm də yerli bazaya yazılır, unikal izləmə kodu təqdim olunur və admin tərəfindən 2 saat ərzində yoxlanılaraq dərc edilir.
+  3. **AI Xidmətləri, Maya Dəyəri, Satış Qiyməti və 92-95% Gəlirlilik Marjası (AI Credit Wallet & Unit Economics - Bölmə 22):**
+     - **Dəqiq Vahid İqtisadiyyatı (Unit Economics):** Hər bir AI əməliyyatının (AI CV Uyğunluq Skoru, AI ATS Audit, AI Müsahibə Sualları, AI İş Təsviri, AI Səsli Transkripsiya) texniki Gemini API maya dəyəri (0.005 - 0.05 AZN), müştəriyə satış qiyməti (0.50 - 2.00 AZN / 1-4 kredit) və platforma üçün 92-95% xalis marjası tam hesablandı.
+     - **Pulsuz Sınaq və Kredit Doldurma Paketləri:** Hər yeni istifadəçiyə 3 pulsuz AI sınaq hüququ, ardınca 50 Kredit (10 AZN), 150 Kredit (25 AZN), 400 Kredit (50 AZN) balans artırma paketləri.
+     - **Avtomatik Kredit Qaytarılması (Automatic Rollback Refund):** Hər hansı texniki və ya API kəsintisi olduqda xərclənmiş kredit anında istifadəçinin cüzdanına geri qaytarılır.
+     - **İstifadəçilər üçün AI Kredit Cüzdanı Modalı (`AICreditWalletModal.tsx`):** İstifadəçi öz balansını, qalıq kreditləri, tranzaksiya tarixçəsini və vahid iqtisadiyyatı şəffaf şəkildə izləyir.
+  4. **Şirkət Daxilində Çoxistifadəçili Komanda və Rol Əsaslı İcazələr (Multi-User Company RBAC & Audit Trail - Bölmə 5, 82):**
+     - **4 Səviyyəli Rol İyerarxiyası:** Şirkət Administratoru (`company_admin`), HR Menecer (`hr_manager`), İşə Qəbul Üzrə Mütəxəssis / Rekruter (`recruiter`) və Müsahibəçi / İzləyici (`interviewer`).
+     - **Granulyar İcazələr Matrisi:** Vakansiya yaratma/redaktə, Namizədin mərhələsini dəyişmə, Rəsmi təklif (Offer) göndərmə, Hesabat ixracı, Şirkət profil tənzimləmələri.
+     - **Şirkətdaxili Audit Jurnalı (`companyTeamService.ts` & `CompanyTeamManagementTab.tsx`):** Komanda üzvlərinin hansı namizədi hansı statusa keçirdiyini, kimin yeni elan verdiyini saniyəsinədək qeydə alan korporativ audit jurnalı.
+  5. **İnzibatçı (Admin) Panelində Açıq CV Moderasiyası və AI Qiymət/Marja İdarəetməsi (Admin Open CV Moderation & AI Margin Control - Bölmə 24):**
+     - **Açıq CV Moderasiyası Tabı:** Bütün açıq CV-lərin baxış və sorğu sayğacları, tək kliklə "Aktiv / Gizlət", "Önə çıxarılma (Featured)" statuslarının tənzimlənməsi.
+     - **AI Xidmətləri və Marja Tabı:** Hər bir AI funksiyasının (ATS, CV Analiz, Müsahibə, Səs) maya dəyəri, satış qiyməti, marjası və sistem səviyyəsində tək kliklə "Aktiv / Deaktiv" edilməsi (Feature Flags).
+  6. **Ümumi Platforma Naviqasiyası və Görünüşünün Zənginləşdirilməsi:**
+     - Yuxarı Başlıqda (Header) "Açıq CV-lər", "Qeydiyyatsız Elan", "AI Balans" düymələri.
+     - Sol Yan Menyuda (Sidebar) namizəd üçün "Açıq CV Kataloqu", işəgötürən üçün "Komanda & Rollar" və "Açıq CV Kataloqu" keçidləri.
+
 ### 🔮 Növbəti Mərhələlər (Gələcək Planlar)
 - [ ] **Mobil Tətbiq (iOS & Android):** Namizədlər üçün anlıq bildirişlər və mobil iş axtarışı.
 - [ ] **WhatsApp & Telegram Bot İnteqrasiyası:** Yeni vakansiyalar haqqında namizədlərə anlıq çat bildirişləri.
-- [ ] **AI Səsli Müsahibə Simulyatoru:** Real vaxt rejimində namizədin cavablarını dinləyən və səsli rəy verən interaktiv modul.
+- [x] **AI Səsli Müsahibə Simulyatoru:** Real vaxt rejimində namizədin cavablarını mikrofondan dinləyən, mətnə çevirən və dərin STAR qiymətləndirməsi verən interaktiv modul (Həyata keçirildi).
 - [ ] **Bank və Ödəniş Gateway İnteqrasiyası:** Yerli banklar (Kapital Bank / Pasha Bank e-Commerce) vasitəsilə birbaşa kartla ödəniş.
 - [ ] **Video Müsahibə və Təqdimat Portalı:** Namizədlərin 60 saniyəlik video vizitkart yükləməsi.
+

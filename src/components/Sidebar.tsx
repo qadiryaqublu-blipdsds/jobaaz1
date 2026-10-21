@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { UserRole, User, UserSubscription } from '../types';
+import { UserRole, User, UserSubscription, BusinessTabType, CandidateTabType } from '../types';
 import { JobiaLogo } from './JobiaLogo';
 import { useLanguage } from '../context/LanguageContext';
 import { LanguageSwitcher } from './LanguageSwitcher';
@@ -33,16 +33,20 @@ import {
   UserCheck,
   Award,
   BarChart3,
-  Users
+  Users,
+  FileCheck,
+  Calendar,
+  Mic,
+  Globe
 } from 'lucide-react';
 
 interface SidebarProps {
   currentRole: UserRole;
   onRoleChange: (role: UserRole) => void;
-  candidateTab: 'jobs' | 'nearby-map' | 'my-applications' | 'salary-trends' | 'salary-calculator' | 'vacation-calculator' | 'calculia' | 'google-chat' | 'cv-analyzer' | 'cv-creator' | 'network';
-  onCandidateTabChange: (tab: 'jobs' | 'nearby-map' | 'my-applications' | 'salary-trends' | 'salary-calculator' | 'vacation-calculator' | 'calculia' | 'google-chat' | 'cv-analyzer' | 'cv-creator' | 'network') => void;
-  businessTab?: 'vacancies' | 'applicants' | 'offers' | 'analytics' | 'templates' | 'company-profile' | 'talent-pool' | 'vacation-calculator';
-  onBusinessTabChange?: (tab: 'vacancies' | 'applicants' | 'offers' | 'analytics' | 'templates' | 'company-profile' | 'talent-pool' | 'vacation-calculator') => void;
+  candidateTab: CandidateTabType;
+  onCandidateTabChange: (tab: CandidateTabType) => void;
+  businessTab?: BusinessTabType;
+  onBusinessTabChange?: (tab: BusinessTabType) => void;
   applicationsCount?: number;
   offersCount?: number;
   activeVacanciesCount?: number;
@@ -192,7 +196,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     window.addEventListener('touchend', handleTouchEnd);
   };
 
-  const handleTabClick = (tab: 'jobs' | 'nearby-map' | 'my-applications' | 'salary-trends' | 'salary-calculator' | 'vacation-calculator' | 'calculia' | 'google-chat' | 'cv-analyzer' | 'cv-creator' | 'network') => {
+  const handleTabClick = (tab: CandidateTabType) => {
     onCandidateTabChange(tab);
     onCloseMobile();
   };
@@ -210,6 +214,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
       icon: Search,
       badge: null,
       color: 'blue',
+    },
+    {
+      id: 'practice-interview' as const,
+      label: language === 'en' ? 'Practice Interview' : language === 'ru' ? 'Тренировка интервью' : 'AI Müsahibə Məşqi',
+      icon: Mic,
+      badge: 'AI Səs',
+      badgeClass: 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-black',
+      color: 'purple',
     },
     {
       id: 'network' as const,
@@ -238,6 +250,22 @@ export const Sidebar: React.FC<SidebarProps> = ({
       icon: CheckCircle2,
       badge: applicationsCount > 0 ? applicationsCount : null,
       badgeClass: 'bg-blue-600 text-white font-bold',
+      color: 'blue',
+    },
+    {
+      id: 'smart-forms' as const,
+      label: language === 'en' ? 'Smart Forms & E-Sign' : language === 'ru' ? 'Формы и Э-Подпись' : 'Ağıllı Formalar & E-İmza',
+      icon: FileCheck,
+      badge: 'AI',
+      badgeClass: 'bg-emerald-600 text-white font-bold',
+      color: 'blue',
+    },
+    {
+      id: 'open-cv' as const,
+      label: language === 'en' ? 'Public CV Catalog' : language === 'ru' ? 'Открытые CV' : 'Açıq CV Kataloqu',
+      icon: Globe,
+      badge: 'Yeni',
+      badgeClass: 'bg-emerald-600 text-white font-bold',
       color: 'blue',
     },
   ];
@@ -896,6 +924,38 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   </button>
 
                   <button
+                    id="sidebar-collapsed-business-smart-cv-pool"
+                    onClick={() => {
+                      if (onBusinessTabChange) onBusinessTabChange('smart-cv-pool');
+                      onCloseMobile();
+                    }}
+                    className={`w-10 h-10 flex items-center justify-center rounded-xl transition-all cursor-pointer ${
+                      businessTab === 'smart-cv-pool'
+                        ? 'bg-blue-600 text-white shadow-xs'
+                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                    }`}
+                    title={language === 'en' ? 'Smart CV Pool & Fit Scoring' : language === 'ru' ? 'База резюме и скоринг' : 'Ağıllı CV Baza & Skorinq'}
+                  >
+                    <Sparkles className="w-5 h-5 text-amber-400" />
+                  </button>
+
+                  <button
+                    id="sidebar-collapsed-business-smart-forms"
+                    onClick={() => {
+                      if (onBusinessTabChange) onBusinessTabChange('smart-forms');
+                      onCloseMobile();
+                    }}
+                    className={`w-10 h-10 flex items-center justify-center rounded-xl transition-all cursor-pointer ${
+                      businessTab === 'smart-forms'
+                        ? 'bg-blue-600 text-white shadow-xs'
+                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                    }`}
+                    title="Ağıllı Formalar & E-İmza"
+                  >
+                    <FileText className="w-5 h-5 text-indigo-400" />
+                  </button>
+
+                  <button
                     onClick={() => {
                       if (onBusinessTabChange) onBusinessTabChange('vacancies');
                       onCloseMobile();
@@ -977,6 +1037,52 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   </button>
 
                   <button
+                    id="sidebar-business-tab-smart-cv-pool"
+                    onClick={() => {
+                      if (onBusinessTabChange) onBusinessTabChange('smart-cv-pool');
+                      onCloseMobile();
+                    }}
+                    className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs sm:text-[13px] font-bold transition-all cursor-pointer ${
+                      businessTab === 'smart-cv-pool'
+                        ? 'bg-blue-600 text-white shadow-xs'
+                        : 'text-slate-700 hover:text-slate-900 hover:bg-slate-100'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className={`p-1.5 rounded-lg shrink-0 ${businessTab === 'smart-cv-pool' ? 'bg-white/20 text-white' : 'bg-blue-50 text-blue-600'}`}>
+                        <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                      </div>
+                      <span className="truncate">Ağıllı CV Baza & Skorinq</span>
+                    </div>
+                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md ${businessTab === 'smart-cv-pool' ? 'bg-white/20 text-white' : 'bg-blue-100 text-blue-800'}`}>
+                      YENİ
+                    </span>
+                  </button>
+
+                  <button
+                    id="sidebar-business-tab-smart-forms"
+                    onClick={() => {
+                      if (onBusinessTabChange) onBusinessTabChange('smart-forms');
+                      onCloseMobile();
+                    }}
+                    className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs sm:text-[13px] font-bold transition-all cursor-pointer ${
+                      businessTab === 'smart-forms'
+                        ? 'bg-blue-600 text-white shadow-xs'
+                        : 'text-slate-700 hover:text-slate-900 hover:bg-slate-100'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className={`p-1.5 rounded-lg shrink-0 ${businessTab === 'smart-forms' ? 'bg-white/20 text-white' : 'bg-indigo-50 text-indigo-600'}`}>
+                        <FileText className="w-3.5 h-3.5" />
+                      </div>
+                      <span className="truncate">Ağıllı Formalar & E-İmza</span>
+                    </div>
+                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md ${businessTab === 'smart-forms' ? 'bg-white/20 text-white' : 'bg-emerald-100 text-emerald-800'}`}>
+                      AI
+                    </span>
+                  </button>
+
+                  <button
                     onClick={() => {
                       if (onBusinessTabChange) onBusinessTabChange('vacancies');
                       onCloseMobile();
@@ -1022,6 +1128,28 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         {applicationsCount}
                       </span>
                     )}
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      if (onBusinessTabChange) onBusinessTabChange('interviews');
+                      onCloseMobile();
+                    }}
+                    className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs sm:text-[13px] font-bold transition-all cursor-pointer ${
+                      businessTab === 'interviews'
+                        ? 'bg-blue-600 text-white shadow-xs'
+                        : 'text-slate-700 hover:text-slate-900 hover:bg-slate-100'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className={`p-1.5 rounded-lg shrink-0 ${businessTab === 'interviews' ? 'bg-white/20 text-white' : 'bg-slate-100 text-blue-600'}`}>
+                        <Calendar className="w-3.5 h-3.5" />
+                      </div>
+                      <span className="truncate">{language === 'en' ? 'Interview Reminders' : language === 'ru' ? 'Интервью и напоминания' : 'Müsahibə & 24h Xatırlatma'}</span>
+                    </div>
+                    <span className="text-[9px] font-black px-1.5 py-0.2 rounded bg-blue-100 text-blue-700">
+                      SMTP
+                    </span>
                   </button>
 
                   <button
@@ -1103,6 +1231,46 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       </div>
                       <span className="truncate">{language === 'en' ? 'Vacation Calculator' : language === 'ru' ? 'Калькулятор отпускных' : 'Məzuniyyət Hesabla'}</span>
                     </div>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      if (onBusinessTabChange) onBusinessTabChange('team-users');
+                      onCloseMobile();
+                    }}
+                    className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs sm:text-[13px] font-bold transition-all cursor-pointer ${
+                      businessTab === 'team-users'
+                        ? 'bg-blue-600 text-white shadow-xs'
+                        : 'text-slate-700 hover:text-slate-900 hover:bg-slate-100'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className={`p-1.5 rounded-lg shrink-0 ${businessTab === 'team-users' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'}`}>
+                        <Users className="w-3.5 h-3.5" />
+                      </div>
+                      <span className="truncate">{language === 'en' ? 'Team & Roles' : language === 'ru' ? 'Команда и роли' : 'Komanda & Rollar'}</span>
+                    </div>
+                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-blue-100 text-blue-700">RBAC</span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      if (onBusinessTabChange) onBusinessTabChange('open-cv-catalog');
+                      onCloseMobile();
+                    }}
+                    className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs sm:text-[13px] font-bold transition-all cursor-pointer ${
+                      businessTab === 'open-cv-catalog'
+                        ? 'bg-emerald-600 text-white shadow-xs'
+                        : 'text-slate-700 hover:text-slate-900 hover:bg-slate-100'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className={`p-1.5 rounded-lg shrink-0 ${businessTab === 'open-cv-catalog' ? 'bg-white/20 text-white' : 'bg-emerald-50 text-emerald-600'}`}>
+                        <Globe className="w-3.5 h-3.5" />
+                      </div>
+                      <span className="truncate">{language === 'en' ? 'Open CV Catalog' : language === 'ru' ? 'Каталог резюме' : 'Açıq CV Kataloqu'}</span>
+                    </div>
+                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800">SEO</span>
                   </button>
 
                   <div className="pt-2">

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Application, ApplicationStatus, JobOffer, User } from '../../types';
 import { useLanguage } from '../../context/LanguageContext';
 import { getLocalizedApplicationStatus, getLocalizedOfferStatus } from '../../i18n/localizeData';
@@ -13,8 +13,14 @@ import {
   ChevronRight,
   LogIn,
   UserPlus,
-  Lock
+  Lock,
+  Mic,
+  Sparkles,
+  Target,
+  BarChart3
 } from 'lucide-react';
+import { PracticeInterviewDashboardWidget } from './PracticeInterviewDashboardWidget';
+import { getStoredPracticeSessions, getPracticeAnalyticsSummary } from '../../services/practiceInterviewService';
 
 interface MyApplicationsProps {
   applications: Application[];
@@ -24,6 +30,7 @@ interface MyApplicationsProps {
   onViewOffer?: (offer: JobOffer) => void;
   currentUser?: User | null;
   onOpenAuthModal?: (mode?: 'login' | 'register', role?: 'candidate' | 'business') => void;
+  onNavigateToPractice?: (roleTitle?: string, companyName?: string) => void;
 }
 
 export const MyApplications: React.FC<MyApplicationsProps> = ({
@@ -34,8 +41,23 @@ export const MyApplications: React.FC<MyApplicationsProps> = ({
   onViewOffer,
   currentUser,
   onOpenAuthModal,
+  onNavigateToPractice,
 }) => {
   const { language, dict } = useLanguage();
+  const [activeSubTab, setActiveSubTab] = useState<'applications' | 'practice-dashboard'>('applications');
+  const [practiceSessions, setPracticeSessions] = useState(() => getStoredPracticeSessions());
+
+  useEffect(() => {
+    const handleUpdate = () => {
+      setPracticeSessions(getStoredPracticeSessions());
+    };
+    window.addEventListener('jobia_practice_sessions_updated', handleUpdate);
+    return () => window.removeEventListener('jobia_practice_sessions_updated', handleUpdate);
+  }, []);
+
+  const practiceSummary = useMemo(() => {
+    return getPracticeAnalyticsSummary(practiceSessions);
+  }, [practiceSessions]);
 
   const getStatusBadge = (status: ApplicationStatus | string) => {
     switch (status) {
@@ -150,26 +172,135 @@ export const MyApplications: React.FC<MyApplicationsProps> = ({
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h2 className="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2">
-            <CheckCircle2 className="w-5 h-5 text-blue-600" />
-            <span>{dict.applications.title} ({applications.length})</span>
-          </h2>
-          <p className="text-xs text-slate-500 mt-0.5">
-            {dict.applications.subtitle}
-          </p>
-        </div>
+      {/* Sub-tab Navigation */}
+      <div className="flex items-center gap-2 border-b border-slate-200 pb-3 flex-wrap">
+        <button
+          type="button"
+          onClick={() => setActiveSubTab('applications')}
+          className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+            activeSubTab === 'applications'
+              ? 'bg-blue-600 text-white shadow-xs'
+              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+          }`}
+        >
+          <CheckCircle2 className="w-4 h-4" />
+          <span>{dict.applications.title}</span>
+          <span
+            className={`px-1.5 py-0.2 rounded-full text-[10px] font-black ${
+              activeSubTab === 'applications'
+                ? 'bg-blue-700 text-white'
+                : 'bg-slate-200 text-slate-700'
+            }`}
+          >
+            {applications.length}
+          </span>
+        </button>
 
         <button
-          onClick={onExploreJobs}
-          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg flex items-center gap-1.5 shadow-sm transition-colors cursor-pointer"
+          type="button"
+          onClick={() => setActiveSubTab('practice-dashboard')}
+          className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+            activeSubTab === 'practice-dashboard'
+              ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-xs'
+              : 'text-purple-700 bg-purple-50/80 hover:bg-purple-100 border border-purple-200/60'
+          }`}
         >
-          <Briefcase className="w-3.5 h-3.5" />
-          <span>{dict.applications.exploreJobs}</span>
+          <Mic className="w-4 h-4 text-amber-300 animate-pulse" />
+          <span>AI Müsahibə Məşqi & Sentiment Raporu</span>
+          <span
+            className={`px-1.5 py-0.2 rounded-full text-[10px] font-black ${
+              activeSubTab === 'practice-dashboard'
+                ? 'bg-white/20 text-white'
+                : 'bg-purple-200 text-purple-900'
+            }`}
+          >
+            {practiceSummary.totalSessions} Qeyd
+          </span>
         </button>
       </div>
+
+      {/* VIEW: PRACTICE INTERVIEW DASHBOARD */}
+      {activeSubTab === 'practice-dashboard' ? (
+        <PracticeInterviewDashboardWidget onNavigateToPractice={onNavigateToPractice} />
+      ) : (
+        /* VIEW: APPLICATIONS & HIGHLIGHT BANNER */
+        <div className="space-y-5">
+          {/* Practice Interview Readiness Highlight Card */}
+          <div className="bg-gradient-to-r from-purple-50 via-indigo-50/60 to-white p-4 sm:p-5 rounded-2xl border border-purple-200/80 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="flex items-start sm:items-center gap-3.5">
+              <div className="w-11 h-11 rounded-xl bg-gradient-to-tr from-purple-600 to-indigo-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+                <Mic className="w-5 h-5 text-purple-100 animate-pulse" />
+              </div>
+              <div className="space-y-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h3 className="text-xs sm:text-sm font-black text-slate-900">
+                    Sınaq Müsahibəsi Hazırlıq & Sentiment İndeksi
+                  </h3>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-purple-100 text-purple-800 border border-purple-200">
+                    {practiceSummary.topPrimarySentiment}
+                  </span>
+                </div>
+                <div className="flex flex-wrap items-center gap-3 text-xs text-slate-600">
+                  <span className="flex items-center gap-1 font-bold text-purple-900">
+                    <Sparkles className="w-3.5 h-3.5 text-purple-600" />
+                    <span>Sentiment: {practiceSummary.averageSentimentScore}/100</span>
+                  </span>
+                  <span className="text-slate-300">•</span>
+                  <span className="flex items-center gap-1 font-bold text-indigo-900">
+                    <Target className="w-3.5 h-3.5 text-indigo-600" />
+                    <span>Texniki STAR: {practiceSummary.averageTechnicalScore}/100</span>
+                  </span>
+                  <span className="text-slate-300">•</span>
+                  <span className="text-slate-500 font-medium">
+                    Orta Ritm: {practiceSummary.averageWpm} söz/dəq
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={() => setActiveSubTab('practice-dashboard')}
+                className="px-3.5 py-2 bg-white hover:bg-slate-50 text-purple-700 font-bold text-xs rounded-xl border border-purple-200 shadow-2xs transition-colors flex items-center gap-1.5 cursor-pointer"
+              >
+                <span>Dərin Təhlil Panelinə Bax</span>
+                <ChevronRight className="w-3.5 h-3.5" />
+              </button>
+
+              {onNavigateToPractice && (
+                <button
+                  type="button"
+                  onClick={() => onNavigateToPractice()}
+                  className="px-3.5 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-bold text-xs rounded-xl shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Mic className="w-3.5 h-3.5 text-amber-300" />
+                  <span>Yeni Səsli Məşq</span>
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Header */}
+          <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <h2 className="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2">
+                <CheckCircle2 className="w-5 h-5 text-blue-600" />
+                <span>{dict.applications.title} ({applications.length})</span>
+              </h2>
+              <p className="text-xs text-slate-500 mt-0.5">
+                {dict.applications.subtitle}
+              </p>
+            </div>
+
+            <button
+              onClick={onExploreJobs}
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg flex items-center gap-1.5 shadow-sm transition-colors cursor-pointer"
+            >
+              <Briefcase className="w-3.5 h-3.5" />
+              <span>{dict.applications.exploreJobs}</span>
+            </button>
+          </div>
 
       {/* Empty State for Authenticated User */}
       {applications.length === 0 ? (
@@ -291,6 +422,8 @@ export const MyApplications: React.FC<MyApplicationsProps> = ({
               </div>
             );
           })}
+        </div>
+      )}
         </div>
       )}
     </div>

@@ -39,6 +39,11 @@ export const CandidateComparatorModal: React.FC<CandidateComparatorModalProps> =
 }) => {
   if (!isOpen || candidates.length === 0) return null;
 
+  // Deduplicate candidates safely
+  const uniqueCandidates = candidates.filter((cand, idx, arr) =>
+    Boolean(cand && cand.id && arr.findIndex((item) => item.id === cand.id) === idx)
+  );
+
   return (
     <ModalPortal>
       <div 
@@ -49,19 +54,19 @@ export const CandidateComparatorModal: React.FC<CandidateComparatorModalProps> =
       >
         <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-5xl overflow-hidden flex flex-col max-h-[90vh] sm:max-h-[88vh]">
         {/* Header */}
-        <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between bg-gradient-to-r from-slate-900 via-slate-800 to-blue-950 text-white shrink-0">
+        <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between bg-white text-slate-900 shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-blue-600/30 border border-blue-400/40 flex items-center justify-center text-blue-300">
-              <Sparkles className="w-5 h-5 text-cyan-300" />
+            <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600 shadow-2xs">
+              <Sparkles className="w-5 h-5 text-blue-600" />
             </div>
             <div>
-              <h3 className="text-base font-black text-white flex items-center gap-2">
+              <h3 className="text-base font-black text-slate-900 flex items-center gap-2">
                 <span>Namizədləri Yan-yana Müqayisə Et</span>
-                <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-400/30">
+                <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
                   {candidates.length} Namizəd
                 </span>
               </h3>
-              <p className="text-xs text-slate-300">
+              <p className="text-xs text-slate-500">
                 Seçilmiş namizədlərin ixtisas, təcrübə, bacarıq və uyğunluq göstəricilərinin müqayisəli təhlili
               </p>
             </div>
@@ -70,7 +75,7 @@ export const CandidateComparatorModal: React.FC<CandidateComparatorModalProps> =
           <button
             type="button"
             onClick={onClose}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+            className="p-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 transition-colors cursor-pointer"
             title="Bağla"
           >
             <X className="w-5 h-5" />
@@ -86,16 +91,16 @@ export const CandidateComparatorModal: React.FC<CandidateComparatorModalProps> =
                   <th className="p-3.5 bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-500 uppercase tracking-wider w-1/4">
                     Meyar / Göstərici
                   </th>
-                  {candidates.map((cand) => {
+                  {uniqueCandidates.map((cand, idx) => {
                     const offer = offers.find(
                       (o) => o.applicationId === cand.id || o.candidateEmail === cand.candidateEmail
                     );
 
                     return (
                       <th
-                        key={cand.id}
+                        key={`${cand.id}-${idx}`}
                         className="p-4 bg-slate-50/80 border-b border-l border-slate-200 text-slate-900"
-                        style={{ width: `${75 / candidates.length}%` }}
+                        style={{ width: `${75 / uniqueCandidates.length}%` }}
                       >
                         <div className="space-y-1.5">
                           <div className="flex items-center justify-between gap-2">
@@ -131,8 +136,8 @@ export const CandidateComparatorModal: React.FC<CandidateComparatorModalProps> =
                 {/* 1. Müraciət Statusu */}
                 <tr>
                   <td className="p-3.5 bg-slate-50 font-bold text-slate-700">Müraciət Statusu</td>
-                  {candidates.map((cand) => (
-                    <td key={cand.id} className="p-3.5 border-l border-slate-200 font-semibold">
+                  {uniqueCandidates.map((cand, idx) => (
+                    <td key={`${cand.id}-${idx}`} className="p-3.5 border-l border-slate-200 font-semibold">
                       <span className="px-2 py-1 rounded-md bg-blue-50 text-blue-700 border border-blue-200">
                         {cand.status || 'Gözləyir'}
                       </span>
@@ -143,8 +148,8 @@ export const CandidateComparatorModal: React.FC<CandidateComparatorModalProps> =
                 {/* 2. Müraciət Tarixi */}
                 <tr>
                   <td className="p-3.5 bg-slate-50 font-bold text-slate-700">Müraciət Tarixi</td>
-                  {candidates.map((cand) => (
-                    <td key={cand.id} className="p-3.5 border-l border-slate-200 text-slate-600">
+                  {uniqueCandidates.map((cand, idx) => (
+                    <td key={`${cand.id}-${idx}`} className="p-3.5 border-l border-slate-200 text-slate-600">
                       {cand.appliedDate || 'Qeyd olunmayıb'}
                     </td>
                   ))}
@@ -156,19 +161,19 @@ export const CandidateComparatorModal: React.FC<CandidateComparatorModalProps> =
                     <div>Bacarıqlar</div>
                     <span className="text-[10px] font-normal text-slate-500">CV-də qeyd edilmiş bacarıqlar</span>
                   </td>
-                  {candidates.map((cand) => {
+                  {uniqueCandidates.map((cand, idx) => {
                     const skills = cand.cvData?.skills || [];
                     return (
-                      <td key={cand.id} className="p-3.5 border-l border-slate-200 align-top">
+                      <td key={`${cand.id}-${idx}`} className="p-3.5 border-l border-slate-200 align-top">
                         {skills.length === 0 ? (
                           <span className="text-slate-400 italic">Bacarıqlar spesifik göstərilməyib</span>
                         ) : (
                           <div className="flex flex-wrap gap-1">
-                            {skills.slice(0, 8).map((skill, idx) => {
+                            {skills.slice(0, 8).map((skill, sIdx) => {
                               const skillName = typeof skill === 'string' ? skill : skill.name;
                               return (
                                 <span
-                                  key={idx}
+                                  key={`${skillName}-${sIdx}`}
                                   className="px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 text-[10px] font-medium"
                                 >
                                   {skillName}
@@ -190,15 +195,15 @@ export const CandidateComparatorModal: React.FC<CandidateComparatorModalProps> =
                 {/* 4. İş Təcrübəsi (İllər və Vəzifələr) */}
                 <tr>
                   <td className="p-3.5 bg-slate-50 font-bold text-slate-700">İş Təcrübəsi Xülasəsi</td>
-                  {candidates.map((cand) => {
+                  {uniqueCandidates.map((cand, idx) => {
                     const exps = cand.cvData?.experiences || [];
                     return (
-                      <td key={cand.id} className="p-3.5 border-l border-slate-200 align-top space-y-1.5">
+                      <td key={`${cand.id}-${idx}`} className="p-3.5 border-l border-slate-200 align-top space-y-1.5">
                         {exps.length === 0 ? (
                           <span className="text-slate-400 italic">Təcrübə göstərilməyib</span>
                         ) : (
-                          exps.slice(0, 2).map((exp, idx) => (
-                            <div key={idx} className="bg-slate-50 p-2 rounded border border-slate-100">
+                          exps.slice(0, 2).map((exp, eIdx) => (
+                            <div key={`${exp.position}-${eIdx}`} className="bg-slate-50 p-2 rounded border border-slate-100">
                               <div className="font-bold text-slate-900">{exp.position}</div>
                               <div className="text-[11px] text-slate-600">
                                 {exp.company} • {exp.startDate || ''} {exp.startDate ? '-' : ''} {exp.current ? 'Davam edir' : (exp.endDate || '')}
@@ -214,15 +219,15 @@ export const CandidateComparatorModal: React.FC<CandidateComparatorModalProps> =
                 {/* 5. Təhsil */}
                 <tr>
                   <td className="p-3.5 bg-slate-50 font-bold text-slate-700">Təhsil Səviyyəsi</td>
-                  {candidates.map((cand) => {
+                  {uniqueCandidates.map((cand, idx) => {
                     const edus = cand.cvData?.education || [];
                     return (
-                      <td key={cand.id} className="p-3.5 border-l border-slate-200 align-top">
+                      <td key={`${cand.id}-${idx}`} className="p-3.5 border-l border-slate-200 align-top">
                         {edus.length === 0 ? (
                           <span className="text-slate-400 italic">Göstərilməyib</span>
                         ) : (
-                          edus.map((edu, idx) => (
-                            <div key={idx} className="text-slate-700">
+                          edus.map((edu, eduIdx) => (
+                            <div key={`${edu.institution}-${eduIdx}`} className="text-slate-700">
                               <span className="font-semibold">{edu.degree || edu.fieldOfStudy}</span>
                               <span className="block text-slate-500 text-[11px]">
                                 {edu.institution} ({edu.startDate || ''} - {edu.current ? 'Davam edir' : (edu.endDate || '')})
@@ -238,8 +243,8 @@ export const CandidateComparatorModal: React.FC<CandidateComparatorModalProps> =
                 {/* 6. Müşayiət Məktubu (Cover Note) */}
                 <tr>
                   <td className="p-3.5 bg-slate-50 font-bold text-slate-700">Müraciət Qeydi (Cover Note)</td>
-                  {candidates.map((cand) => (
-                    <td key={cand.id} className="p-3.5 border-l border-slate-200 text-slate-600 italic">
+                  {uniqueCandidates.map((cand, idx) => (
+                    <td key={`${cand.id}-${idx}`} className="p-3.5 border-l border-slate-200 text-slate-600 italic">
                       {cand.coverNote ? `"${cand.coverNote}"` : <span className="text-slate-400 not-italic">Qeyd yoxdur</span>}
                     </td>
                   ))}
@@ -248,8 +253,8 @@ export const CandidateComparatorModal: React.FC<CandidateComparatorModalProps> =
                 {/* 7. Əməliyyat Düymələri */}
                 <tr className="bg-slate-50/50">
                   <td className="p-3.5 bg-slate-100 font-bold text-slate-800">Qərar və Əməliyyat</td>
-                  {candidates.map((cand) => (
-                    <td key={cand.id} className="p-3.5 border-l border-slate-200">
+                  {uniqueCandidates.map((cand, idx) => (
+                    <td key={`${cand.id}-${idx}`} className="p-3.5 border-l border-slate-200">
                       <div className="flex flex-col gap-1.5">
                         <button
                           type="button"

@@ -383,7 +383,7 @@ export const ProfessionalNetworkView: React.FC<ProfessionalNetworkViewProps> = (
       ) : viewDensity === 'compact' ? (
         /* COMPACT GLASS GRID (ŞÜŞƏ-ŞƏBƏKƏ - Maximum Candidates in Viewport) */
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2 sm:gap-2.5">
-          {filteredCandidates.map((cand) => {
+          {filteredCandidates.map((cand, cIdx) => {
             const { status } = getConnectionStatus(currentUser?.id || 'guest', cand.id, connections);
             const isOpenToWork = cand.openToWork?.isOpen ?? cand.isOpenToEmployers ?? true;
             const isHiring = Boolean(cand.hiring?.isHiring);
@@ -391,7 +391,7 @@ export const ProfessionalNetworkView: React.FC<ProfessionalNetworkViewProps> = (
 
             return (
               <div
-                key={cand.id}
+                key={`${cand.id}-${cIdx}`}
                 className="bg-white/85 backdrop-blur-md rounded-xl border border-slate-200/80 hover:border-blue-400 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex flex-col justify-between overflow-hidden group relative"
               >
                 {/* Compact Top Glass Accent Stripe */}
@@ -510,7 +510,7 @@ export const ProfessionalNetworkView: React.FC<ProfessionalNetworkViewProps> = (
       ) : (
         /* STANDARD VIEW (Geniş 3-4 Sütun) */
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3.5">
-          {filteredCandidates.map((cand) => {
+          {filteredCandidates.map((cand, cIdx) => {
             const { status } = getConnectionStatus(currentUser?.id || 'guest', cand.id, connections);
             const isOpenToWork = cand.openToWork?.isOpen ?? cand.isOpenToEmployers ?? true;
             const isHiring = Boolean(cand.hiring?.isHiring);
@@ -518,7 +518,7 @@ export const ProfessionalNetworkView: React.FC<ProfessionalNetworkViewProps> = (
 
             return (
               <div
-                key={cand.id}
+                key={`${cand.id}-${cIdx}`}
                 className="bg-white/90 backdrop-blur-md rounded-2xl border border-slate-200/90 hover:border-slate-300 hover:shadow-md transition-all duration-200 flex flex-col justify-between overflow-hidden"
               >
                 {/* Card Header Strip */}

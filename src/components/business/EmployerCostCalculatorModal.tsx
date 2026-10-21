@@ -69,19 +69,19 @@ export const EmployerCostCalculatorModal: React.FC<EmployerCostCalculatorModalPr
       >
         <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-3xl overflow-hidden flex flex-col max-h-[90vh] sm:max-h-[88vh]">
         {/* Header */}
-        <div className="px-6 py-4 bg-gradient-to-r from-blue-700 via-indigo-700 to-slate-900 text-white flex items-center justify-between shrink-0">
+        <div className="px-6 py-4 border-b border-slate-200 bg-white text-slate-900 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-white/10 border border-white/20 flex items-center justify-center text-cyan-300">
-              <Calculator className="w-5 h-5" />
+            <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600 shadow-2xs">
+              <Calculator className="w-5 h-5 text-blue-600" />
             </div>
             <div>
-              <h3 className="text-base font-bold text-white flex items-center gap-2">
+              <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
                 <span>İşəgötürən Maaş və Vergi Kalkulyatoru</span>
-                <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-emerald-400/20 text-emerald-300 border border-emerald-400/30">
+                <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
                   2026 AR Vergi Məcəlləsi
                 </span>
               </h3>
-              <p className="text-xs text-blue-100">
+              <p className="text-xs text-slate-500">
                 Namizədin net maaşı, şirkətin vergi/DSMF öhdəliyi və ümumi aylıq/illik xərc simulyasiyası
               </p>
             </div>
@@ -90,7 +90,7 @@ export const EmployerCostCalculatorModal: React.FC<EmployerCostCalculatorModalPr
           <button
             type="button"
             onClick={onClose}
-            className="p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+            className="p-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 transition-colors cursor-pointer"
             title="Bağla"
           >
             <X className="w-5 h-5" />

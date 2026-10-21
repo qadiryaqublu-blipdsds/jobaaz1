@@ -83,6 +83,9 @@ import {
   getLocalizedIndustry,
 } from '../../i18n/localizeData';
 
+import { getStoredOpenCVs, saveStoredOpenCVs, OpenCVRecord } from '../../services/openCVService';
+import { getAIPricingConfig, saveAIPricingConfig, toggleAIFeatureFlag, AIOperationPricing } from '../../services/aiCreditMarginService';
+
 interface AdminDashboardProps {
   vacancies: Vacancy[];
   companies: Company[];
@@ -113,7 +116,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   onOpenPostJobModal,
 }) => {
   const { language, t } = useLanguage();
-  const [activeTab, setActiveTab] = useState<'vacancies' | 'subscriptions' | 'users' | 'companies' | 'applications' | 'created_cvs' | 'approval_history'>('vacancies');
+  const [activeTab, setActiveTab] = useState<
+    | 'vacancies'
+    | 'subscriptions'
+    | 'users'
+    | 'companies'
+    | 'applications'
+    | 'created_cvs'
+    | 'open_cv_moderation'
+    | 'ai_config_margins'
+    | 'approval_history'
+  >('vacancies');
+  const [openCVList, setOpenCVList] = useState<OpenCVRecord[]>(() => getStoredOpenCVs());
+  const [aiPricingList, setAiPricingList] = useState<AIOperationPricing[]>(() => getAIPricingConfig());
   const [searchQuery, setSearchQuery] = useState('');
   const [vacancyModerationFilter, setVacancyModerationFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
   const [selectedVacancyForDetail, setSelectedVacancyForDetail] = useState<Vacancy | null>(null);
@@ -707,6 +722,35 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           </span>
           <span className={`text-[10px] font-black px-1.5 py-0.5 rounded-full ${activeTab === 'created_cvs' ? 'bg-white/25 text-white' : 'bg-emerald-100 text-emerald-800'}`}>
             Data
+          </span>
+        </button>
+        <button
+          onClick={() => setActiveTab('open_cv_moderation')}
+          className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg whitespace-nowrap transition-all ${
+            activeTab === 'open_cv_moderation'
+              ? 'bg-blue-600 text-white shadow-xs'
+              : 'text-slate-700 hover:text-slate-900 hover:bg-slate-50'
+          }`}
+        >
+          <Globe className="w-3.5 h-3.5 text-inherit" />
+          <span>Açıq CV Moderasiyası ({openCVList.length})</span>
+          <span className={`text-[10px] font-black px-1.5 py-0.5 rounded-full ${activeTab === 'open_cv_moderation' ? 'bg-white/25 text-white' : 'bg-blue-100 text-blue-700'}`}>
+            SEO
+          </span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('ai_config_margins')}
+          className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg whitespace-nowrap transition-all ${
+            activeTab === 'ai_config_margins'
+              ? 'bg-blue-600 text-white shadow-xs'
+              : 'text-slate-700 hover:text-slate-900 hover:bg-slate-50'
+          }`}
+        >
+          <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+          <span>AI Xidmətləri & Marja</span>
+          <span className={`text-[10px] font-black px-1.5 py-0.5 rounded-full ${activeTab === 'ai_config_margins' ? 'bg-white/25 text-white' : 'bg-amber-100 text-amber-800'}`}>
+            Kreditlər
           </span>
         </button>
       </div>
@@ -1721,8 +1765,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   : 'Hələ ki heç bir müraciət qeydə alınmayıb.'}
               </div>
             ) : (
-              applications.map((app) => (
-                <div key={app.id} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+              applications.map((app, appIdx) => (
+                <div key={`admin-app-${app.id || 'item'}-${appIdx}`} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
                   <div>
                     <div className="flex items-center gap-2">
                       <span className="font-bold text-slate-900 text-sm">{app.candidateName}</span>
@@ -2299,6 +2343,224 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       {/* ============================================================== */}
       {activeTab === 'created_cvs' && (
         <AdminCreatedCVsRegistry onRefreshParent={fetchFirestoreData} />
+      )}
+
+      {/* ============================================================== */}
+      {/* TAB: OPEN CV MODERATION & SEO DIRECTORY */}
+      {/* ============================================================== */}
+      {activeTab === 'open_cv_moderation' && (
+        <div className="space-y-4">
+          <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <h3 className="text-base font-black text-slate-900 flex items-center gap-2">
+                <Globe className="w-5 h-5 text-blue-600" />
+                <span>Açıq CV Moderasiyası və Axtarış Sistemi Görünməsi</span>
+              </h3>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Google və Jobia.az kataloqunda yayımlanan açıq CV profilləri, onların paketləri və işəgötürən əlaqə sorğuları.
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold bg-blue-50 text-blue-800 px-3 py-1 rounded-lg border border-blue-200">
+                Aktiv Açıq CV: {openCVList.filter(c => c.status === 'active').length}
+              </span>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs text-slate-700">
+                <thead className="bg-slate-50 border-b border-slate-200 font-bold uppercase tracking-wider text-[10px] text-slate-500">
+                  <tr>
+                    <th className="py-3 px-4">Namizəd & Profil</th>
+                    <th className="py-3 px-4">Peşə / Şəhər</th>
+                    <th className="py-3 px-4">Paket / Müddət</th>
+                    <th className="py-3 px-4 text-center">Önə Çıxarılıb</th>
+                    <th className="py-3 px-4 text-center">Baxış / Sorğu</th>
+                    <th className="py-3 px-4 text-center">Status</th>
+                    <th className="py-3 px-4 text-right">Əməliyyat</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 font-medium">
+                  {openCVList.map((cv) => (
+                    <tr key={cv.id} className="hover:bg-slate-50/80 transition-colors">
+                      <td className="py-3 px-4">
+                        <div className="flex items-center gap-2.5">
+                          {cv.showPhoto && cv.photoUrl ? (
+                            <img src={cv.photoUrl} alt="" className="w-8 h-8 rounded-full object-cover border border-slate-200 shrink-0" />
+                          ) : (
+                            <div className="w-8 h-8 rounded-full bg-blue-600 text-white font-bold flex items-center justify-center text-xs shrink-0">
+                              {cv.displayName.charAt(0)}
+                            </div>
+                          )}
+                          <div>
+                            <strong className="text-slate-900 block font-bold">{cv.displayName}</strong>
+                            <span className="text-[11px] text-slate-400 font-mono">jobia.az/cv/{cv.slug}</span>
+                          </div>
+                        </div>
+                      </td>
+
+                      <td className="py-3 px-4">
+                        <strong className="text-slate-800 block">{cv.profession}</strong>
+                        <span className="text-[11px] text-slate-500">{cv.city} • {cv.experienceYears} il staj</span>
+                      </td>
+
+                      <td className="py-3 px-4">
+                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-700 uppercase">
+                          {cv.packageType === 'short' ? '1 Ay' : cv.packageType === 'standard' ? '3 Ay' : '12 Ay'}
+                        </span>
+                        <span className="text-[11px] text-slate-500 block mt-0.5">{cv.packagePrice} AZN ({cv.daysRemaining} gün qalıb)</span>
+                      </td>
+
+                      <td className="py-3 px-4 text-center">
+                        <button
+                          onClick={() => {
+                            const updated = openCVList.map((c) => c.id === cv.id ? { ...c, isFeatured: !c.isFeatured } : c);
+                            setOpenCVList(updated);
+                            saveStoredOpenCVs(updated);
+                          }}
+                          className={`px-2 py-1 rounded-lg text-[10px] font-bold cursor-pointer transition-colors ${
+                            cv.isFeatured
+                              ? 'bg-amber-100 text-amber-900 border border-amber-300'
+                              : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
+                          }`}
+                        >
+                          {cv.isFeatured ? '★ Önə Çıxarılıb' : '☆ Standart'}
+                        </button>
+                      </td>
+
+                      <td className="py-3 px-4 text-center">
+                        <div className="text-xs">
+                          <strong className="text-slate-900">{cv.viewsCount} baxış</strong>
+                          <span className="text-[11px] text-emerald-700 block font-semibold">{cv.contactRequests?.length || 0} sorğu</span>
+                        </div>
+                      </td>
+
+                      <td className="py-3 px-4 text-center">
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                          cv.status === 'active' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-500'
+                        }`}>
+                          {cv.status === 'active' ? 'Aktiv' : 'Gizlədilib'}
+                        </span>
+                      </td>
+
+                      <td className="py-3 px-4 text-right">
+                        <button
+                          onClick={() => {
+                            const nextStatus = cv.status === 'active' ? 'hidden' : 'active';
+                            const updated = openCVList.map((c) => c.id === cv.id ? { ...c, status: nextStatus as any } : c);
+                            setOpenCVList(updated);
+                            saveStoredOpenCVs(updated);
+                          }}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors cursor-pointer ${
+                            cv.status === 'active'
+                              ? 'bg-amber-50 text-amber-800 hover:bg-amber-100 border border-amber-200'
+                              : 'bg-emerald-600 text-white hover:bg-emerald-700'
+                          }`}
+                        >
+                          {cv.status === 'active' ? 'Gizlət' : 'Aktivləşdir'}
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ============================================================== */}
+      {/* TAB: AI CONFIGURATION, FEATURE FLAGS & MARGIN ANALYTICS */}
+      {/* ============================================================== */}
+      {activeTab === 'ai_config_margins' && (
+        <div className="space-y-5">
+          <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <h3 className="text-base font-black text-slate-900 flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-amber-500" />
+                <span>AI Xidmətləri, Feature Açarları və Gəlirlilik Marjası</span>
+              </h3>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Hər bir AI funksiyasının maya dəyəri, satış qiyməti, marjası və 1 kliklə aktiv/deaktiv edilməsi (Texniki həll Bölmə 22 & 24).
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold bg-emerald-50 text-emerald-800 px-3 py-1 rounded-lg border border-emerald-200">
+                Orta Gəlir Marjası: ~93%
+              </span>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs text-slate-700">
+                <thead className="bg-slate-50 border-b border-slate-200 font-bold uppercase tracking-wider text-[10px] text-slate-500">
+                  <tr>
+                    <th className="py-3 px-4">AI Modulu</th>
+                    <th className="py-3 px-4 text-center">Kredit Qiyməti</th>
+                    <th className="py-3 px-4 text-center">İstifadəçi Satış</th>
+                    <th className="py-3 px-4 text-center">Real API Maya (AZN)</th>
+                    <th className="py-3 px-4 text-center">Xalis Marja</th>
+                    <th className="py-3 px-4 text-center">Pulsuz İlk Sınaq</th>
+                    <th className="py-3 px-4 text-right">Status (Aktiv/Söndür)</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 font-medium">
+                  {aiPricingList.map((op) => (
+                    <tr key={op.key} className="hover:bg-slate-50/80 transition-colors">
+                      <td className="py-3 px-4">
+                        <strong className="text-slate-900 block font-bold">{op.name}</strong>
+                        <span className="text-[11px] text-slate-400 font-normal">{op.description}</span>
+                      </td>
+
+                      <td className="py-3 px-4 text-center font-bold text-amber-600">
+                        {op.creditsCost} Kredit
+                      </td>
+
+                      <td className="py-3 px-4 text-center font-bold text-slate-900">
+                        {op.salePriceAZN.toFixed(2)} AZN
+                      </td>
+
+                      <td className="py-3 px-4 text-center text-slate-500">
+                        {op.realApiCostAZN.toFixed(2)} AZN
+                      </td>
+
+                      <td className="py-3 px-4 text-center font-bold text-emerald-600">
+                        %{op.marginPercent.toFixed(0)} (+{op.grossProfitAZN.toFixed(2)} ₼)
+                      </td>
+
+                      <td className="py-3 px-4 text-center">
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                          op.freeTrialAllowed ? 'bg-blue-100 text-blue-800' : 'bg-slate-100 text-slate-500'
+                        }`}>
+                          {op.freeTrialAllowed ? 'İcazəli' : 'Yoxdur'}
+                        </span>
+                      </td>
+
+                      <td className="py-3 px-4 text-right">
+                        <button
+                          onClick={() => {
+                            const next = !op.isEnabled;
+                            toggleAIFeatureFlag(op.key, next);
+                            setAiPricingList(getAIPricingConfig());
+                          }}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors cursor-pointer ${
+                            op.isEnabled
+                              ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200'
+                              : 'bg-rose-100 text-rose-800 hover:bg-rose-200'
+                          }`}
+                        >
+                          {op.isEnabled ? 'Aktivdir (İşləyir)' : 'Deaktivdir (Söndürülüb)'}
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* ============================================================== */}

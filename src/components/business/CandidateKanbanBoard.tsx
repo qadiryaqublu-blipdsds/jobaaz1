@@ -257,7 +257,7 @@ export const CandidateKanbanBoard: React.FC<CandidateKanbanBoardProps> = ({
                       </span>
                     </div>
                   ) : (
-                    colApps.map((app) => {
+                    colApps.map((app, appIdx) => {
                       const nextStatus = getNextStatus(app.status || 'Müraciət edildi');
                       const prevStatus = getPrevStatus(app.status || 'Müraciət edildi');
                       const existingOffer = offers.find(
@@ -267,7 +267,7 @@ export const CandidateKanbanBoard: React.FC<CandidateKanbanBoardProps> = ({
 
                       return (
                         <div
-                          key={app.id}
+                          key={`${app.id}-${appIdx}`}
                           draggable
                           onDragStart={(e) => {
                             e.dataTransfer.setData('text/plain', app.id);

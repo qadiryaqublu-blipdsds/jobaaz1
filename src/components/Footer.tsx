@@ -27,7 +27,10 @@ import {
   Map as MapIcon,
   ShieldAlert,
   UserCheck,
-  HelpCircle
+  HelpCircle,
+  Clock,
+  BarChart3,
+  Layers
 } from 'lucide-react';
 
 interface FooterProps {
@@ -159,6 +162,32 @@ export const Footer: React.FC<FooterProps> = ({
                   <span>{language === 'en' ? 'Calculate Vacation' : language === 'ru' ? 'Рассчитать отпуск' : 'Məzuniyyətini hesabla'}</span>
                 </button>
               </li>
+              <li>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (onRoleChange) onRoleChange('candidate');
+                    if (onNavigateCandidateTab) (onNavigateCandidateTab as any)('practice-interview');
+                  }}
+                  className="hover:text-purple-700 flex items-center gap-1.5 transition-colors cursor-pointer text-left font-semibold text-purple-700"
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-purple-600" />
+                  <span>AI Müsahibə Məşqi (STAR Metodu)</span>
+                </button>
+              </li>
+              <li>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (onRoleChange) onRoleChange('candidate');
+                    if (onNavigateCandidateTab) (onNavigateCandidateTab as any)('cv-creator');
+                  }}
+                  className="hover:text-emerald-700 flex items-center gap-1.5 transition-colors cursor-pointer text-left"
+                >
+                  <FileText className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>CV Yaradıcı & Birbaşa A4 PDF</span>
+                </button>
+              </li>
             </ul>
           </div>
 
@@ -226,6 +255,30 @@ export const Footer: React.FC<FooterProps> = ({
                 >
                   <Sparkles className="w-3.5 h-3.5 text-amber-500" />
                   <span>{language === 'en' ? 'Recruiting Analytics & Pricing' : language === 'ru' ? 'Аналитика рекрутинга и цены' : 'Recruiting Analytics & Qiymətlər'}</span>
+                </button>
+              </li>
+              <li>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (onRoleChange) onRoleChange('business');
+                  }}
+                  className="hover:text-blue-600 flex items-center gap-1.5 transition-colors cursor-pointer text-left text-blue-600 font-semibold"
+                >
+                  <Clock className="w-3.5 h-3.5 text-blue-600" />
+                  <span>Time to Fill / Time to Hire Analitikası</span>
+                </button>
+              </li>
+              <li>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (onRoleChange) onRoleChange('business');
+                  }}
+                  className="hover:text-blue-600 flex items-center gap-1.5 transition-colors cursor-pointer text-left font-semibold text-indigo-700"
+                >
+                  <Layers className="w-3.5 h-3.5 text-indigo-600" />
+                  <span>11 Mərhələli Recruitment Funnel</span>
                 </button>
               </li>
               <li>
@@ -342,8 +395,58 @@ export const Footer: React.FC<FooterProps> = ({
 
         </div>
 
+        {/* Enterprise Ecosystem Showcase Strip */}
+        <div className="mt-8 pt-6 border-t border-slate-200/80 bg-slate-50/80 rounded-2xl p-4 sm:p-5 border space-y-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <span className="font-bold text-blue-700 bg-blue-100/70 border border-blue-200 px-2.5 py-0.5 rounded-full text-[11px]">
+                jobia.az • Müasir Vakansiya və Ağıllı Karyera Portalı
+              </span>
+              <span className="text-slate-400 text-xs hidden sm:inline">•</span>
+              <span className="text-xs text-slate-600 font-medium hidden sm:inline">
+                Azərbaycanın Tam HR İşə Qəbul, Ağıllı CV və Enterprise Recruiting Analytics Platforması
+              </span>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2 text-[11px] font-semibold text-slate-700">
+            <span className="px-2.5 py-1 rounded-lg bg-white border border-slate-200/80 shadow-2xs flex items-center gap-1.5">
+              <Clock className="w-3.5 h-3.5 text-blue-600" />
+              <span>Time to Fill / Time to Hire analitikası</span>
+            </span>
+            <span className="px-2.5 py-1 rounded-lg bg-white border border-slate-200/80 shadow-2xs flex items-center gap-1.5">
+              <Layers className="w-3.5 h-3.5 text-indigo-600" />
+              <span>11 mərhələli recruitment funnel</span>
+            </span>
+            <span className="px-2.5 py-1 rounded-lg bg-white border border-slate-200/80 shadow-2xs flex items-center gap-1.5">
+              <BarChart3 className="w-3.5 h-3.5 text-emerald-600" />
+              <span>Bazar benchmarkları</span>
+            </span>
+            <span className="px-2.5 py-1 rounded-lg bg-white border border-slate-200/80 shadow-2xs flex items-center gap-1.5">
+              <Sparkles className="w-3.5 h-3.5 text-purple-600" />
+              <span>AI müsahibə və iş təklifi workflow-u</span>
+            </span>
+            <span className="px-2.5 py-1 rounded-lg bg-white border border-slate-200/80 shadow-2xs flex items-center gap-1.5">
+              <FileCheck className="w-3.5 h-3.5 text-rose-600" />
+              <span>AI Job Offer tərtibatı & 1 kliklə e-poçt</span>
+            </span>
+            <span className="px-2.5 py-1 rounded-lg bg-white border border-slate-200/80 shadow-2xs flex items-center gap-1.5">
+              <FileText className="w-3.5 h-3.5 text-amber-600" />
+              <span>Birbaşa A4 PDF generasiyası</span>
+            </span>
+            <span className="px-2.5 py-1 rounded-lg bg-white border border-slate-200/80 shadow-2xs flex items-center gap-1.5">
+              <ShieldCheck className="w-3.5 h-3.5 text-teal-600" />
+              <span>Təhlükəsiz namizəd portali</span>
+            </span>
+            <span className="px-2.5 py-1 rounded-lg bg-white border border-slate-200/80 shadow-2xs flex items-center gap-1.5">
+              <Calculator className="w-3.5 h-3.5 text-blue-600" />
+              <span>2026 AR Vergi kalkulyatoru</span>
+            </span>
+          </div>
+        </div>
+
         {/* Bottom Bar: Slogan, Jobia Logo & Copyright */}
-        <div className="mt-8 pt-6 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500">
+        <div className="mt-6 pt-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500">
           <div className="flex items-center gap-3">
             <JobiaLogo size="xs" withSubtitle={true} subtitle="Job Intelligence & Automation" showDotPing={true} />
             <span className="text-slate-300 hidden sm:inline">|</span>

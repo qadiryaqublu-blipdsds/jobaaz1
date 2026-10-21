@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Sparkles, Shield, Award, Cpu, CheckCircle2 } from 'lucide-react';
 import { useLanguage } from '../../../context/LanguageContext';
 import { CVAnalyzerResult } from '../../../types/cvAnalyzer';
+import { buildFactualDeepFallback } from '../../../utils/deepCvAnalyzer';
 import { AICVAnalyzerInput } from './AICVAnalyzerInput';
 import { AICVAnalyzerLoading } from './AICVAnalyzerLoading';
 import { AICVAnalyzerDashboard } from './AICVAnalyzerDashboard';
@@ -33,6 +34,7 @@ export const DeepCVAnalyzerView: React.FC<DeepCVAnalyzerViewProps> = ({ initialC
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Accept': 'application/json'
         },
         body: JSON.stringify({
           ...payload,
@@ -40,16 +42,122 @@ export const DeepCVAnalyzerView: React.FC<DeepCVAnalyzerViewProps> = ({ initialC
         }),
       });
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || 'CV analizi zamanı xəta baş verdi.');
+      const contentType = response.headers.get('content-type') || '';
+      const responseText = await response.text();
+
+      // Detect if server or proxy returned HTML (e.g. Nginx warmup page, 502/504 gateway error, etc.)
+      const isHtmlResponse =
+        contentType.includes('text/html') ||
+        responseText.trim().startsWith('<') ||
+        responseText.toLowerCase().includes('<!doctype') ||
+        responseText.toLowerCase().includes('<html');
+
+      if (isHtmlResponse) {
+        console.warn('Deep CV Analyzer received HTML response from proxy/server. Engaging client-side fallback.');
+        const usableText = payload.cvText || (payload.linkedinUrl ? `LinkedIn Profil: ${payload.linkedinUrl}` : '');
+        if (usableText && usableText.trim().length > 15) {
+          const fallbackData = buildFactualDeepFallback(
+            usableText,
+            payload.fileName,
+            language,
+            payload.jobDescription
+          );
+          setResult(fallbackData);
+          return;
+        }
+
+        throw new Error(
+          language === 'en'
+            ? 'The AI analysis service is warming up. Please try again in a few moments.'
+            : language === 'ru'
+            ? 'Сервис анализа подготавливается. Пожалуйста, повторите попытку через несколько секунд.'
+            : 'AI Analiz xidməti hazırda aktivləşir. Zəhmət olmasa bir neçə saniyə sonra yenidən cəhd edin.'
+        );
       }
 
-      const data: CVAnalyzerResult = await response.json();
-      setResult(data);
+      // Safe JSON parsing to prevent any SyntaxError
+      let data: any;
+      try {
+        data = JSON.parse(responseText);
+      } catch (parseErr) {
+        console.warn('Deep CV Analyzer JSON parse failed. Utilizing factual extraction fallback:', parseErr);
+        const usableText = payload.cvText || (payload.linkedinUrl ? `LinkedIn Profil: ${payload.linkedinUrl}` : '');
+        if (usableText && usableText.trim().length > 15) {
+          const fallbackData = buildFactualDeepFallback(
+            usableText,
+            payload.fileName,
+            language,
+            payload.jobDescription
+          );
+          setResult(fallbackData);
+          return;
+        }
+
+        throw new Error(
+          language === 'en'
+            ? 'Unable to process CV analysis result. Please verify your input and try again.'
+            : language === 'ru'
+            ? 'Не удалось обработать результат анализа резюме. Пожалуйста, попробуйте еще раз.'
+            : 'CV analizinin nəticəsini oxumaq mümkün olmadı. Zəhmət olmasa yenidən cəhd edin.'
+        );
+      }
+
+      if (!response.ok) {
+        const errorMsg = data.message || data.error || (
+          language === 'en'
+            ? 'An error occurred during CV analysis.'
+            : language === 'ru'
+            ? 'Произошла ошибка при анализе резюме.'
+            : 'CV analizi zamanı xəta baş verdi.'
+        );
+
+        // If client provided text, fallback to factual analyzer rather than failing completely
+        const usableText = payload.cvText || (payload.linkedinUrl ? `LinkedIn Profil: ${payload.linkedinUrl}` : '');
+        if (usableText && usableText.trim().length > 15) {
+          console.warn('API returned non-OK status. Engaging factual deep fallback:', errorMsg);
+          const fallbackData = buildFactualDeepFallback(
+            usableText,
+            payload.fileName,
+            language,
+            payload.jobDescription
+          );
+          setResult(fallbackData);
+          return;
+        }
+
+        throw new Error(errorMsg);
+      }
+
+      setResult(data as CVAnalyzerResult);
     } catch (err: any) {
-      console.error('CV Analyzer client error:', err);
-      setError(err.message || 'Xəta baş verdi. Zəhmət olmasa təkrar cəhd edin.');
+      console.warn('CV Analyzer handling notice:', err?.message || err);
+
+      // Final safety net: if text or profile exists, provide immediate analysis
+      const usableText = payload.cvText || (payload.linkedinUrl ? `LinkedIn Profil: ${payload.linkedinUrl}` : '');
+      if (usableText && usableText.trim().length > 15) {
+        try {
+          const fallbackData = buildFactualDeepFallback(
+            usableText,
+            payload.fileName,
+            language,
+            payload.jobDescription
+          );
+          setResult(fallbackData);
+          return;
+        } catch {
+          // ignore
+        }
+      }
+
+      setError(
+        err?.message || (
+          language === 'en'
+            ? 'An error occurred. Please try again.'
+            : language === 'ru'
+            ? 'Произошла ошибка. Пожалуйста, попробуйте еще раз.'
+            : 'Xəta baş verdi. Zəhmət olmasa təkrar cəhd edin.'
+        )
+      );
     } finally {
       setIsLoading(false);
     }

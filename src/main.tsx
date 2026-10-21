@@ -2,6 +2,7 @@ import {StrictMode} from 'react';
 import {createRoot} from 'react-dom/client';
 import App from './App.tsx';
 import { LanguageProvider } from './context/LanguageContext.tsx';
+import { ThemeProvider } from './context/ThemeContext.tsx';
 import { ErrorBoundary } from './components/ErrorBoundary.tsx';
 import 'leaflet/dist/leaflet.css';
 import './index.css';
@@ -19,7 +20,9 @@ createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <ErrorBoundary>
       <LanguageProvider>
-        <App />
+        <ThemeProvider>
+          <App />
+        </ThemeProvider>
       </LanguageProvider>
     </ErrorBoundary>
   </StrictMode>,

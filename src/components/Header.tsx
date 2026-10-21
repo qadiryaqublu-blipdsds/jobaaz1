@@ -1,6 +1,6 @@
 import React, { useMemo, useRef, useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { UserRole, User, UserSubscription, Company, AppNotification, Vacancy } from '../types';
+import { UserRole, User, UserSubscription, Company, AppNotification, Vacancy, BusinessTabType, CandidateTabType } from '../types';
 import { JobiaLogo } from './JobiaLogo';
 import { useLanguage } from '../context/LanguageContext';
 import { LanguageSwitcher } from './LanguageSwitcher';
@@ -32,17 +32,23 @@ import {
   ChevronDown,
   FileCheck2,
   CreditCard,
-  X
+  X,
+  Sun,
+  Moon,
+  Mic,
+  Globe,
+  Coins
 } from 'lucide-react';
+import { useTheme } from '../context/ThemeContext';
 import { NotificationCenterOverlay } from './notifications/NotificationCenterOverlay';
 
 interface HeaderProps {
   currentRole?: UserRole;
   onRoleChange?: (role: UserRole) => void;
-  candidateTab?: 'jobs' | 'my-applications' | 'salary-trends' | 'salary-calculator' | 'vacation-calculator' | 'calculia' | 'nearby-map' | 'google-chat' | 'cv-analyzer' | 'cv-creator' | 'network';
-  onCandidateTabChange?: (tab: 'jobs' | 'my-applications' | 'salary-trends' | 'salary-calculator' | 'vacation-calculator' | 'calculia' | 'nearby-map' | 'google-chat' | 'cv-analyzer' | 'cv-creator' | 'network') => void;
-  businessTab?: 'vacancies' | 'applicants' | 'offers' | 'analytics' | 'templates' | 'company-profile' | 'talent-pool' | 'vacation-calculator';
-  onBusinessTabChange?: (tab: 'vacancies' | 'applicants' | 'offers' | 'analytics' | 'templates' | 'company-profile' | 'talent-pool' | 'vacation-calculator') => void;
+  candidateTab?: CandidateTabType;
+  onCandidateTabChange?: (tab: CandidateTabType) => void;
+  businessTab?: BusinessTabType;
+  onBusinessTabChange?: (tab: BusinessTabType) => void;
   applicationsCount?: number;
   offersCount?: number;
   activeVacanciesCount?: number;
@@ -51,6 +57,9 @@ interface HeaderProps {
   onOpenGoogleChat?: () => void;
   onOpenJobAlerts?: () => void;
   onPostJobClick?: () => void;
+  onOpenGuestJobModal?: () => void;
+  onOpenOpenCVModal?: () => void;
+  onOpenAICreditWallet?: () => void;
   onOpenIntroTour?: () => void;
   onToggleMobileSidebar?: () => void;
   isSidebarCollapsed?: boolean;
@@ -90,10 +99,14 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenPricing,
   onLogout,
   onPostJobClick,
+  onOpenGuestJobModal,
+  onOpenOpenCVModal,
+  onOpenAICreditWallet,
   onOpenJobAlerts,
   onOpenGoogleChat,
 }) => {
   const { dict, language } = useLanguage();
+  const { isDark, toggleTheme } = useTheme();
 
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   
@@ -132,6 +145,7 @@ export const Header: React.FC<HeaderProps> = ({
     'nearby-map',
     'salary-trends',
     'google-chat',
+    'practice-interview',
   ].includes(candidateTab);
 
   // Toggle Tools Dropdown with precise rect coordinates
@@ -229,6 +243,21 @@ export const Header: React.FC<HeaderProps> = ({
                 >
                   <Search className={`w-3.5 h-3.5 shrink-0 ${candidateTab === 'jobs' ? 'text-white' : 'text-blue-600'}`} />
                   <span>{dict.nav.jobs}</span>
+                </button>
+
+                {/* Açıq CV Kataloqu */}
+                <button
+                  type="button"
+                  onClick={() => onCandidateTabChange?.('open-cv')}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer select-none whitespace-nowrap leading-none ${
+                    candidateTab === 'open-cv'
+                      ? 'bg-emerald-600 text-white shadow-xs'
+                      : 'text-slate-700 hover:text-emerald-700 hover:bg-slate-100'
+                  }`}
+                  title="Axtarışa açıq CV bazası və peşəkar profillər"
+                >
+                  <Globe className={`w-3.5 h-3.5 shrink-0 ${candidateTab === 'open-cv' ? 'text-white' : 'text-emerald-600'}`} />
+                  <span>Açıq CV-lər</span>
                 </button>
 
                 {/* 2. Peşəkar Şəbəkə */}
@@ -389,6 +418,20 @@ export const Header: React.FC<HeaderProps> = ({
                   <span>Kadr Bankı</span>
                 </button>
 
+                {/* Ağıllı CV Baza & Skorinq */}
+                <button
+                  type="button"
+                  onClick={() => onBusinessTabChange?.('smart-cv-pool')}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer select-none whitespace-nowrap leading-none ${
+                    businessTab === 'smart-cv-pool'
+                      ? 'bg-blue-600 text-white shadow-xs'
+                      : 'text-slate-700 hover:text-blue-600 hover:bg-slate-100'
+                  }`}
+                >
+                  <Sparkles className={`w-3.5 h-3.5 shrink-0 ${businessTab === 'smart-cv-pool' ? 'text-amber-300' : 'text-blue-600'}`} />
+                  <span>CV Baza & Skorinq</span>
+                </button>
+
                 {/* Analitika */}
                 <button
                   type="button"
@@ -439,6 +482,20 @@ export const Header: React.FC<HeaderProps> = ({
           {/* 3. RIGHT: + ELAN YERLƏŞDİR + VIP PLANLAR + NOTIFICATIONS + LANGUAGE + PROFILE */}
           <div className="flex items-center justify-end gap-1.5 sm:gap-2 shrink-0 pl-1 border-l border-slate-200/90 ml-1">
             
+            {/* Qeydiyyatsız Elan Yerləşdir Button (Section 6.2 & 79) */}
+            {onOpenGuestJobModal && !currentUser && (
+              <button
+                id="header-guest-job-btn"
+                type="button"
+                onClick={onOpenGuestJobModal}
+                className="h-9 px-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold items-center gap-1.5 border border-slate-200 transition-all cursor-pointer shrink-0 leading-none hidden lg:flex"
+                title="Qeydiyyatsız dərhal vakansiya yerləşdir"
+              >
+                <Plus className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                <span className="whitespace-nowrap">Qeydiyyatsız Elan</span>
+              </button>
+            )}
+
             {/* + Elan Yerləşdir Button */}
             {onPostJobClick && (
               <button
@@ -451,6 +508,20 @@ export const Header: React.FC<HeaderProps> = ({
                 <Plus className="w-4 h-4 stroke-[2.5] shrink-0" />
                 <span className="hidden sm:inline whitespace-nowrap">Elan Yerləşdir</span>
                 <span className="sm:hidden whitespace-nowrap">Elan</span>
+              </button>
+            )}
+
+            {/* AI Kredit & Balans (Section 22) */}
+            {onOpenAICreditWallet && (
+              <button
+                id="header-ai-wallet-btn"
+                type="button"
+                onClick={onOpenAICreditWallet}
+                className="h-9 px-2.5 rounded-xl text-xs font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 flex items-center gap-1.5 transition-all cursor-pointer select-none shrink-0 leading-none shadow-2xs"
+                title="AI Kredit Balansı və Xidmətlər"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+                <span className="hidden lg:inline whitespace-nowrap">AI Balans</span>
               </button>
             )}
 
@@ -578,6 +649,22 @@ export const Header: React.FC<HeaderProps> = ({
               )
             )}
 
+            {/* Global Theme Toggle Button (Light / Dark Mode) */}
+            <button
+              id="header-theme-toggle-btn"
+              type="button"
+              onClick={toggleTheme}
+              className="h-9 w-9 flex items-center justify-center rounded-xl bg-slate-100 hover:bg-slate-200/80 text-slate-700 border border-slate-200/90 transition-all cursor-pointer shadow-2xs select-none active:scale-95 shrink-0"
+              title={isDark ? 'İşıqlı rejimə keç (Light Mode)' : 'Qaranlıq rejimə keç (Dark Mode)'}
+              aria-label="Toggle Dark Mode"
+            >
+              {isDark ? (
+                <Sun className="w-4 h-4 text-amber-500 animate-in spin-in-180 duration-200" />
+              ) : (
+                <Moon className="w-4 h-4 text-slate-700 animate-in spin-in-180 duration-200" />
+              )}
+            </button>
+
             {/* Language Switcher */}
             <div className="shrink-0">
               <LanguageSwitcher 
@@ -700,6 +787,73 @@ export const Header: React.FC<HeaderProps> = ({
               </div>
             </button>
 
+            {/* Enterprise Recruiting Analytics */}
+            <button
+              type="button"
+              onClick={() => {
+                onRoleChange?.('business');
+                onBusinessTabChange?.('analytics');
+                setIsToolsDropdownOpen(false);
+              }}
+              className="w-full text-left px-2.5 py-2 rounded-xl text-xs flex items-center gap-2.5 transition-colors cursor-pointer text-slate-700 hover:bg-slate-50"
+            >
+              <div className="p-1.5 rounded-lg bg-indigo-100 text-indigo-700 shrink-0">
+                <BarChart3 className="w-4 h-4" />
+              </div>
+              <div>
+                <div className="font-bold text-slate-900 flex items-center gap-1.5">
+                  <span>Recruiting Analytics</span>
+                  <span className="text-[9px] bg-indigo-600 text-white font-black px-1.5 py-0.2 rounded-full">Funnel</span>
+                </div>
+                <div className="text-[10px] text-slate-500">Time to Fill / Time to Hire və 11 mərhələ</div>
+              </div>
+            </button>
+
+            {/* AI Müsahibə Məşqi & Dəyərləndirmə */}
+            <button
+              type="button"
+              onClick={() => {
+                onCandidateTabChange?.('practice-interview');
+                setIsToolsDropdownOpen(false);
+              }}
+              className={`w-full text-left px-2.5 py-2 rounded-xl text-xs flex items-center gap-2.5 transition-colors cursor-pointer ${
+                candidateTab === 'practice-interview' ? 'bg-purple-50 text-purple-700 font-bold' : 'text-slate-700 hover:bg-slate-50'
+              }`}
+            >
+              <div className="p-1.5 rounded-lg bg-purple-100 text-purple-600 shrink-0">
+                <Sparkles className="w-4 h-4" />
+              </div>
+              <div>
+                <div className="font-bold text-slate-900 flex items-center gap-1.5">
+                  <span>AI Müsahibə Məşqi</span>
+                  <span className="text-[9px] bg-purple-600 text-white font-black px-1.5 py-0.2 rounded-full">STAR</span>
+                </div>
+                <div className="text-[10px] text-slate-500">Real-vaxt səsli və mətnli AI dəyərləndirmə</div>
+              </div>
+            </button>
+
+            {/* AI Job Offer & Təhlükəsiz Portal */}
+            <button
+              type="button"
+              onClick={() => {
+                onRoleChange?.('business');
+                onBusinessTabChange?.('offers');
+                setIsToolsDropdownOpen(false);
+              }}
+              className="w-full text-left px-2.5 py-2 rounded-xl text-xs flex items-center gap-2.5 transition-colors cursor-pointer text-slate-700 hover:bg-slate-50"
+            >
+              <div className="p-1.5 rounded-lg bg-rose-100 text-rose-600 shrink-0">
+                <FileCheck2 className="w-4 h-4" />
+              </div>
+              <div>
+                <div className="font-bold text-slate-900 flex items-center gap-1.5">
+                  <span>AI Job Offer Portalı</span>
+                  <span className="text-[9px] bg-rose-600 text-white font-black px-1.5 py-0.2 rounded-full">Offer</span>
+                </div>
+                <div className="text-[10px] text-slate-500">Rəsmi təklif & 1 kliklə e-poçt</div>
+              </div>
+            </button>
+
             <div className="my-1 border-t border-slate-100" />
 
             {/* 5. İzləmə & Bildirişlər */}
@@ -740,6 +894,29 @@ export const Header: React.FC<HeaderProps> = ({
               <div>
                 <div className="font-bold text-slate-900">Google Chat Hub</div>
                 <div className="text-[10px] text-slate-500">Birbaşa əlaqə və bildirişlər</div>
+              </div>
+            </button>
+
+            {/* AI Practice Interview with Voice & Sentiment */}
+            <button
+              type="button"
+              onClick={() => {
+                onCandidateTabChange?.('practice-interview');
+                setIsToolsDropdownOpen(false);
+              }}
+              className={`w-full text-left px-2.5 py-2 rounded-xl text-xs flex items-center gap-2.5 transition-colors cursor-pointer ${
+                candidateTab === 'practice-interview' ? 'bg-purple-50 text-purple-700 font-bold' : 'text-slate-700 hover:bg-slate-50'
+              }`}
+            >
+              <div className="p-1.5 rounded-lg bg-purple-100 text-purple-600 shrink-0">
+                <Mic className="w-4 h-4" />
+              </div>
+              <div>
+                <div className="font-bold text-slate-900 flex items-center gap-1.5">
+                  <span>AI Müsahibə Məşqi</span>
+                  <span className="text-[9px] bg-purple-600 text-white font-black px-1.5 py-0.2 rounded-full">AI Səs</span>
+                </div>
+                <div className="text-[10px] text-slate-500">Mikrofonla cavab və sentiment analizi</div>
               </div>
             </button>
           </div>

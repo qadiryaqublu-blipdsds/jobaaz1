@@ -14,6 +14,7 @@ import {
   Link as LinkIcon
 } from 'lucide-react';
 import { useLanguage } from '../../../context/LanguageContext';
+import { extractTextFromDocument } from '../../../utils/fileExtractor';
 
 interface AICVAnalyzerInputProps {
   onAnalyze: (payload: {
@@ -107,6 +108,7 @@ export const AICVAnalyzerInput: React.FC<AICVAnalyzerInputProps> = ({ onAnalyze,
     mimeType: string;
     name: string;
     sizeFormatted: string;
+    extractedText?: string;
   } | null>(null);
   const [dragActive, setDragActive] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -145,17 +147,25 @@ export const AICVAnalyzerInput: React.FC<AICVAnalyzerInputProps> = ({ onAnalyze,
     }
 
     const reader = new FileReader();
-    reader.onload = (e) => {
+    reader.onload = async (e) => {
       const base64 = e.target?.result as string;
       const sizeKb = Math.round(file.size / 1024);
       const sizeFormatted = sizeKb > 1024 ? `${(sizeKb / 1024).toFixed(1)} MB` : `${sizeKb} KB`;
+
+      let extracted = '';
+      try {
+        extracted = await extractTextFromDocument(file);
+      } catch {
+        // Soft fail
+      }
 
       setSelectedFile({
         file,
         base64,
         mimeType: file.type || 'application/pdf',
         name: file.name,
-        sizeFormatted
+        sizeFormatted,
+        extractedText: extracted || undefined
       });
     };
     reader.readAsDataURL(file);
@@ -213,6 +223,7 @@ export const AICVAnalyzerInput: React.FC<AICVAnalyzerInputProps> = ({ onAnalyze,
         fileBase64: selectedFile.base64,
         mimeType: selectedFile.mimeType,
         fileName: selectedFile.name,
+        cvText: selectedFile.extractedText || undefined,
         jobDescription: jobDescription.trim() || undefined
       });
     } else {

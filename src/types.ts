@@ -434,6 +434,12 @@ export interface Vacancy {
   createdBy?: string;
   createdAt?: string;
   updatedAt?: string;
+  // Web Vacancy Aggregator fields
+  isExternal?: boolean;
+  sourceSite?: string;
+  sourceUrl?: string;
+  sourceBadge?: string;
+  externalPublishedDate?: string;
 }
 
 export interface ExperienceItem {
@@ -1027,11 +1033,88 @@ export interface CVAnalysisResult {
 }
 
 export interface InterviewQuestion {
-  category: 'Texniki' | 'Davranış və Situasiya' | 'Şirkət Uyğunluğu';
+  id?: string;
+  category: 'Texniki' | 'Davranış və Situasiya' | 'Şirkət Uyğunluğu' | 'Problem Həll Etmə' | string;
+  difficulty?: 'Başlanğıc' | 'Orta' | 'Mütəxəssis' | string;
   question: string;
   whyAsked: string;
   suggestedAnswerTip: string;
   sampleAnswerAz: string;
+  keyCriteria?: string[];
+}
+
+export interface CandidateAnswerEvaluation {
+  questionId?: string;
+  question: string;
+  category?: string;
+  userAnswer: string;
+  score: number; // 0 - 100
+  grade: 'Əla' | 'Yaxşı' | 'Kafi' | 'Zəif' | string;
+  feedback: string;
+  strengths: string[];
+  improvements: string[];
+  starBreakdown?: {
+    situation: string;
+    task: string;
+    action: string;
+    result: string;
+  };
+  refinedAnswerAz: string;
+  keyAdvice: string;
+  evaluatedAt: string;
+}
+
+export interface InterviewSentimentMetrics {
+  confidence: number;      // 0-100 (İnam və Qətiyyət)
+  positivity: number;      // 0-100 (Pozitivlik və Həvəs)
+  clarity: number;         // 0-100 (Aydınlıq və Tələffüz Təmizliyi)
+  composure: number;       // 0-100 (Soyuqqanlılıq və Emosional Sabitlik)
+  professionalism: number; // 0-100 (İşgüzar Etika və Peşəkarlıq)
+}
+
+export interface SpeechDynamicsAnalysis {
+  wordsPerMinute: number;
+  paceVerdict: 'optimal' | 'too_fast' | 'too_slow';
+  paceFeedback: string;
+  fillerWordsCount: number;
+  detectedFillerWords: Array<{ word: string; count: number }>;
+  articulationScore: number;
+}
+
+export interface PracticeInterviewSentimentResult {
+  overallSentimentScore: number; // 0-100 (Emosional İnam & Nitq Tonu Balı)
+  technicalFeedbackScore?: number; // 0-100 (Texniki Rəy & STAR Məzmun Balı)
+  technicalCritique?: string; // Texniki dərinlik və arqumentasiya rəyi
+  primarySentiment: string;
+  secondarySentiment: string;
+  sentimentTone: 'confident' | 'positive' | 'neutral' | 'nervous' | 'hesitant';
+  metrics: InterviewSentimentMetrics;
+  speechDynamics: SpeechDynamicsAnalysis;
+  starAnalysis: {
+    situation: string;
+    task: string;
+    action: string;
+    result: string;
+  };
+  strengths: string[];
+  growthAreas: string[];
+  voiceAndDeliveryTips: string[];
+  polishedExecutiveAnswer: string;
+  evaluatedAt: string;
+}
+
+export interface PracticeInterviewSessionItem {
+  id: string;
+  questionId?: string;
+  question: string;
+  category?: string;
+  roleTitle?: string;
+  companyName?: string;
+  audioBlobUrl?: string;
+  audioDurationSeconds: number;
+  transcript: string;
+  sentimentResult?: PracticeInterviewSentimentResult;
+  completedAt: string;
 }
 
 export interface SalaryHistoricalPoint {
@@ -1381,3 +1464,303 @@ export interface GigOffer {
   createdAt: string;
 }
 
+// -------------------------------------------------------------
+// CANDIDATE NAVIGATION TAB TYPES
+// -------------------------------------------------------------
+export type CandidateTabType =
+  | 'jobs'
+  | 'open-cv'
+  | 'nearby-map'
+  | 'my-applications'
+  | 'salary-trends'
+  | 'salary-calculator'
+  | 'vacation-calculator'
+  | 'calculia'
+  | 'google-chat'
+  | 'cv-analyzer'
+  | 'cv-creator'
+  | 'network'
+  | 'smart-forms'
+  | 'practice-interview';
+
+// -------------------------------------------------------------
+// SMART CV POOL & RECRUITER ATS TYPES (İŞƏGÖTÜRƏNLƏR ÜÇÜN AĞILLI CV BAZA)
+// -------------------------------------------------------------
+export type BusinessTabType =
+  | 'vacancies'
+  | 'applicants'
+  | 'team-users'
+  | 'open-cv-catalog'
+  | 'interviews'
+  | 'email-history'
+  | 'offers'
+  | 'analytics'
+  | 'templates'
+  | 'company-profile'
+  | 'talent-pool'
+  | 'smart-cv-pool'
+  | 'vacation-calculator'
+  | 'smart-forms';
+
+export type SmartCandidatePipelineStage =
+  | 'sourced'
+  | 'screened'
+  | 'interview'
+  | 'shortlist'
+  | 'offer'
+  | 'hired'
+  | 'archived';
+
+export interface CandidateWorkExperience {
+  id: string;
+  companyName: string;
+  jobTitle: string;
+  industry?: string;
+  startDate?: string;
+  endDate?: string;
+  isCurrent?: boolean;
+  country?: string;
+  city?: string;
+  responsibilities?: string;
+  achievements?: string;
+  teamSize?: string;
+  toolsUsed?: string[];
+}
+
+export interface CandidateEducation {
+  id: string;
+  institution: string;
+  degree: string;
+  fieldOfStudy?: string;
+  startDate?: string;
+  endDate?: string;
+  gpa?: string;
+  city?: string;
+}
+
+export interface CandidateCertification {
+  id: string;
+  name: string;
+  issuer: string;
+  issueDate?: string;
+  credentialId?: string;
+  credentialUrl?: string;
+}
+
+export interface CandidateProject {
+  id: string;
+  title: string;
+  role?: string;
+  technologies?: string[];
+  description?: string;
+  link?: string;
+}
+
+export interface SmartCandidate {
+  id: string;
+  companyId?: string;
+  fullName: string;
+  firstName?: string;
+  lastName?: string;
+  email: string;
+  phone: string;
+  jobTitle: string;
+  experienceYears: number;
+  skills: string[];
+  softSkills?: string[];
+  toolsAndTechnologies?: string[];
+  educationLevel: 'Orta' | 'Bakalavr' | 'Magistr' | 'Doktorantura' | 'Digər';
+  educationDetails?: string;
+  expectedSalary: number;
+  minSalary?: number;
+  maxSalary?: number;
+  currency: string;
+  salaryPeriod?: string;
+  location: string;
+  languages: { language: string; level: string }[];
+  sourceFormat: 'csv' | 'xlsx' | 'pdf' | 'docx' | 'json' | 'manual' | 'text_paste';
+  rawText?: string;
+  fileName?: string;
+  originalFileName?: string;
+  fileDataUrl?: string; // Base64 data URL for physical CV document viewer
+  fileMimeType?: string;
+  fileSize?: number;
+  birthDate?: string;
+  fatherName?: string;
+  gender?: 'Kişi' | 'Qadın' | string;
+  maritalStatus?: 'Subay' | 'Ailəli' | string;
+  militaryStatus?: 'Hərbi xidmətdə olub' | 'Möhlət hüququ var' | 'Yararsız' | 'Tələb olunmur' | string;
+  drivingLicense?: string;
+  linkedinUrl?: string;
+  portfolioUrl?: string;
+  careerLevel?: 'Junior' | 'Middle' | 'Senior' | 'Lead' | 'Executive' | 'Stajor' | string;
+  employmentStatus?: string;
+  availabilityDate?: string;
+  preferredWorkModes?: string[];
+  preferredJobTypes?: string[];
+  relocationPreference?: boolean;
+  travelPreference?: boolean;
+  summary?: string;
+  workExperiences?: CandidateWorkExperience[];
+  educationHistory?: CandidateEducation[];
+  certifications?: CandidateCertification[];
+  projects?: CandidateProject[];
+  tags: string[];
+  pipelineStage: SmartCandidatePipelineStage;
+  notes?: string;
+  suitablePositions?: string[];
+  bestMatchingVacancyId?: string;
+  bestMatchingVacancyTitle?: string;
+  bestMatchScore?: number;
+  matchRationale?: string;
+  aiAnalyzed?: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface RecruitmentCriteriaWeights {
+  skills: number; // e.g. 35
+  experience: number; // e.g. 20
+  jobTitleMatch?: number; // e.g. 15 (Role relevance)
+  salary: number; // e.g. 10
+  education: number; // e.g. 10
+  languages?: number; // e.g. 5
+  location: number; // e.g. 5
+}
+
+export type ScoringStrictnessMode = 'lenient' | 'balanced' | 'strict';
+
+export interface RequiredLanguageCriterion {
+  language: string;
+  minLevel?: string; // 'A1' | 'A2' | 'B1' | 'B2' | 'C1' | 'C2' | 'İlkin' | 'Orta' | 'Yaxşı' | 'Əla' | 'Ana dili'
+}
+
+export interface KnockoutCriteria {
+  requireMinExperience?: boolean;
+  strictSalaryCap?: boolean;
+  requireEducationLevel?: boolean;
+  requireAllMandatorySkills?: boolean;
+}
+
+export interface RecruitmentCriteria {
+  id: string;
+  targetJobId: string; // 'custom' or actual vacancy id
+  targetJobTitle: string;
+  seniorityLevel?: 'Junior' | 'Middle' | 'Senior' | 'Lead' | 'Executive' | 'Any';
+  requiredSkills: string[];
+  preferredSkills: string[];
+  minExperienceYears: number;
+  maxExperienceYears?: number;
+  maxExpectedSalary: number;
+  requiredEducation?: string;
+  requiredLanguages?: (string | RequiredLanguageCriterion)[];
+  preferredLocation?: string;
+  weights: RecruitmentCriteriaWeights;
+  knockout?: KnockoutCriteria;
+  strictnessMode?: ScoringStrictnessMode;
+  benchmarkProfile?: string; // e.g. ideal profile description or benchmark
+  updatedAt?: string;
+}
+
+export interface CandidateMatchBreakdown {
+  skillsScore: number;
+  expScore: number;
+  roleScore: number; // Job title semantic relevance
+  salaryScore: number;
+  educationScore: number;
+  languageScore: number;
+  locationScore: number;
+}
+
+export interface KnockoutResult {
+  disqualified: boolean;
+  failedCriteria: string[];
+}
+
+export interface CandidateMatchResult {
+  candidateId: string;
+  overallScore: number; // 0-100
+  tier: 'ideal' | 'high' | 'medium' | 'low';
+  breakdown: CandidateMatchBreakdown;
+  matchedSkills: string[];
+  missingSkills: string[];
+  matchedLanguages?: string[];
+  missingLanguages?: string[];
+  pros: string[];
+  cons: string[];
+  recommendation: string;
+  interviewQuestions?: string[];
+  knockoutResult?: KnockoutResult;
+  percentileRank?: number; // e.g. Top 5%, Top 15%
+}
+
+// -------------------------------------------------------------
+// AUTOMATED INTERVIEW REMINDERS & SMTP SCHEDULER TYPES
+// -------------------------------------------------------------
+export interface ScheduledInterview {
+  id: string;
+  companyId: string;
+  companyName: string;
+  candidateName: string;
+  candidateEmail: string;
+  candidatePhone?: string;
+  candidateAvatar?: string;
+  applicationId?: string;
+  vacancyId?: string;
+  jobTitle: string;
+  interviewDate: string; // YYYY-MM-DD
+  interviewTime: string; // HH:MM (e.g. 11:00)
+  interviewType: 'office' | 'online';
+  locationOrLink: string; // Physical office address or Google Meet/Zoom link
+  interviewerName?: string;
+  interviewerRole?: string;
+  interviewerEmail?: string;
+  notes?: string;
+
+  // 24h Automated reminder configuration
+  autoReminder24h: boolean;
+  reminderStatus: 'pending' | 'sent' | 'failed' | 'cancelled';
+  reminderSentAt?: string;
+  reminderMessageId?: string;
+  reminderError?: string;
+  isSimulated?: boolean;
+
+  status: 'scheduled' | 'completed' | 'cancelled' | 'rescheduled';
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SmtpConfigStatus {
+  configured: boolean;
+  host?: string;
+  port?: number;
+  from?: string;
+  secure?: boolean;
+  mode: 'real' | 'simulation';
+}
+
+export interface EmailHistoryItem {
+  id: string;
+  interviewId?: string;
+  companyId: string;
+  companyName: string;
+  candidateName: string;
+  candidateEmail: string;
+  candidatePhone?: string;
+  candidateAvatar?: string;
+  jobTitle: string;
+  interviewDate: string; // YYYY-MM-DD
+  interviewTime: string; // HH:MM
+  interviewType: 'office' | 'online';
+  locationOrLink: string;
+  subject: string;
+  sentAt: string; // ISO timestamp
+  deliveryStatus: 'delivered' | 'sent' | 'simulated' | 'failed';
+  statusDetails?: string;
+  messageId: string;
+  isSimulated: boolean;
+  triggerType: 'automated_24h' | 'manual_recruiter' | 'worker_cron' | 'test_ping';
+  smtpHost?: string;
+  smtpPort?: number;
+  emailBodyPreview?: string;
+}

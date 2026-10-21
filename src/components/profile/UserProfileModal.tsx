@@ -11,6 +11,7 @@ import {
   saveCandidatePlatformCV
 } from '../../services/firestoreService';
 import { useLanguage } from '../../context/LanguageContext';
+import { useTheme } from '../../context/ThemeContext';
 import { 
   X, 
   User as UserIcon, 
@@ -22,7 +23,9 @@ import {
   Calendar, 
   Clock, 
   Check, 
-  Sparkles, 
+  Sparkles,
+  Sun,
+  Moon, 
   ShieldCheck, 
   AlertCircle, 
   Briefcase, 
@@ -107,6 +110,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
   onLogout,
 }) => {
   const { language } = useLanguage();
+  const { theme, isDark, setTheme, toggleTheme } = useTheme();
   const defaultTab = initialTab || (currentUser?.role === 'candidate' ? 'profile' : 'settings');
   const [activeTab, setActiveTab] = useState<'profile' | 'settings' | 'security'>(defaultTab);
 
@@ -505,6 +509,83 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
           {activeTab === 'settings' && (
             <div className="space-y-6 animate-fade-in">
               
+              {/* SECTION: Global Theme & Appearance (Light / Dark Mode) */}
+              <div className="p-4 sm:p-5 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50/70 dark:bg-slate-800/40">
+                <div className="flex items-center justify-between mb-3">
+                  <div>
+                    <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                      {isDark ? <Moon className="w-4 h-4 text-indigo-400" /> : <Sun className="w-4 h-4 text-amber-500" />}
+                      <span>Görünüş & Qlobal Qaranlıq Rejim (Dark Mode)</span>
+                    </h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                      Bütün platforma, vakansiya axtarışı, panellər və modallar üçün qaranlıq və ya işıqlı interfeys seçimi.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  {/* Light */}
+                  <button
+                    id="theme-select-light"
+                    type="button"
+                    onClick={() => setTheme('light')}
+                    className={`p-3.5 rounded-xl border-2 transition-all flex items-center gap-3 cursor-pointer text-left ${
+                      theme === 'light'
+                        ? 'border-blue-600 bg-blue-50/70 dark:bg-blue-950/40 shadow-xs'
+                        : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:border-slate-300'
+                    }`}
+                  >
+                    <div className="w-8 h-8 rounded-lg bg-amber-100 text-amber-600 flex items-center justify-center shrink-0">
+                      <Sun className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <div className="text-xs font-bold text-slate-900 dark:text-white">İşıqlı Rejim</div>
+                      <div className="text-[10px] text-slate-500 dark:text-slate-400">Gündüz rejimi</div>
+                    </div>
+                  </button>
+
+                  {/* Dark */}
+                  <button
+                    id="theme-select-dark"
+                    type="button"
+                    onClick={() => setTheme('dark')}
+                    className={`p-3.5 rounded-xl border-2 transition-all flex items-center gap-3 cursor-pointer text-left ${
+                      theme === 'dark'
+                        ? 'border-blue-600 bg-blue-50/70 dark:bg-blue-950/40 shadow-xs'
+                        : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:border-slate-300'
+                    }`}
+                  >
+                    <div className="w-8 h-8 rounded-lg bg-indigo-100 dark:bg-indigo-900 text-indigo-600 dark:text-indigo-300 flex items-center justify-center shrink-0">
+                      <Moon className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <div className="text-xs font-bold text-slate-900 dark:text-white">Qaranlıq Rejim</div>
+                      <div className="text-[10px] text-slate-500 dark:text-slate-400">Gecə rejimi</div>
+                    </div>
+                  </button>
+
+                  {/* System */}
+                  <button
+                    id="theme-select-system"
+                    type="button"
+                    onClick={() => setTheme('system')}
+                    className={`p-3.5 rounded-xl border-2 transition-all flex items-center gap-3 cursor-pointer text-left ${
+                      theme === 'system'
+                        ? 'border-blue-600 bg-blue-50/70 dark:bg-blue-950/40 shadow-xs'
+                        : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:border-slate-300'
+                    }`}
+                  >
+                    <div className="w-8 h-8 rounded-lg bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 flex items-center justify-center shrink-0">
+                      <Laptop className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <div className="text-xs font-bold text-slate-900 dark:text-white">Sistem ilə Eyni</div>
+                      <div className="text-[10px] text-slate-500 dark:text-slate-400">Cihaz tənzimləməsi</div>
+                    </div>
+                  </button>
+                </div>
+              </div>
+
               {/* SECTION: Notification Frequency */}
               <div>
                 <div className="flex items-center justify-between mb-2">

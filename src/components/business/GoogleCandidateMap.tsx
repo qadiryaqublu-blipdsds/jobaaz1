@@ -180,7 +180,7 @@ export const GoogleCandidateMap: React.FC<GoogleCandidateMapProps> = ({
           </div>
           ${
             candidate.expectedSalary
-              ? `<div class="absolute -bottom-3.5 left-1/2 -translate-x-1/2 whitespace-nowrap bg-[#0b1b2b] text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full shadow-xs pointer-events-none">
+              ? `<div class="absolute -bottom-3.5 left-1/2 -translate-x-1/2 whitespace-nowrap bg-blue-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full shadow-xs pointer-events-none">
                   ${candidate.expectedSalary} ₼
                 </div>`
               : ''

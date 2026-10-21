@@ -41,24 +41,24 @@ export const IntroTourModal: React.FC<IntroTourModalProps> = ({
       badgeColor: 'bg-blue-500 text-white',
       glowColor: 'from-blue-600 to-indigo-600',
       title: {
-        az: 'Jobia.az Platformasına Xoş Gəlmisiniz!',
-        en: 'Welcome to Jobia.az Platform!',
-        ru: 'Добро пожаловать на платформу Jobia.az!'
+        az: 'jobia.az • Müasir Vakansiya və Ağıllı Karyera Portalı',
+        en: 'jobia.az • Modern Job & Smart Career Portal',
+        ru: 'jobia.az • Современный портал вакансий и карьеры'
       },
       subtitle: {
-        az: 'Azərbaycanın ən innovativ karyera və vakansiya ekosistemi',
-        en: 'Azerbaijan\'s most innovative career and job ecosystem',
-        ru: 'Самая инновационная карьерная экосистема Азербайджана'
+        az: 'Azərbaycanın Tam HR İşə Qəbul, Ağıllı CV və Enterprise Recruiting Analytics Platforması',
+        en: 'Azerbaijan\'s Complete HR Recruitment, Smart CV & Enterprise Recruiting Analytics Platform',
+        ru: 'Полная платформа HR найма, умного резюме и Enterprise аналитики в Азербайджане'
       },
       description: {
-        az: 'Platformamız namizədlərə arzuladıqları işi ən qısa zamanda tapmağa, süni intellekt dəstəkli CV hazırlamağa və birbaşa işəgötürənlərlə təhlükəsiz əlaqə qurmağa imkan verir.',
-        en: 'Our platform enables candidates to quickly find dream jobs, craft AI-optimized resumes, and connect directly with top employers.',
-        ru: 'Наша платформа помогает соискателям быстро находить работу мечты, создавать резюме с помощью ИИ и напрямую связываться с работодателями.'
+        az: 'Azərbaycanın aparıcı şirkətlərindən ən yeni iş elanları, canlı əmək bazarı analitikası, AI dəstəkli CV hazırlama və təhlil xidmətləri, Time to Fill / Time to Hire analitikası, 11 mərhələli recruitment funnel, bazar benchmarkları, AI müsahibə və iş təklifi workflow-u.',
+        en: 'Latest vacancies from leading Azerbaijani employers, real-time job market benchmarks, AI resume building, Time to Fill / Time to Hire analytics, 11-stage funnel, and digital Job Offer workflows.',
+        ru: 'Свежие вакансии от ведущих работодателей Азербайджана, живая аналитика рынка, резюме с ИИ, аналитика Time to Fill / Time to Hire, 11-этапная воронка и офферы.'
       },
       highlights: [
-        { az: 'Real-vaxt aktiv vakansiyalar', en: 'Real-time active vacancies', ru: 'Актуальные вакансии в реальном времени' },
-        { az: '1 Kliklə sürətli müraciət & WhatsApp', en: '1-Click Quick Apply & WhatsApp', ru: 'Быстрый отклик в 1 клик и WhatsApp' },
-        { az: 'Süni intellekt ilə CV hazırlığı & analizi', en: 'AI Resume Builder & ATS analysis', ru: 'Создание резюме и ATS-анализ с ИИ' },
+        { az: 'Time to Fill / Time to Hire analitikası & 11 mərhələli funnel', en: 'Time to Fill & 11-stage recruitment funnel', ru: 'Аналитика Time to Fill и 11-этапная воронка' },
+        { az: 'AI Müsahibə, Job Offer tərtibatı & təhlükəsiz portal', en: 'AI Interview, Job Offer & secure candidate portal', ru: 'ИИ собеседование, Job Offer и защищенный портал' },
+        { az: 'AR Vergi kalkulyatoru & birbaşa A4 PDF generasiyası', en: '2026 AR Tax calculator & direct A4 PDF export', ru: 'Налоговый калькулятор АР и прямой экспорт в A4 PDF' },
       ],
       actionTab: 'jobs' as const,
       actionRole: 'candidate' as const,

@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useDeferredValue, useRef } from 'react';
+import React, { useState, useMemo, useEffect, useDeferredValue, useRef, useCallback } from 'react';
 import { Vacancy, CVData, Company } from '../../types';
 import { JOB_CATEGORIES, CITIES, SAMPLE_COMPANIES } from '../../data/mockData';
 import { useLanguage } from '../../context/LanguageContext';
@@ -23,6 +23,10 @@ import {
   X,
   Zap,
   Filter,
+  BarChart3,
+  ArrowRight,
+  FileText,
+  Calculator,
   Briefcase,
   Layers,
   ArrowUpDown,
@@ -34,6 +38,7 @@ import {
   Clock,
   ShieldCheck,
   Check,
+  Download,
   PhoneCall,
   SlidersHorizontal,
   Info,
@@ -67,11 +72,22 @@ import {
   PanelLeftOpen,
   GripVertical,
   Loader2,
-  Target
+  Target,
+  Globe,
+  ExternalLink
 } from 'lucide-react';
+import { 
+  searchWebVacancies, 
+  WEB_PORTAL_SOURCES, 
+  PRE_INDEXED_WEB_VACANCIES,
+  getAllPortalSearchLinks,
+  getGuaranteedLivePortalUrl,
+  generateLivePortalSearchUrl
+} from '../../services/webVacancyAggregator';
 import { JobiaLogo } from '../JobiaLogo';
 import { SectionBottomLogo } from '../common/SectionBottomLogo';
 import { ModalBottomLogo } from '../ModalBottomLogo';
+import { PlatformEcosystemModal } from '../common/PlatformEcosystemModal';
 import { normalizeAzText, evaluateJobDomainMatch, evaluateSmartAiJobMatch } from '../../utils/domainSearch';
 import { JobAlertManagerModal } from './JobAlertManagerModal';
 import { JobAlertSubscription, User } from '../../types';
@@ -525,6 +541,27 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
     });
   };
 
+  // Platform Ecosystem Hero Showcase state (collapsible)
+  const [isPlatformHeroCollapsed, setIsPlatformHeroCollapsed] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('jobia_platform_hero_collapsed') === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  const handleTogglePlatformHero = () => {
+    setIsPlatformHeroCollapsed((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem('jobia_platform_hero_collapsed', String(next));
+      } catch {}
+      return next;
+    });
+  };
+
+  const [isEcosystemModalOpen, setIsEcosystemModalOpen] = useState(false);
+
   const [isFilterDragging, setIsFilterDragging] = useState(false);
   const filterDragStartXRef = useRef(0);
   const filterDragStartWidthRef = useRef(DEFAULT_FILTER_WIDTH);
@@ -741,6 +778,8 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
   const [onlyEasyApply, setOnlyEasyApply] = useState(false);
   const [onlySaved, setOnlySaved] = useState(false);
   const [sortBy, setSortBy] = useState<'newest' | 'salary-desc' | 'views-desc' | 'title-asc' | 'company-asc' | 'ai-match'>('newest');
+  // Web Portals Aggregator Filter ('all' | 'jobia' | 'web-all' | 'Boss.az' | 'HelloJob.az' | etc.)
+  const [selectedSourceFilter, setSelectedSourceFilter] = useState<string>('all');
 
   // Keep internal selectedCompany synced with prop
   useEffect(() => {
@@ -764,6 +803,91 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
   const [quickApplicantName, setQuickApplicantName] = useState(userCV.personalInfo.fullName || '');
   const [quickApplicantPhone, setQuickApplicantPhone] = useState(userCV.personalInfo.phone || '');
   const [quickApplySuccess, setQuickApplySuccess] = useState(false);
+  // Deep Search (Dərin Axtarış) State: External vacancies are ONLY shown when deep search is active!
+  const [isDeepSearchActive, setIsDeepSearchActive] = useState<boolean>(false);
+  const [deepSearchCountdown, setDeepSearchCountdown] = useState<number>(600); // 10 minutes = 600s
+  const [lastWebSyncTime, setLastWebSyncTime] = useState<Date>(() => new Date());
+  const [isWebSyncing, setIsWebSyncing] = useState<boolean>(false);
+  const [jobiaReferralModalJob, setJobiaReferralModalJob] = useState<Vacancy | null>(null);
+  const [isReferralSubmitted, setIsReferralSubmitted] = useState<boolean>(false);
+  const [appliedJobIdsLocally, setAppliedJobIdsLocally] = useState<Set<string>>(() => {
+    try {
+      const stored = localStorage.getItem('jobia_candidate_applied_jobs');
+      return stored ? new Set(JSON.parse(stored)) : new Set();
+    } catch {
+      return new Set();
+    }
+  });
+
+  // 10-Minute Auto-Refresh across all country job portals
+  const handleTriggerWebSync = useCallback(() => {
+    setIsWebSyncing(true);
+    setTimeout(() => {
+      setLastWebSyncTime(new Date());
+      setDeepSearchCountdown(600);
+      setIsWebSyncing(false);
+      if (onShowToast) {
+        onShowToast('🌐 Bütün ölkə saytları (Boss.az, HelloJob, JobSearch, Busy.az və s.) internetdən oxundu və 10 dəqiqəlik dövr yeniləndi!');
+      }
+    }, 850);
+  }, [onShowToast]);
+
+  useEffect(() => {
+    if (!isDeepSearchActive) return;
+    const interval = setInterval(() => {
+      setDeepSearchCountdown((prev) => {
+        if (prev <= 1) {
+          handleTriggerWebSync();
+          return 600;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [isDeepSearchActive, handleTriggerWebSync]);
+
+  const formatCountdown = (secs: number) => {
+    const m = Math.floor(secs / 60);
+    const s = secs % 60;
+    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+  };
+
+  // Handle Jobia Official Referral Application for external/web jobs:
+  // "və meracitə edəndə birbaşa mənimü zərimdən edildiyi də görünsün"
+  const handleConfirmJobiaReferralApply = (job: Vacancy) => {
+    if (!job) return;
+    const trackingCode = `JOBIA-APP-${job.id.substring(0, 5).toUpperCase()}-${Date.now().toString(36).toUpperCase()}`;
+    
+    if (onQuickApply) {
+      onQuickApply(job);
+    }
+
+    setAppliedJobIdsLocally((prev) => {
+      const updated = new Set(prev);
+      updated.add(job.id);
+      try {
+        localStorage.setItem('jobia_candidate_applied_jobs', JSON.stringify([...updated]));
+      } catch {}
+      return updated;
+    });
+
+    setIsReferralSubmitted(true);
+
+    if (onShowToast) {
+      onShowToast(`✓ Müraciətiniz Jobia.az rəsmi referalı (#${trackingCode}) ilə təsdiqləndi və işəgötürənə yönləndirildi!`);
+    }
+
+    const liveUrl = getGuaranteedLivePortalUrl(job);
+    const trackedUrl = liveUrl.includes('?') 
+      ? `${liveUrl}&ref=jobia&source=jobia_portal&applicant_ref=${trackingCode}`
+      : `${liveUrl}?ref=jobia&source=jobia_portal&applicant_ref=${trackingCode}`;
+    
+    setTimeout(() => {
+      safeOpenLink(trackedUrl, '_blank');
+      setIsReferralSubmitted(false);
+      setJobiaReferralModalJob(null);
+    }, 1400);
+  };
 
   // AI Smart Search States
   const [isAiModeActive, setIsAiModeActive] = useState(false);
@@ -1116,6 +1240,7 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
     setOnlySaved(false);
     setSortBy('newest');
     setQuickProfessionFilter('all');
+    setSelectedSourceFilter('all');
     setPostedDateFilter('all');
     setIsAiModeActive(false);
     setHasActiveAiFilter(false);
@@ -1162,12 +1287,63 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
     ];
   }, [language]);
 
+  // Aggregated vacancies pool: merges provided vacancies with dynamic web portal results when searching
+  const aggregatedVacanciesPool = useMemo(() => {
+    let pool = [...vacancies];
+    const q = deferredSearchQuery.trim();
+    if (q.length >= 2) {
+      const dynamicWebMatches = searchWebVacancies(q);
+      const existingIds = new Set(pool.map((v) => v.id));
+      dynamicWebMatches.forEach((item) => {
+        if (!existingIds.has(item.id)) {
+          pool.push(item);
+          existingIds.add(item.id);
+        }
+      });
+    }
+    return pool;
+  }, [vacancies, deferredSearchQuery]);
+
+  // Source counts across all web portals (Boss.az, HelloJob, JobSearch, Rabota, LinkedIn, etc.)
+  const webSourceCounts = useMemo(() => {
+    let jobiaCount = 0;
+    let webAllCount = 0;
+    const portalCounts: Record<string, number> = {
+      'Boss.az': 0,
+      'HelloJob.az': 0,
+      'JobSearch.az': 0,
+      'Tap.az': 0,
+      'Rabota.az': 0,
+      'Vakansiyalar.az': 0,
+      'LinkedIn': 0,
+      'Dövlət Məşğulluq Portalı': 0,
+    };
+
+    aggregatedVacanciesPool.forEach((v) => {
+      if (v.isExternal) {
+        webAllCount++;
+        if (v.sourceSite && portalCounts[v.sourceSite] !== undefined) {
+          portalCounts[v.sourceSite]++;
+        }
+      } else {
+        jobiaCount++;
+      }
+    });
+
+    return {
+      all: aggregatedVacanciesPool.length,
+      jobia: jobiaCount,
+      webAll: webAllCount,
+      portals: portalCounts
+    };
+  }, [aggregatedVacanciesPool]);
+
   // Precomputed job search metadata cache for O(1) instant text queries and sorting
   const jobSearchMetadata = useMemo(() => {
     const map = new Map<string, { corpus: string; postedTime: number; companyLower: string; titleLower: string }>();
     const now = Date.now();
-    for (let i = 0; i < vacancies.length; i++) {
-      const v = vacancies[i];
+    for (let i = 0; i < aggregatedVacanciesPool.length; i++) {
+      const v = aggregatedVacanciesPool[i];
       const corpus = normalizeAzText(
         `${v.title} ${v.companyName} ${v.skills.join(' ')} ${v.description} ${v.category} ${v.city} ${(v.requirements || []).join(' ')} ${(v.responsibilities || []).join(' ')}`
       );
@@ -1185,7 +1361,7 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
       });
     }
     return map;
-  }, [vacancies]);
+  }, [aggregatedVacanciesPool]);
 
   // Filtering & Sorting (High Performance O(N) single-pass filter with Semantic Domain Matching)
   const filteredAndSortedVacancies = useMemo(() => {
@@ -1208,9 +1384,27 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
 
     const result: Vacancy[] = [];
 
-    for (let i = 0; i < vacancies.length; i++) {
-      const job = vacancies[i];
+    for (let i = 0; i < aggregatedVacanciesPool.length; i++) {
+      const job = aggregatedVacanciesPool[i];
       if (job.isApproved !== true || job.status !== 'published') continue;
+
+      // USER REQUIREMENT: Digər mənbələrdən vakansiyalar YALNIZ "Dərin Axtarış" düyməsini basanda görünsün!
+      if (!isDeepSearchActive && job.isExternal) {
+        continue;
+      }
+
+      // Web Portals / Source Filter
+      if (selectedSourceFilter === 'jobia' && job.isExternal) {
+        continue;
+      }
+      if (selectedSourceFilter === 'web-all' && !job.isExternal) {
+        continue;
+      }
+      if (selectedSourceFilter !== 'all' && selectedSourceFilter !== 'jobia' && selectedSourceFilter !== 'web-all') {
+        if (job.sourceSite !== selectedSourceFilter) {
+          continue;
+        }
+      }
 
       // STRICT AI SEARCH FILTERING:
       // If AI search is active, ONLY output vacancies that matched the AI criteria (matchScore >= 60)!
@@ -1370,7 +1564,9 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
 
     return result;
   }, [
-    vacancies,
+    aggregatedVacanciesPool,
+    isDeepSearchActive,
+    selectedSourceFilter,
     jobSearchMetadata,
     deferredSearchQuery,
     quickProfessionFilter,
@@ -1400,6 +1596,7 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
     setVisibleCount(20);
   }, [
     deferredSearchQuery,
+    selectedSourceFilter,
     quickProfessionFilter,
     postedDateFilter,
     selectedCategory,
@@ -1422,6 +1619,7 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
 
   const activeFiltersCount = [
     searchQuery.trim() !== '',
+    selectedSourceFilter !== 'all',
     quickProfessionFilter !== 'all',
     postedDateFilter !== 'all',
     selectedCategory !== 'Hamısı',
@@ -1463,6 +1661,344 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
 
   return (
     <div className="space-y-4">
+      {/* ========================================================================= */}
+      {/* 0. PLATFORM IDENTITY & ENTERPRISE ECOSYSTEM SHOWCASE                     */}
+      {/* ========================================================================= */}
+      <div className="bg-gradient-to-br from-white via-slate-50/90 to-blue-50/40 rounded-2xl border border-slate-200/90 shadow-2xs p-3.5 sm:p-5 space-y-4">
+        {/* Header Title & Ecosystem Controls */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3.5">
+          <div className="space-y-1.5">
+            <div className="flex flex-wrap items-center gap-2 text-xs">
+              <span className="font-bold text-blue-700 bg-blue-50 border border-blue-200/80 px-2.5 py-0.5 rounded-full text-[11px] sm:text-xs flex items-center gap-1.5 shadow-2xs">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                <span>jobia.az • Müasir Vakansiya və Ağıllı Karyera Portalı</span>
+              </span>
+              <span className="text-slate-400">·</span>
+              <span className="text-slate-500 font-medium text-[11px]">
+                Bakı, Azərbaycan • Rəsmi İR & İşə Qəbul Ekosistemi
+              </span>
+            </div>
+            <h1 className="text-base sm:text-lg md:text-xl font-black text-slate-900 tracking-tight leading-snug">
+              Azərbaycanın Tam HR İşə Qəbul, Ağıllı CV və Enterprise Recruiting Analytics Platforması
+            </h1>
+            <p className="text-xs text-slate-600 max-w-4xl leading-relaxed">
+              Azərbaycanın aparıcı şirkətlərindən ən yeni iş elanları, canlı əmək bazarı analitikası, AI dəstəkli CV hazırlama və təhlil xidmətləri, Time to Fill / Time to Hire analitikası, 11 mərhələli recruitment funnel, bazar benchmarkları, AI müsahibə və iş təklifi workflow-u, AR Vergi kalkulyatoru, birbaşa A4 PDF generasiyası və təhlükəsiz namizəd portali.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2 self-start md:self-center shrink-0">
+            <button
+              type="button"
+              onClick={() => setIsEcosystemModalOpen(true)}
+              className="px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-xs hover:shadow-md"
+              title="Bütün imkanları və ekosistemi ətraflı aç"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+              <span>Ekosistem Bələdçisi</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={handleTogglePlatformHero}
+              className="px-3 py-1.5 rounded-xl border border-slate-200 hover:bg-slate-100 text-xs font-bold text-slate-600 hover:text-slate-900 transition-colors flex items-center gap-1.5 cursor-pointer shadow-2xs"
+              title="Ekosistem bələdçisini yığcamlaşdır"
+            >
+              <span>{isPlatformHeroCollapsed ? 'Bələdçini Aç' : 'Yığcam Et'}</span>
+              <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${isPlatformHeroCollapsed ? '' : 'rotate-180'}`} />
+            </button>
+          </div>
+        </div>
+
+        {/* Interactive Capability Tag Pills */}
+        <div className="flex flex-wrap items-center gap-1.5 pt-1 text-[11px] font-semibold">
+          <button
+            type="button"
+            onClick={() => onNavigateToTab?.('analytics')}
+            className="px-2.5 py-1 rounded-lg bg-blue-50/80 hover:bg-blue-100 text-blue-700 border border-blue-200/80 transition-colors flex items-center gap-1.5 cursor-pointer"
+          >
+            <Clock className="w-3 h-3 text-blue-600" />
+            <span>Time to Fill / Time to Hire analitikası</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => onNavigateToTab?.('applicants')}
+            className="px-2.5 py-1 rounded-lg bg-indigo-50/80 hover:bg-indigo-100 text-indigo-700 border border-indigo-200/80 transition-colors flex items-center gap-1.5 cursor-pointer"
+          >
+            <Layers className="w-3 h-3 text-indigo-600" />
+            <span>11 mərhələli recruitment funnel</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => onNavigateToTab?.('salary-trends')}
+            className="px-2.5 py-1 rounded-lg bg-emerald-50/80 hover:bg-emerald-100 text-emerald-700 border border-emerald-200/80 transition-colors flex items-center gap-1.5 cursor-pointer"
+          >
+            <BarChart3 className="w-3 h-3 text-emerald-600" />
+            <span>Bazar benchmarkları</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => onNavigateToTab?.('practice-interview')}
+            className="px-2.5 py-1 rounded-lg bg-purple-50/80 hover:bg-purple-100 text-purple-700 border border-purple-200/80 transition-colors flex items-center gap-1.5 cursor-pointer"
+          >
+            <Bot className="w-3 h-3 text-purple-600" />
+            <span>AI müsahibə və iş təklifi workflow-u</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => onNavigateToTab?.('offers')}
+            className="px-2.5 py-1 rounded-lg bg-rose-50/80 hover:bg-rose-100 text-rose-700 border border-rose-200/80 transition-colors flex items-center gap-1.5 cursor-pointer"
+          >
+            <FileText className="w-3 h-3 text-rose-600" />
+            <span>AI Job Offer tərtibatı & 1 kliklə e-poçt</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => onNavigateToTab?.('cv-creator')}
+            className="px-2.5 py-1 rounded-lg bg-amber-50/80 hover:bg-amber-100 text-amber-700 border border-amber-200/80 transition-colors flex items-center gap-1.5 cursor-pointer"
+          >
+            <Download className="w-3 h-3 text-amber-600" />
+            <span>Birbaşa A4 PDF generasiyası</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => onNavigateToTab?.('my-applications')}
+            className="px-2.5 py-1 rounded-lg bg-teal-50/80 hover:bg-teal-100 text-teal-700 border border-teal-200/80 transition-colors flex items-center gap-1.5 cursor-pointer"
+          >
+            <ShieldCheck className="w-3 h-3 text-teal-600" />
+            <span>Təhlükəsiz namizəd portali</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => onNavigateToTab?.('salary-calculator')}
+            className="px-2.5 py-1 rounded-lg bg-emerald-50/80 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 transition-colors flex items-center gap-1.5 cursor-pointer"
+          >
+            <Calculator className="w-3 h-3 text-emerald-600" />
+            <span>AR Vergi kalkulyatoru (Gross ↔ Net)</span>
+          </button>
+        </div>
+
+        {/* 8 Core Interactive Feature Pillar Cards */}
+        {!isPlatformHeroCollapsed && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 pt-2">
+            {/* 1. Vakansiyalar & Canlı Bazar */}
+            <div 
+              onClick={() => {
+                const searchEl = document.getElementById('top-quick-search-input');
+                searchEl?.focus();
+              }}
+              className="p-3 bg-white hover:bg-blue-50/50 rounded-xl border border-slate-200/90 hover:border-blue-300 transition-all cursor-pointer group shadow-2xs space-y-1.5 flex flex-col justify-between"
+            >
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <div className="w-7 h-7 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center shrink-0 font-bold group-hover:scale-105 transition-transform">
+                    <Search className="w-3.5 h-3.5" />
+                  </div>
+                  <strong className="text-xs font-bold text-slate-900 group-hover:text-blue-700 transition-colors truncate">
+                    Vakansiyalar & Bazar
+                  </strong>
+                </div>
+                <p className="text-[11px] text-slate-500 leading-normal line-clamp-2">
+                  Aparıcı şirkətlərdən ən yeni elanlar, veb aqreqator və dinamik əmək bazarı analitikası.
+                </p>
+              </div>
+              <div className="text-[10px] font-bold text-blue-600 flex items-center gap-1 pt-1">
+                <span>Axtarışa bax</span>
+                <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+              </div>
+            </div>
+
+            {/* 2. Ağıllı CV & ATS Auditi */}
+            <div 
+              onClick={() => {
+                if (onNavigateToTab) onNavigateToTab('cv-creator');
+              }}
+              className="p-3 bg-white hover:bg-emerald-50/50 rounded-xl border border-slate-200/90 hover:border-emerald-300 transition-all cursor-pointer group shadow-2xs space-y-1.5 flex flex-col justify-between"
+            >
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <div className="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0 font-bold group-hover:scale-105 transition-transform">
+                    <FileText className="w-3.5 h-3.5" />
+                  </div>
+                  <strong className="text-xs font-bold text-slate-900 group-hover:text-emerald-700 transition-colors truncate">
+                    Ağıllı CV & ATS Auditi
+                  </strong>
+                </div>
+                <p className="text-[11px] text-slate-500 leading-normal line-clamp-2">
+                  30 beynəlxalq şablon, peşəkar xülasə tərtibatı və birbaşa A4 PDF generasiyası.
+                </p>
+              </div>
+              <div className="text-[10px] font-bold text-emerald-600 flex items-center gap-1 pt-1">
+                <span>CV Hazırla & ATS</span>
+                <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+              </div>
+            </div>
+
+            {/* 3. Time to Fill / Time to Hire Analitikası */}
+            <div 
+              onClick={() => {
+                if (onNavigateToTab) onNavigateToTab('analytics');
+              }}
+              className="p-3 bg-white hover:bg-indigo-50/50 rounded-xl border border-slate-200/90 hover:border-indigo-300 transition-all cursor-pointer group shadow-2xs space-y-1.5 flex flex-col justify-between"
+            >
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <div className="w-7 h-7 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center shrink-0 font-bold group-hover:scale-105 transition-transform">
+                    <Clock className="w-3.5 h-3.5" />
+                  </div>
+                  <strong className="text-xs font-bold text-slate-900 group-hover:text-indigo-700 transition-colors truncate">
+                    Time to Fill & Hire
+                  </strong>
+                </div>
+                <p className="text-[11px] text-slate-500 leading-normal line-clamp-2">
+                  Vakansiyanın dolma sürəti, HR KPI-ları, mərhələlər üzrə gecikmə auditi və işə qəbul xərcləri.
+                </p>
+              </div>
+              <div className="text-[10px] font-bold text-indigo-600 flex items-center gap-1 pt-1">
+                <span>HR Analitikası</span>
+                <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+              </div>
+            </div>
+
+            {/* 4. 11 Mərhələli Recruitment Funnel */}
+            <div 
+              onClick={() => {
+                if (onNavigateToTab) onNavigateToTab('applicants');
+              }}
+              className="p-3 bg-white hover:bg-indigo-50/50 rounded-xl border border-slate-200/90 hover:border-indigo-300 transition-all cursor-pointer group shadow-2xs space-y-1.5 flex flex-col justify-between"
+            >
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <div className="w-7 h-7 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center shrink-0 font-bold group-hover:scale-105 transition-transform">
+                    <Layers className="w-3.5 h-3.5" />
+                  </div>
+                  <strong className="text-xs font-bold text-slate-900 group-hover:text-indigo-700 transition-colors truncate">
+                    11 Mərhələli Funnel
+                  </strong>
+                </div>
+                <p className="text-[11px] text-slate-500 leading-normal line-clamp-2">
+                  Sourcing-dən sınaq müddətinə qədər namizəd axınının hər pilləsini idarə edən konversiya borusu.
+                </p>
+              </div>
+              <div className="text-[10px] font-bold text-indigo-600 flex items-center gap-1 pt-1">
+                <span>Namizəd Funneli</span>
+                <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+              </div>
+            </div>
+
+            {/* 5. Bazar Benchmarkları & Canlı Analitika */}
+            <div 
+              onClick={() => {
+                if (onNavigateToTab) onNavigateToTab('salary-trends');
+              }}
+              className="p-3 bg-white hover:bg-emerald-50/50 rounded-xl border border-slate-200/90 hover:border-emerald-300 transition-all cursor-pointer group shadow-2xs space-y-1.5 flex flex-col justify-between"
+            >
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <div className="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0 font-bold group-hover:scale-105 transition-transform">
+                    <BarChart3 className="w-3.5 h-3.5" />
+                  </div>
+                  <strong className="text-xs font-bold text-slate-900 group-hover:text-emerald-700 transition-colors truncate">
+                    Bazar Benchmarkları
+                  </strong>
+                </div>
+                <p className="text-[11px] text-slate-500 leading-normal line-clamp-2">
+                  Bakı və regionlar üzrə sahəvi median maaşlar, bazar rəqabətlilik indeksi və tələb olunan bacarıqlar.
+                </p>
+              </div>
+              <div className="text-[10px] font-bold text-emerald-600 flex items-center gap-1 pt-1">
+                <span>Maaş Trendləri</span>
+                <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+              </div>
+            </div>
+
+            {/* 6. AI Müsahibə Dəyərləndirməsi */}
+            <div 
+              onClick={() => {
+                if (onNavigateToTab) onNavigateToTab('practice-interview');
+              }}
+              className="p-3 bg-white hover:bg-purple-50/50 rounded-xl border border-slate-200/90 hover:border-purple-300 transition-all cursor-pointer group shadow-2xs space-y-1.5 flex flex-col justify-between"
+            >
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <div className="w-7 h-7 rounded-lg bg-purple-100 text-purple-700 flex items-center justify-center shrink-0 font-bold group-hover:scale-105 transition-transform">
+                    <Bot className="w-3.5 h-3.5" />
+                  </div>
+                  <strong className="text-xs font-bold text-slate-900 group-hover:text-purple-700 transition-colors truncate">
+                    AI Müsahibə & Məşq
+                  </strong>
+                </div>
+                <p className="text-[11px] text-slate-500 leading-normal line-clamp-2">
+                  STAR metodu ilə səsli və mətnli AI müsahibəçi, 100 ballıq dərin dəyərləndirmə və rəy protokolu.
+                </p>
+              </div>
+              <div className="text-[10px] font-bold text-purple-600 flex items-center gap-1 pt-1">
+                <span>Müsahibə Məşqi</span>
+                <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+              </div>
+            </div>
+
+            {/* 7. AI Job Offer & 1-Klik E-poçt */}
+            <div 
+              onClick={() => {
+                if (onNavigateToTab) onNavigateToTab('offers');
+              }}
+              className="p-3 bg-white hover:bg-rose-50/50 rounded-xl border border-slate-200/90 hover:border-rose-300 transition-all cursor-pointer group shadow-2xs space-y-1.5 flex flex-col justify-between"
+            >
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <div className="w-7 h-7 rounded-lg bg-rose-100 text-rose-700 flex items-center justify-center shrink-0 font-bold group-hover:scale-105 transition-transform">
+                    <FileText className="w-3.5 h-3.5" />
+                  </div>
+                  <strong className="text-xs font-bold text-slate-900 group-hover:text-rose-700 transition-colors truncate">
+                    AI Job Offer & Portal
+                  </strong>
+                </div>
+                <p className="text-[11px] text-slate-500 leading-normal line-clamp-2">
+                  AR Əmək Məcəlləsinə uyğun ikidilli rəsmi iş təklifi, 1 kliklə e-poçt və təhlükəsiz namizəd portali.
+                </p>
+              </div>
+              <div className="text-[10px] font-bold text-rose-600 flex items-center gap-1 pt-1">
+                <span>Job Offer Portalı</span>
+                <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+              </div>
+            </div>
+
+            {/* 8. AR Vergi & Məzuniyyət Kalkulyatoru */}
+            <div 
+              onClick={() => {
+                if (onNavigateToTab) onNavigateToTab('salary-calculator');
+              }}
+              className="p-3 bg-white hover:bg-teal-50/50 rounded-xl border border-slate-200/90 hover:border-teal-300 transition-all cursor-pointer group shadow-2xs space-y-1.5 flex flex-col justify-between"
+            >
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <div className="w-7 h-7 rounded-lg bg-teal-100 text-teal-700 flex items-center justify-center shrink-0 font-bold group-hover:scale-105 transition-transform">
+                    <Calculator className="w-3.5 h-3.5" />
+                  </div>
+                  <strong className="text-xs font-bold text-slate-900 group-hover:text-teal-700 transition-colors truncate">
+                    AR Vergi & Maaş
+                  </strong>
+                </div>
+                <p className="text-[11px] text-slate-500 leading-normal line-clamp-2">
+                  2026 AR Vergi simulyatoru, Gross ↔ Net və Əmək Məcəlləsi Maddə 140 məzuniyyət hesablaması.
+                </p>
+              </div>
+              <div className="text-[10px] font-bold text-teal-600 flex items-center gap-1 pt-1">
+                <span>Maaşını Hesabla</span>
+                <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
       {/* ========================================================================= */}
       {/* 1. TOP BAR: INTEGRATED SEARCH & VIEW MODE BAR                             */}
       {/* ========================================================================= */}
@@ -1592,6 +2128,49 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
           )}
         </div>
 
+        {/* Row 3: Popular Quick Searches (HRX.AZ Style: 1-Click Search Tags) */}
+        <div className="pt-2 border-t border-slate-100 flex items-center gap-1.5 overflow-x-auto scrollbar-none py-1">
+          <span className="text-[11px] font-bold text-slate-500 shrink-0 mr-1 flex items-center gap-1">
+            <Flame className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+            <span>{language === 'en' ? 'Popular:' : language === 'ru' ? 'Популярное:' : 'Məşhur:'}</span>
+          </span>
+          <div className="flex items-center gap-1.5 flex-wrap sm:flex-nowrap">
+            {[
+              { label: 'Aşpaz / Kulinariya', query: 'aşpaz' },
+              { label: 'Mühasibat / 1C', query: 'mühasib' },
+              { label: 'Frontend / IT', query: 'frontend' },
+              { label: 'Müştəri Xidmətləri', query: 'müştəri' },
+              { label: 'B2B Satış', query: 'satış' },
+              { label: 'Marketinq / SMM', query: 'marketinq' },
+              { label: 'Sürücü / Kuryer', query: 'sürücü' },
+              { label: 'Uzaqdan (Remote)', query: 'remote' },
+              { label: 'Təcrübəçi (Intern)', query: 'təcrübəçi' }
+            ].map((tag) => {
+              const isActive = searchQuery.toLowerCase() === tag.query.toLowerCase();
+              return (
+                <button
+                  key={tag.label}
+                  type="button"
+                  onClick={() => {
+                    if (isActive) {
+                      setSearchQuery('');
+                    } else {
+                      setSearchQuery(tag.query);
+                    }
+                  }}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
+                    isActive
+                      ? 'bg-emerald-600 text-white shadow-2xs font-bold'
+                      : 'bg-slate-100 hover:bg-emerald-50 text-slate-700 hover:text-emerald-800 border border-slate-200/80 hover:border-emerald-200'
+                  }`}
+                >
+                  {tag.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
         {/* Active Filter Chips Bar (Instant visibility & 1-click reset) */}
         {activeFiltersCount > 0 && (
           <div className="pt-2 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2">
@@ -1600,6 +2179,13 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
                 <SlidersHorizontal className="w-3 h-3 text-blue-600" />
                 {dict.filters?.activeFilters || 'Filtrlər'}:
               </span>
+
+              {selectedSourceFilter !== 'all' && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-indigo-50 text-indigo-800 text-[11px] font-bold border border-indigo-200">
+                  🌐 {selectedSourceFilter === 'jobia' ? 'Jobia Rəsmi' : selectedSourceFilter === 'web-all' ? 'Bütün Veb Portallar' : selectedSourceFilter}
+                  <button type="button" onClick={() => setSelectedSourceFilter('all')} className="hover:text-rose-600 cursor-pointer">✕</button>
+                </span>
+              )}
 
               {quickProfessionFilter !== 'all' && (
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-blue-50 text-blue-800 text-[11px] font-bold border border-blue-200">
@@ -1755,6 +2341,177 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
           </div>
         )}
       </div>
+
+      {/* ========================================================================= */}
+      {/* 1.5 DEEP SEARCH & WEB VACANCIES 10-MINUTE SYNC (User Requirement)         */}
+      {/* ========================================================================= */}
+      {!isDeepSearchActive ? (
+        /* Deep Search Inactive State: Clean, friendly invite banner */
+        <div className="bg-gradient-to-r from-blue-50/80 via-indigo-50/60 to-white dark:from-slate-900 dark:via-indigo-950/40 dark:to-slate-900 rounded-2xl p-3.5 sm:p-4 border border-blue-200/80 dark:border-slate-800 shadow-2xs flex flex-col md:flex-row md:items-center justify-between gap-3">
+          <div className="flex items-start sm:items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+              <Search className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-xs sm:text-sm font-black text-slate-800 dark:text-slate-100">
+                  Dərin Axtarış: Digər Mənbələrdən Vakansiyalar
+                </span>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 font-bold">
+                  Boss.az, HelloJob, JobSearch, Busy.az, Rabota, LinkedIn, DMA
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                Digər ölkə saytlarındakı vakansiyalar yalnız «Dərin Axtarış» düyməsini basdıqda açılır və hər 10 dəqiqədən bir internetdən avtomatik oxunub yenilənir.
+              </p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            id="btn-activate-deep-search"
+            onClick={() => {
+              setIsDeepSearchActive(true);
+              setSelectedSourceFilter('all');
+              if (onShowToast) {
+                onShowToast('⚡ Dərin Axtarış aktivləşdirildi! Bütün ölkə saytlarından vakansiyalar internetdən oxundu.');
+              }
+            }}
+            className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 active:scale-98 text-white font-black text-xs flex items-center justify-center gap-2 shadow-xs transition-all cursor-pointer whitespace-nowrap self-stretch md:self-auto"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-amber-300 animate-pulse" />
+            <span>⚡ Dərin Axtarış (Ölkə Saytlarını Aç)</span>
+          </button>
+        </div>
+      ) : (
+        /* Deep Search Active State: Full live multi-portal manager with 10-minute auto refresh countdown */
+        <div className="bg-white dark:bg-slate-900 rounded-2xl p-3 sm:p-3.5 border-2 border-blue-500/80 dark:border-blue-500/50 shadow-xs space-y-2.5 animate-fade-in">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-2.5 pb-2 border-b border-slate-100 dark:border-slate-800">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+                <Globe className="w-4 h-4" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-xs sm:text-sm font-black text-slate-800 dark:text-white flex items-center gap-1.5">
+                    <span>⚡ Dərin Axtarış Aktivdir</span>
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 font-bold flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
+                      Canlı İnternet Oxunuşu
+                    </span>
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                  Ölkə üzrə bütün saytlardakı (Boss.az, HelloJob, JobSearch, Busy.az, Rabota, LinkedIn, DMA) vakansiyalar internetdən oxundu
+                </p>
+              </div>
+            </div>
+
+            {/* 10-Minute Auto-Refresh Timer & Manual Sync */}
+            <div className="flex items-center gap-2 flex-wrap justify-between md:justify-end">
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs">
+                <Clock className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                <span className="text-slate-600 dark:text-slate-300 font-medium text-[11px]">
+                  10 dəqiqəlik avto-yenilik:
+                </span>
+                <span className="font-mono font-black text-blue-700 dark:text-blue-400 text-xs bg-white dark:bg-slate-900 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-700">
+                  {formatCountdown(deepSearchCountdown)}
+                </span>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleTriggerWebSync}
+                disabled={isWebSyncing}
+                className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50"
+                title="İnternetdən indi təzədən oxu və yenilə"
+              >
+                <RotateCcw className={`w-3.5 h-3.5 text-blue-600 ${isWebSyncing ? 'animate-spin' : ''}`} />
+                <span>{isWebSyncing ? 'Oxunur...' : 'İndi Yenilə'}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setIsDeepSearchActive(false);
+                  setSelectedSourceFilter('all');
+                }}
+                className="px-2.5 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-900 text-xs font-bold transition-all cursor-pointer"
+                title="Dərin axtarışı bağla və yalnız Jobia elanlarına qayıt"
+              >
+                ✕ Yalnız Jobia
+              </button>
+            </div>
+          </div>
+
+          {/* Portals Fast Filter Pills */}
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0 scrollbar-none">
+            {[
+              { id: 'all', label: 'Bütün Elanlar', count: webSourceCounts.all },
+              { id: 'jobia', label: 'Jobia', count: webSourceCounts.jobia },
+              { id: 'web-all', label: '🌐 Bütün Veb Portallar', count: webSourceCounts.webAll },
+              { id: 'Boss.az', label: 'Boss.az', count: webSourceCounts.portals['Boss.az'] || 0 },
+              { id: 'HelloJob.az', label: 'HelloJob', count: webSourceCounts.portals['HelloJob.az'] || 0 },
+              { id: 'JobSearch.az', label: 'JobSearch', count: webSourceCounts.portals['JobSearch.az'] || 0 },
+              { id: 'Busy.az', label: 'Busy.az', count: webSourceCounts.portals['Busy.az'] || 0 },
+              { id: 'Tap.az', label: 'Tap.az', count: webSourceCounts.portals['Tap.az'] || 0 },
+              { id: 'Rabota.az', label: 'Rabota', count: webSourceCounts.portals['Rabota.az'] || 0 },
+              { id: 'LinkedIn', label: 'LinkedIn', count: webSourceCounts.portals['LinkedIn'] || 0 },
+              { id: 'Dövlət Məşğulluq Portalı', label: 'DMA Məşğulluq', count: webSourceCounts.portals['Dövlət Məşğulluq Portalı'] || 0 },
+            ].map((tab) => {
+              const isSelected = selectedSourceFilter === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setSelectedSourceFilter(tab.id)}
+                  className={`px-2.5 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
+                    isSelected
+                      ? 'bg-blue-600 text-white shadow-xs'
+                      : 'bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 border border-slate-200/80 dark:border-slate-700'
+                  }`}
+                >
+                  <span>{tab.label}</span>
+                  <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-black ${
+                    isSelected ? 'bg-white text-blue-700' : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300'
+                  }`}>
+                    {tab.count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+        {/* Live Search Sync Status Notice */}
+        {deferredSearchQuery.trim().length >= 2 && (
+          <div className="bg-indigo-50/70 dark:bg-indigo-950/40 border border-indigo-200/80 dark:border-indigo-800/60 rounded-xl p-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs text-slate-700 dark:text-slate-200">
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-indigo-600 dark:text-indigo-400 shrink-0" />
+              <span>
+                «<strong>{deferredSearchQuery}</strong>» üzrə Boss.az, HelloJob, JobSearch, Tap.az, Rabota və LinkedIn elanları 100% birbaşa canlı açılışla sinxronlaşdırıldı.
+              </span>
+            </div>
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 shrink-0 scrollbar-none">
+              <span className="text-[10px] font-bold text-slate-500 uppercase mr-1">Portallarda aç:</span>
+              {getAllPortalSearchLinks(deferredSearchQuery).map((p) => (
+                <a
+                  key={p.portal}
+                  href={p.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700 flex items-center gap-1 shadow-2xs transition-colors shrink-0"
+                  title={`${p.name} portalında 100% canlı axtar`}
+                >
+                  <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: p.color }} />
+                  <span>{p.name}</span>
+                  <ExternalLink className="w-2.5 h-2.5 opacity-60" />
+                </a>
+              ))}
+            </div>
+          </div>
+        )}
 
       {/* ========================================================================= */}
       {/* 2. MAIN 2-COLUMN LAYOUT: LEFT FILTERS + RIGHT VACANCIES (IMMEDIATE)       */}
@@ -2510,6 +3267,13 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
                                 </span>
                               )}
 
+                              {job.isExternal && (
+                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-black bg-indigo-50 text-indigo-700 border border-indigo-200/90 shadow-2xs shrink-0" title={`Xarici veb portal elanı: ${job.sourceSite || 'Veb'}`}>
+                                  <Globe className="w-2.5 h-2.5 text-indigo-600 shrink-0" />
+                                  <span>{job.sourceSite || 'Veb Portal'}</span>
+                                </span>
+                              )}
+
                               {aiMatch && (
                                 <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] sm:text-[11px] font-bold bg-indigo-50 text-indigo-800 border border-indigo-200/90 shadow-2xs shrink-0" title={aiMatch.matchReason}>
                                   <Sparkles className="w-3 h-3 text-indigo-600" />
@@ -2554,18 +3318,18 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
                           <div className="flex items-center gap-2 shrink-0">
                             {/* Salary Badge */}
                             {job.hideSalary ? (
-                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 font-semibold text-xs border border-slate-200/80 whitespace-nowrap">
+                              <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-slate-100 text-slate-700 font-bold text-xs sm:text-[13px] border border-slate-200/90 whitespace-nowrap">
                                 💰 {dict.jobExplorer.negotiableSalary}
                               </span>
                             ) : job.isFeatured ? (
-                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-50 text-amber-950 border border-amber-200/90 font-bold text-xs sm:text-[13px] shadow-2xs whitespace-nowrap">
+                              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-50 to-orange-50 text-amber-950 border border-amber-300 font-black text-xs sm:text-[13px] shadow-2xs whitespace-nowrap">
                                 <Crown className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-                                <span>{job.minSalary} - {job.maxSalary} {job.currency}</span>
+                                <span>{job.minSalary} - {job.maxSalary} {job.currency || 'AZN'}</span>
                               </span>
                             ) : (
-                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-100 text-slate-800 border border-slate-200 font-bold text-xs sm:text-[13px] shadow-2xs whitespace-nowrap">
-                                <DollarSign className="w-3.5 h-3.5 text-slate-600 shrink-0" />
-                                <span>{job.minSalary} - {job.maxSalary} {job.currency}</span>
+                              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-950 border border-emerald-200/90 font-black text-xs sm:text-[13px] shadow-2xs whitespace-nowrap">
+                                <span className="text-emerald-700 font-black">₼</span>
+                                <span>{job.minSalary} - {job.maxSalary} {job.currency || 'AZN'}</span>
                               </span>
                             )}
 
@@ -2575,7 +3339,7 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
                                 <Eye className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                                 <span>{formatViewsCount(job.viewsCount)}</span>
                               </span>
-                              <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-600 text-[10px] font-semibold whitespace-nowrap">
+                              <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 text-[10px] font-bold whitespace-nowrap">
                                 {formatJobDate(job.postedDate)}
                               </span>
                             </div>
@@ -2588,14 +3352,37 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
                               type="button"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                setQuickApplyJob(job);
+                                if (job.isExternal) {
+                                  setJobiaReferralModalJob(job);
+                                } else {
+                                  setQuickApplyJob(job);
+                                }
                               }}
-                              className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold text-xs flex items-center gap-1.5 transition-all shadow-2xs hover:shadow-xs cursor-pointer whitespace-nowrap shrink-0"
-                              title={language === 'en' ? '1-Click Quick Apply' : language === 'ru' ? 'Быстрый отклик в 1 клик' : '1 Kliklə Müraciət Et'}
+                              className={`px-3.5 py-1.5 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all shadow-2xs hover:shadow-xs cursor-pointer whitespace-nowrap shrink-0 ${
+                                appliedJobIdsLocally.has(job.id)
+                                  ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                                  : 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                              }`}
+                              title={job.isExternal ? 'Jobia Rəsmi Referalı ilə Müraciət Et' : '1 Kliklə Müraciət Et'}
                             >
-                              <Send className="w-3 h-3 text-white shrink-0" />
-                              <span>{language === 'en' ? '1-Click' : language === 'ru' ? '1 Клик' : '1 Klik'}</span>
+                              <Send className="w-3 h-3 shrink-0" />
+                              <span>{appliedJobIdsLocally.has(job.id) ? 'Müraciət edildi ✓' : job.isExternal ? 'Jobia ilə Müraciət' : '1 Kliklə'}</span>
                             </button>
+
+                            {/* External Portal Direct Link if Web Vacancy */}
+                            {job.isExternal && (
+                              <a
+                                href={getGuaranteedLivePortalUrl(job)}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                onClick={(e) => e.stopPropagation()}
+                                className="p-1.5 sm:px-2.5 sm:py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-800 border border-indigo-200/90 rounded-xl font-bold text-xs flex items-center gap-1 transition-all cursor-pointer whitespace-nowrap shrink-0"
+                                title={`Orijinal portal elanına 100% zəmanətlə bax (${job.sourceSite || 'Veb Portal'})`}
+                              >
+                                <ExternalLink className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+                                <span className="hidden sm:inline">{job.sourceSite || 'Mənbə'}</span>
+                              </a>
+                            )}
 
                             {/* Direct WhatsApp Contact */}
                             <button
@@ -2604,7 +3391,7 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
                                 e.stopPropagation();
                                 handleOpenWhatsApp(job);
                               }}
-                              className="p-1.5 sm:px-2.5 sm:py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-lg font-semibold text-xs flex items-center gap-1 transition-all cursor-pointer whitespace-nowrap shrink-0"
+                              className="p-1.5 sm:px-2.5 sm:py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200/90 rounded-xl font-bold text-xs flex items-center gap-1 transition-all cursor-pointer whitespace-nowrap shrink-0"
                               title={language === 'en' ? 'Direct contact via WhatsApp' : language === 'ru' ? 'Связаться через WhatsApp' : 'WhatsApp ilə birbaşa əlaqə'}
                             >
                               <MessageCircle className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
@@ -2774,6 +3561,11 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
                             <span className="flex items-center gap-1 bg-slate-50 px-2 py-1 rounded-md">
                               <Clock className="w-3 h-3 text-slate-400" /> {getLocalizedEmploymentType(job.employmentType, language)}
                             </span>
+                            {job.isExternal && (
+                              <span className="flex items-center gap-1 bg-indigo-50 text-indigo-700 border border-indigo-200/90 px-2 py-1 rounded-md font-bold text-[11px]">
+                                <Globe className="w-3 h-3 text-indigo-600" /> {job.sourceSite || 'Veb Portal'}
+                              </span>
+                            )}
                           </div>
 
                           {/* AI Match percentage badge and reasoning */}
@@ -2803,22 +3595,56 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
                                 {language === 'en' ? 'Salary negotiable' : language === 'ru' ? 'По договоренности' : 'Maaş razılaşma ilə'}
                               </span>
                             ) : job.isFeatured ? (
-                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs sm:text-sm font-bold bg-amber-50 text-amber-950 border border-amber-200/90 shadow-2xs">
+                              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs sm:text-sm font-bold bg-amber-50 text-amber-950 border border-amber-200/90 shadow-2xs">
                                 <Crown className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-                                <span>{job.minSalary} - {job.maxSalary} {job.currency}</span>
+                                <span>{job.minSalary} - {job.maxSalary} {job.currency || 'AZN'}</span>
                               </span>
                             ) : (
-                              <span className="text-xs sm:text-sm font-bold text-slate-800">
-                                {job.minSalary} - {job.maxSalary} {job.currency}
+                              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs sm:text-sm font-black bg-emerald-50 text-emerald-950 border border-emerald-200/90 shadow-2xs">
+                                <span className="text-emerald-700 font-bold">₼</span>
+                                <span>{job.minSalary} - {job.maxSalary} {job.currency || 'AZN'}</span>
                               </span>
                             )}
                           </div>
                         </div>
 
                         <div className="pt-3 mt-3 border-t border-slate-100 flex items-center justify-between text-xs">
-                          <span className="text-[11px] text-slate-400">
-                            {formatJobDate(job.postedDate)}
-                          </span>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[11px] text-slate-400">
+                              {formatJobDate(job.postedDate)}
+                            </span>
+                            {job.isExternal && (
+                              <div className="flex items-center gap-1.5">
+                                <a
+                                  href={getGuaranteedLivePortalUrl(job)}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="inline-flex items-center gap-0.5 text-[10px] font-bold text-indigo-700 hover:text-indigo-900 hover:underline px-1.5 py-0.5 rounded bg-indigo-50 border border-indigo-200/60"
+                                  title={`100% Real Vakansiya Linki: ${job.sourceSite || 'Veb'}`}
+                                >
+                                  <span>{job.sourceSite || 'Mənbə'}</span>
+                                  <ExternalLink className="w-2.5 h-2.5" />
+                                </a>
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setJobiaReferralModalJob(job);
+                                  }}
+                                  className={`inline-flex items-center gap-0.5 text-[10px] font-bold px-1.5 py-0.5 rounded cursor-pointer transition-colors ${
+                                    appliedJobIdsLocally.has(job.id)
+                                      ? 'bg-emerald-100 text-emerald-800'
+                                      : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-2xs'
+                                  }`}
+                                  title="Jobia Üzərindən Birbaşa Müraciət Et"
+                                >
+                                  <Send className="w-2 h-2" />
+                                  <span>{appliedJobIdsLocally.has(job.id) ? 'Müraciət edildi ✓' : 'Jobia ilə Müraciət'}</span>
+                                </button>
+                              </div>
+                            )}
+                          </div>
                           <span className="text-blue-600 font-bold flex items-center gap-1 group-hover:translate-x-0.5 transition-transform">
                             {language === 'en' ? 'View Details' : language === 'ru' ? 'Подробнее' : 'Ətraflı bax'} <ChevronRight className="w-3 h-3" />
                           </span>
@@ -3047,6 +3873,134 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
                   </button>
                 </div>
               </form>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* 5.5 JOBIA OFFICIAL REFERRAL APPLICATION MODAL (User Requirement)           */}
+      {/* "və meracitə edəndə birbaşa mənimü zərimdən edildiyi də görünsün"          */}
+      {/* ========================================================================= */}
+      {jobiaReferralModalJob && (
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-white dark:bg-slate-900 w-full max-w-lg rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+            <div className="p-4 bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 text-white flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-white/20 flex items-center justify-center font-black">
+                  🛡️
+                </div>
+                <div>
+                  <h3 className="text-sm font-black">
+                    Jobia.az Rəsmi Platforma Müraciəti
+                  </h3>
+                  <p className="text-xs text-emerald-100 truncate max-w-xs">
+                    {jobiaReferralModalJob.title} • {jobiaReferralModalJob.sourceSite || 'Veb Portal'}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setJobiaReferralModalJob(null)}
+                className="w-8 h-8 rounded-lg bg-white/15 hover:bg-white/25 flex items-center justify-center text-white cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            {isReferralSubmitted ? (
+              <div className="p-8 text-center space-y-3">
+                <div className="w-14 h-14 bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 rounded-full mx-auto flex items-center justify-center">
+                  <Check className="w-8 h-8" />
+                </div>
+                <h4 className="text-base font-black text-slate-900 dark:text-white">
+                  Müraciətiniz Rəsmi Təsdiqləndi!
+                </h4>
+                <p className="text-xs text-slate-600 dark:text-slate-300">
+                  Müraciətiniz Jobia.az rəsmi təmsilçiliyi altında qeydə alındı və işəgötürənin vakansiya səhifəsinə yönləndirilirsiniz...
+                </p>
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 text-xs font-mono font-bold">
+                  <span>Referal Kodu: #JOBIA-APP-{jobiaReferralModalJob.id.substring(0, 5).toUpperCase()}</span>
+                </div>
+              </div>
+            ) : (
+              <div className="p-5 space-y-4">
+                {/* Vacancy Card Snippet */}
+                <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200 dark:border-slate-700 flex items-center gap-3">
+                  <img
+                    src={jobiaReferralModalJob.companyLogo}
+                    alt={jobiaReferralModalJob.companyName}
+                    className="w-12 h-12 rounded-xl object-cover border border-slate-200 dark:border-slate-700 bg-white"
+                    referrerPolicy="no-referrer"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <h4 className="text-sm font-bold text-slate-900 dark:text-white truncate">
+                      {jobiaReferralModalJob.title}
+                    </h4>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                      {jobiaReferralModalJob.companyName} • {jobiaReferralModalJob.city}
+                    </p>
+                    <span className="inline-flex items-center gap-1 text-[10px] font-bold text-indigo-700 dark:text-indigo-400 mt-0.5">
+                      <Globe className="w-2.5 h-2.5" /> Mənbə: {jobiaReferralModalJob.sourceSite || 'İnternet Portalı'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Jobia Official Attribution Box */}
+                <div className="p-3.5 bg-gradient-to-r from-emerald-50/80 via-teal-50/50 to-blue-50/80 dark:from-emerald-950/30 dark:via-teal-950/20 dark:to-blue-950/30 rounded-xl border border-emerald-200/90 dark:border-emerald-800/60 space-y-2 text-xs">
+                  <div className="flex items-center gap-2 font-bold text-emerald-900 dark:text-emerald-300">
+                    <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                    <span>İşəgötürənə Təsdiqlənmiş Jobia Təqdimatı</span>
+                  </div>
+                  <p className="text-[11px] text-slate-600 dark:text-slate-300 leading-relaxed">
+                    Bu vakansiyaya müraciət etdiyinizdə işəgötürən müraciətin <strong>birbaşa Jobia.az platforması</strong> üzərindən edildiyini görür. Profiliniz və CV məlumatlarınız sistem tərəfindən rəsmi namizəd olaraq təqdim edilir.
+                  </p>
+                  <div className="pt-2 border-t border-emerald-200/60 dark:border-emerald-800/40 flex flex-col gap-1 text-[11px]">
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">Namizəd:</span>
+                      <span className="font-bold text-slate-800 dark:text-slate-200">
+                        {currentUser?.fullName || userCV.personalInfo.fullName || 'Təsdiqlənmiş Namizəd'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">Əlaqə:</span>
+                      <span className="font-bold text-slate-800 dark:text-slate-200">
+                        {currentUser?.phone || userCV.personalInfo.phone || currentUser?.email || 'Profil qeydiyyatı'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">Platforma Referal Markeri:</span>
+                      <span className="font-mono font-bold text-emerald-700 dark:text-emerald-400">
+                        #JOBIA-APP-{jobiaReferralModalJob.id.substring(0, 5).toUpperCase()}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Actions */}
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => handleConfirmJobiaReferralApply(jobiaReferralModalJob)}
+                    className="flex-1 py-3 px-4 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 active:scale-98 text-white font-black text-xs sm:text-sm rounded-xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer"
+                  >
+                    <Send className="w-4 h-4" />
+                    <span>✓ Jobia Üzərindən Birbaşa Müraciət Et</span>
+                  </button>
+
+                  <a
+                    href={getGuaranteedLivePortalUrl(jobiaReferralModalJob)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => setJobiaReferralModalJob(null)}
+                    className="py-3 px-3 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition-colors cursor-pointer text-center"
+                    title="Yalnız portaldakı elana keçid et"
+                  >
+                    <ExternalLink className="w-3.5 h-3.5" />
+                    <span>Portala Keçid</span>
+                  </a>
+                </div>
+              </div>
             )}
           </div>
         </div>
@@ -3644,6 +4598,17 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
         currentUser={currentUser || null}
         onAlertsUpdated={(sub) => setCandidateAlertSubscription(sub)}
         onShowToast={onShowToast}
+      />
+
+      {/* PLATFORM ECOSYSTEM & ENTERPRISE CAPABILITIES MODAL */}
+      <PlatformEcosystemModal
+        isOpen={isEcosystemModalOpen}
+        onClose={() => setIsEcosystemModalOpen(false)}
+        onNavigateToTab={(tab, role) => {
+          if (onNavigateToTab) {
+            onNavigateToTab(tab);
+          }
+        }}
       />
     </div>
   );

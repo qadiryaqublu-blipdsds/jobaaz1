@@ -332,7 +332,7 @@ export const RecruitingAnalyticsDashboard: React.FC<RecruitingAnalyticsDashboard
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         
         {/* Effectiveness Score Card */}
-        <div className="bg-gradient-to-br from-slate-900 via-blue-950 to-indigo-900 rounded-2xl p-6 text-white shadow-md flex flex-col justify-between">
+        <div className="bg-gradient-to-br from-blue-600 via-indigo-600 to-indigo-700 rounded-2xl p-6 text-white shadow-md flex flex-col justify-between">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-blue-200 uppercase tracking-wider">
               Recruiting Effectiveness Score

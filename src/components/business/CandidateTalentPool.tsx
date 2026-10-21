@@ -727,14 +727,14 @@ export const CandidateTalentPool: React.FC<CandidateTalentPoolProps> = ({
 
               <div className="relative">
                 {/* Overlay Lock Banner */}
-                <div className="absolute inset-0 z-10 bg-slate-900/40 backdrop-blur-[2px] rounded-2xl flex flex-col items-center justify-center p-6 text-center text-white">
-                  <div className="w-12 h-12 rounded-2xl bg-white text-slate-900 flex items-center justify-center mb-3 shadow-lg">
-                    <Lock className="w-6 h-6 text-amber-500" />
+                <div className="absolute inset-0 z-10 bg-white/85 backdrop-blur-[2px] rounded-2xl flex flex-col items-center justify-center p-6 text-center text-slate-900 border border-slate-200/90 shadow-sm">
+                  <div className="w-12 h-12 rounded-2xl bg-amber-50 border border-amber-200 text-amber-600 flex items-center justify-center mb-3 shadow-xs">
+                    <Lock className="w-6 h-6 text-amber-600" />
                   </div>
-                  <h4 className="text-base sm:text-lg font-black tracking-tight">
+                  <h4 className="text-base sm:text-lg font-black tracking-tight text-slate-900">
                     Namizədlərin Canlı CV-ləri və Əlaqələri Kilidlidir
                   </h4>
-                  <p className="text-xs text-slate-200 mt-1 max-w-md">
+                  <p className="text-xs text-slate-600 mt-1 max-w-md">
                     Bütün namizədlərin birbaşa telefon nömrələri, e-poçtları və tam təcrübə sənədləri ödənişdən sonra tam açılır.
                   </p>
                 </div>
@@ -964,12 +964,12 @@ export const CandidateTalentPool: React.FC<CandidateTalentPoolProps> = ({
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-2.5">
-          {filteredCandidates.map((candidate) => {
+          {filteredCandidates.map((candidate, cIdx) => {
             const isUnlocked = isCandidateUnlocked(candidate.id);
 
             return (
               <div
-                key={candidate.id}
+                key={`${candidate.id}-${cIdx}`}
                 className="bg-white rounded-xl border border-slate-200/90 hover:border-[#00a859]/50 p-2.5 sm:p-3 shadow-2xs hover:shadow-xs transition-all flex flex-col justify-between space-y-2 group"
               >
                 {/* Header: Avatar, Name, Title, and Salary */}
@@ -1110,7 +1110,7 @@ export const CandidateTalentPool: React.FC<CandidateTalentPoolProps> = ({
                           <button
                             type="button"
                             onClick={() => onSendJobOffer(candidate)}
-                            className="px-2 py-1 bg-[#0b1b2b] hover:bg-slate-800 text-white text-[10px] font-bold rounded-md transition-colors flex items-center gap-0.5 cursor-pointer"
+                            className="px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white text-[10px] font-bold rounded-md transition-colors flex items-center gap-0.5 cursor-pointer shadow-2xs"
                           >
                             <Award className="w-2.5 h-2.5" />
                             <span>Təklif</span>

@@ -48,6 +48,7 @@ import {
 } from '../../../types/cvAnalyzer';
 import { useLanguage } from '../../../context/LanguageContext';
 import { AnalysisReportModal } from './AnalysisReportModal';
+import { ProfessionalSummaryReport } from './ProfessionalSummaryReport';
 
 interface AICVAnalyzerDashboardProps {
   data: CVAnalyzerResult;
@@ -485,6 +486,9 @@ export const AICVAnalyzerDashboard: React.FC<AICVAnalyzerDashboardProps> = ({
               </div>
             </div>
           )}
+
+          {/* Actionable Professional Summary & CV Structure Report */}
+          <ProfessionalSummaryReport data={data} />
 
           {/* 10 Criteria Breakdown Accordion/Grid */}
           <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-6">

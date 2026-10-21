@@ -166,17 +166,17 @@ ${evaluation.interviewQuestions.map((q, i) => `${i + 1}. Sual: ${q.question}\n  
       >
         <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-3xl overflow-hidden flex flex-col max-h-[90vh] sm:max-h-[88vh]">
           {/* Header */}
-          <div className="px-5 py-4 bg-gradient-to-r from-indigo-900 via-slate-900 to-blue-950 text-white flex items-center justify-between shrink-0 shadow-xs">
+          <div className="px-5 py-4 border-b border-slate-200 bg-white text-slate-900 flex items-center justify-between shrink-0">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-indigo-500/30 border border-indigo-400/40 flex items-center justify-center text-cyan-300 shrink-0">
-                <Sparkles className="w-5 h-5 text-cyan-300" />
+              <div className="w-10 h-10 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 shrink-0 shadow-2xs">
+                <Sparkles className="w-5 h-5 text-indigo-600" />
               </div>
               <div className="min-w-0">
-                <h3 className="text-sm sm:text-base font-bold text-white flex items-center gap-2 truncate">
+                <h3 className="text-sm sm:text-base font-bold text-slate-900 flex items-center gap-2 truncate">
                   <span>Jobia AI Namizəd Dəyərləndirməsi</span>
                 </h3>
-                <p className="text-xs text-indigo-200 truncate">
-                  {applicant.candidateName} • <span className="text-cyan-300 font-medium">{applicant.vacancyTitle}</span>
+                <p className="text-xs text-slate-500 truncate">
+                  {applicant.candidateName} • <span className="text-indigo-600 font-medium">{applicant.vacancyTitle}</span>
                 </p>
               </div>
             </div>
@@ -184,7 +184,7 @@ ${evaluation.interviewQuestions.map((q, i) => `${i + 1}. Sual: ${q.question}\n  
             <button
               type="button"
               onClick={onClose}
-              className="p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition-colors cursor-pointer shrink-0 ml-2"
+              className="p-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 transition-colors cursor-pointer shrink-0 ml-2"
               title="Bağla"
             >
               <X className="w-5 h-5" />
