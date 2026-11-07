@@ -169,6 +169,11 @@ Platforma həm B2B (İşəgötürənlər), həm də B2C (Namizədlər) istiqamə
 ## 📝 8. İnkişaf Tarixçəsi və Yol Xəritəsi (Changelog & Roadmap)
 *(İstifadəçinin göstərişi ilə bu bölmə hər yeni təkmilləşdirmə və funksiya zamanı ardıcıl olaraq yenilənəcəkdir)*
 
+### 🛠️ Railway Deploy Hazırlığı (Noyabr 2026)
+- [x] **Dinamik Server Portu:** Express backend Railway-in təqdim etdiyi `PORT` mühit dəyişənini istifadə edəcək şəkildə yeniləndi; lokal mühit üçün 3000 portu ehtiyat dəyər kimi saxlanıldı.
+- [x] **Railway Konfiqurasiyası:** Repository kökündə `railway.json` yaradıldı; Nixpacks build, `npm run build`, `npm start`, `/api/health` health-check və uğursuz deploy zamanı restart siyasəti müəyyən edildi.
+- [ ] **İlk Railway Deploy və Production Yoxlaması:** GitHub repository Railway layihəsinə qoşulduqdan sonra environment variables, build, start və canlı URL yoxlanılacaq.
+
 ### 🚀 Cari Versiyada Həyata Keçirilənlər (Versiya 1.0.0 — Sentyabr 2026)
 - [x] **Çoxdilli AI CV Generatoru:** 4 dildə (AZ, EN, RU, TR) tək kliklə məzmun tərcüməsi və 4 dizayn şablonu (Emerald, Modern, Corporate, Tech).
 - [x] **A4 PDF İxrac Sistemi:** Bütün brauzer və cihazlarda standart A4 ölçüsündə stabil çap və PDF yükləmə.
