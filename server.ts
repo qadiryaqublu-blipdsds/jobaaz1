@@ -13,7 +13,7 @@ import { buildOfficialJobDescriptionPrompt, generateRealisticFallbackJobDescript
 dotenv.config();
 
 const app = express();
-const PORT = 3000;
+const PORT = Number(process.env.PORT) || 3000;
 
 // CORS & Preflight handling
 app.use((req, res, next) => {
