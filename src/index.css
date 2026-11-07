@@ -558,8 +558,8 @@ button, input, select, textarea, label {
 }
 
 /* ========================================================================= */
-/* JOBIA SIGNATURE LOGO GREEN STYLING (#00a859)                              */
-/* Harmonizes all buttons across the application with the site's logo green   */
+/* JOBIA SIGNATURE WHITE & EMERALD GREEN DESIGN SYSTEM (#00a859)             */
+/* Enforces white cards, signature emerald buttons, and styled inputs        */
 /* ========================================================================= */
 :root {
   --jobia-brand-green: #00a859;
@@ -567,62 +567,151 @@ button, input, select, textarea, label {
   --jobia-brand-green-active: #007a40;
   --jobia-brand-green-light: #ecfdf5;
   --jobia-brand-green-border: #a7f3d0;
+  --jobia-brand-dark: #062319;
+  --jobia-card-bg: #ffffff;
+  --jobia-border-subtle: #e2e8f0;
 }
 
-/* Ensure blue button utilities render in signature logo green (#00a859) */
+/* 1. Global Selection Highlight in Jobia Emerald */
+::selection {
+  background-color: #d1fae5 !important;
+  color: #064e3b !important;
+}
+
+/* 2. Universal Inputs, Textareas & Selects Focus States */
+input:not([type="checkbox"]):not([type="radio"]):focus,
+textarea:focus,
+select:focus {
+  border-color: #00a859 !important;
+  outline: none !important;
+  box-shadow: 0 0 0 3px rgba(0, 168, 89, 0.15) !important;
+}
+
+input:not([type="checkbox"]):not([type="radio"]):hover,
+textarea:hover,
+select:hover {
+  border-color: #cbd5e1;
+}
+
+/* 3. Primary Button Utilities (Harmonize blue & emerald to #00a859) */
 .bg-blue-600,
 .bg-blue-700,
-.bg-blue-500 {
+.bg-blue-500,
+.bg-emerald-600 {
   background-color: #00a859 !important;
+  color: #ffffff !important;
 }
 
 .hover\:bg-blue-700:hover,
-.hover\:bg-blue-600:hover {
+.hover\:bg-blue-600:hover,
+.hover\:bg-emerald-700:hover {
   background-color: #00914c !important;
 }
 
+.active\:bg-blue-800:active,
+.active\:bg-emerald-800:active {
+  background-color: #007a40 !important;
+}
+
+/* 4. Text & Accent Colors */
 .text-blue-600,
-.text-blue-700 {
+.text-blue-700,
+.text-emerald-600 {
   color: #00a859 !important;
 }
 
+.text-blue-800,
+.text-blue-900,
+.text-emerald-800,
+.text-emerald-900 {
+  color: #065f46 !important;
+}
+
+/* 5. Borders & Outlines */
 .border-blue-600,
-.border-blue-500 {
+.border-blue-500,
+.border-emerald-500,
+.border-emerald-600 {
   border-color: #00a859 !important;
 }
 
 .focus\:border-blue-600:focus,
-.focus\:border-blue-500:focus {
+.focus\:border-blue-500:focus,
+.focus\:border-emerald-500:focus,
+.focus\:border-emerald-600:focus {
   border-color: #00a859 !important;
-}
-
-.ring-blue-600,
-.ring-blue-500,
-.ring-blue-400 {
-  --tw-ring-color: #00a859 !important;
-}
-
-.bg-blue-50,
-.bg-blue-50\/70,
-.bg-blue-50\/80,
-.bg-blue-50\/90 {
-  background-color: #f0fdf4 !important;
-}
-
-.hover\:bg-blue-100:hover,
-.hover\:bg-blue-100\/90:hover {
-  background-color: #dcfce7 !important;
-}
-
-.text-blue-800,
-.text-blue-900 {
-  color: #065f46 !important;
 }
 
 .border-blue-200,
 .border-blue-300,
 .border-blue-200\/80,
-.border-blue-200\/90 {
+.border-blue-200\/90,
+.border-emerald-200,
+.border-emerald-300 {
   border-color: #a7f3d0 !important;
 }
+
+/* 6. Soft Emerald Badges & Subtle Backgrounds */
+.bg-blue-50,
+.bg-blue-50\/70,
+.bg-blue-50\/80,
+.bg-blue-50\/90,
+.bg-emerald-50,
+.bg-emerald-50\/70,
+.bg-emerald-50\/80 {
+  background-color: #f0fdf4 !important;
+}
+
+.hover\:bg-blue-100:hover,
+.hover\:bg-blue-100\/90:hover,
+.hover\:bg-emerald-100:hover {
+  background-color: #dcfce7 !important;
+}
+
+/* 7. Focus Rings in Emerald Glow */
+.ring-blue-600,
+.ring-blue-500,
+.ring-blue-400,
+.ring-emerald-500,
+.ring-emerald-600 {
+  --tw-ring-color: #00a859 !important;
+}
+
+.focus\:ring-blue-500:focus,
+.focus\:ring-blue-600:focus,
+.focus\:ring-emerald-500:focus {
+  --tw-ring-color: rgba(0, 168, 89, 0.25) !important;
+}
+
+/* 8. White Cards Consistency */
+.jobia-card {
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 1rem;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.03);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.jobia-card:hover {
+  border-color: #86efac;
+  box-shadow: 0 6px 24px -4px rgba(0, 168, 89, 0.08);
+}
+
+/* 9. Dark Mode Consistency for Cards & Inputs */
+html.dark input:not([type="checkbox"]):not([type="radio"]):focus,
+html.dark textarea:focus,
+html.dark select:focus {
+  border-color: #00a859 !important;
+  box-shadow: 0 0 0 3px rgba(0, 168, 89, 0.25) !important;
+}
+
+html.dark .jobia-card {
+  background-color: #0f172a !important;
+  border-color: #1e293b !important;
+}
+
+html.dark .jobia-card:hover {
+  border-color: #047857 !important;
+}
+
 

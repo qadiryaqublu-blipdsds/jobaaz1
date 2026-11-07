@@ -1159,6 +1159,95 @@ Platforma həm B2B (İşəgötürənlər), həm də B2C (Namizədlər) istiqamə
      - Yuxarı Başlıqda (Header) "Açıq CV-lər", "Qeydiyyatsız Elan", "AI Balans" düymələri.
      - Sol Yan Menyuda (Sidebar) namizəd üçün "Açıq CV Kataloqu", işəgötürən üçün "Komanda & Rollar" və "Açıq CV Kataloqu" keçidləri.
 
+
+- [x] **Üz Tanıma ilə Davamiyyət (Face Attendance) və Dövlət Tabel Standartı Modulu (Turniket və Barmaq İzi Alternativi - Oktyabr 2026):**
+  1. **Barmaq İzi və Turniket Avadanlıqlarının Tam Əvəzlənməsi:** Heç bir bahalı turniket, kart oxuyucu və ya biometrik fiziki terminal tələb etmədən, istənilən smartfon və ya kompüterin kamerası vasitəsilə işçilərin işə gəliş və gediş vaxtlarının süni intellektlə qeydiyyatı.
+  2. **"Başqasının Telefonu" və Sürətli Növbə Ssenarisi (PWA Zero-Footprint):** İşçinin şəxsi smartfonu olmadıqda, briqadir və ya rəhbər istənilən telefonda tətbiqi açır, "Sürətli Növbə Rejimi" ilə növbə başlanğıcında ardıcıl olaraq bütün işçiləri 0.5 saniyə ərzində skan edir; çıxış edildikdə cihazdan bütün lokal məlumatlar tam təmizlənir.
+  3. **Aktiv və Passiv Anti-Spoofing (Canlılıq Yoxlaması):** Təsadüfi tapşırıqlar (Gözlərinizi qırpın, Başınızı sağa/sola çevirin, Gülümsəyin), foto/video/ekran/kağız saxtakarlığının qarşısının alınması.
+  4. **Ağıllı Geofence və Saxta GPS (Mock Location) Aşkarlanması:** Hər iş obyekti üçün koordinat və radius (məs. 200 m) təyin olunur; geofence xaricində qeydlərdə rəhbərin səbəbi tələb olunur, developer saxta GPS rejimləri dərhal şübhəli kimi işarələnir.
+  5. **Şifrələnmiş Oflayn Rejim (Offline Queue):** İnternet kəsildikdə qeydlər IndexedDB-də 24 saatadək rəqəmsal imza ilə saxlanılır; internet bərpa edildikdə avtomatik sinxronizasiya edilir.
+  6. **HR və Rəhbərlər üçün Veb Admin Paneli & Tabel İxracı:**
+     - Gündəlik/aylıq davamiyyət cədvəli, gecikmələr, gəlməyənlər, faktiki iş saatları.
+     - Şübhəli qeydlər siyahısı və audit foto miniatürünə baxış.
+     - Dövlət T-13 standartına uyğun rəsmi tabel görünüşü, çap və UTF-8 Excel/CSV ixracı.
+     - Səlahiyyətli şəxslər tərəfindən əsaslandırılmış əl ilə düzəlişlər və dəyişməz audit jurnalı (Immutable Trail).
+  7. **AR "Fərdi məlumatlar haqqında" Qanununa və ISO 27001-ə Tam Uyğunluq:**
+     - 3 bucaqlı (Ön, Sola, Sağa) qeydiyyat (Enrollment) və elektron razılıq ərizəsi nümunəsi.
+     - AES-256 GCM ilə 512-ölçülü normalizə olunmuş vektorların şifrələnməsi (xam fotolar dərhal silinir).
+     - İşçinin unudulma hüququ (Right to be forgotten) — biometrik profilin tam silinməsi.
+  8. **İstehsalat Səviyyəli Backend və Sənədləşmə:**
+     - Python (FastAPI) + PostgreSQL + SQLAlchemy + Alembic tam backend kodu (`/backend_face_attendance`).
+     - Dockerfile və `docker-compose.yml` avtomatlaşdırması.
+     - Arxitektura, quraşdırma təlimatı, təhlükəsizlik siyasəti və risk-həll matrisi (`/docs/face_attendance/`).
+
+- [x] **`jobia.az` Korporativ Panel Standartına Uyğunlaşdırma, Qruplaşdırılmış Naviqasiya və Üz Tanıma Kamera Yenilənməsi (Oktyabr 2026):**
+  1. **`jobia.az` Strukturuna Uyğun Əsas Bölmələr və Qruplaşdırılmış Menyular (`Header.tsx` & `Sidebar.tsx`):**
+     - **Namizəd rejimi:** 5 əsas bölmə (`Vakansiyalar`, `Açıq CV-lər`, `CV Yaradıcı`, `AI Analizator`, `Müraciətlər`) açıq saxlanıldı; bütün əlavə funksiyalar (`Üz Davamiyyəti PWA`, `Müsahibə Məşqi`, `Maaş Analitikası`, `Sənədlər & E-İmza`, `Məzuniyyət Kalkulyatoru`, `İş Təklifləri`, `Açıq CV İdarəetməsi`) səliqəli "Alətlər" menyusunda qruplaşdırıldı və təkrarlanan elementlər ləğv edildi.
+     - **İşəgötürən (HR) rejimi:** 6 əsas bölmə (`Vakansiyalarım`, `Namizədlər`, `Üz Davamiyyəti & Tabel`, `Kadr Bankı`, `Təkliflər`, `Analitika`) açıq saxlanıldı, əlavə HR alətləri (`Ağıllı CV Baza`, `Açıq CV Kataloqu`, `Ağıllı Formalar & E-İmza`, `Müsahibə Təqvimi`, `E-poçt Jurnalı`, `Məzuniyyət Kalkulyatoru`, `Komanda & Rollar`) "Digər Alətlər" menyusunda birləşdirildi.
+     - **Sürətli Rejim Keçidi:** Başlıqda loqonun yanında birbaşa `Namizəd | İşəgötürən | Admin` keçid bloku aktivləşdirildi və bütün istifadəçilər üçün "Üz Davamiyyəti & Tabel" moduluna maneəsiz çıxış təmin olundu (`BusinessDashboard.tsx`).
+  2. **Üz Tanıma və Kamera Pəncərəsinin Yenidən Qurulması (`FaceAttendancePWA.tsx` & `FaceAttendanceMain.tsx`):**
+     - Üst-üstə düşən dublikat "Şəkli Çək & Match Et" düymələri ləğv edilərək vahid, erqonomik **Kamera İdarəetmə Paneli** (`Şəkil Yüklə` | `Şəkli Çək & Match Et` | `Ön/Arxa Kamera`) quruldu.
+     - Rəhbər üçün **Hədəf İşçi Seçimi** (`Avtomatik Üz Tanıma` və ya konkret işçi) və sürətli sınaq düymələri əlavə olundu.
+     - İşçi tanındıqda (`Step 4`) ekranda həm kameradan çəkilmiş cari şəkil (`capturedSnapshot`), həm də bazadakı etalon profil şəkli yanaşı göstərilir, uyğunluq faizi (`tabular-nums`), Geofence statusu və `🟢 GİRİŞ / 🔴 ÇIXIŞ` təsdiqi aydın təqdim edilir.
+  3. **Vahid Dizayn Standartı və Sürət Optimallaşdırması (`App.tsx`):**
+     - İlk girişdə avtomatik açılan və istifadəçini ləngidən bələdçi pəncərəsi (`IntroTourModal` 700ms gecikməsi) ləğv edildi (yalnız istifadəçi "Bələdçi" düyməsinə kliklədikdə açılır).
+     - Bütün URL tab marşrutları (`?tab=face-attendance`, `team-users`, `open-cv-catalog` və s.) qeydiyyata alındı və bölmələr arası keçiddə anında yuxarı sürüşdürmə (`instant scroll`) tətbiq edildi.
+
+- [x] **Rəsmi Açıq Qrafika (OpenGraph) Üz Qabığı, Sosial Paylaşım Kartı və Preloader İnteqrasiyası (Official 1200x630 OG Cover & Brand Preloader Architecture - Oktyabr 2026):**
+  1. **İstifadəçi Tələbinin Tam İcrası:** İstifadəçinin birbaşa təqdim etdiyi `index.html` meta və başlıq koduna əsasən (`theme-color: #0b1b2b`, `jobia.az - Müasir Vakansiya və Ağıllı Karyera Portalı`, 11 mərhələli recruitment funnel, AI müsahibə və biometrik üz tanıma arxitekturası) platformanın rəsmi yüksək keyfiyyətli üz qabığı ("üz qabığı") hazırlandı.
+  2. **1200x630 Standart Ölçülü Vektor və Lossless PNG Üz Qabığı (`public/og-cover.png` & `public/og-cover.svg`):**
+     - Korporativ dərin gecə mavisi (`#0b1b2b`) arxa fon, Jobia zümrüd yaşılı (`#00a859`) və kiber göy qradiyent işıqları ilə brend vizualı.
+     - Şüşəvari (glassmorphism) idarəetmə paneli simulyasiyası: 98.4% AI namizəd uyğunluğu skoru, 11.4 gün Time to Hire göstəricisi, Biometrik üz tanıma canlı verifikasiyası və 11 mərhələli recruitment pipeline axını.
+     - WhatsApp, LinkedIn, Twitter/X, Facebook, Telegram və Google Discover paylaşımları üçün ideal 1.91:1 proporsiyada 76KB optimallaşdırılmış PNG və vektor SVG formatları.
+  3. **HTML Metadata və Schema.org Sinxronizasiyası (`index.html`):**
+     - `<meta property="og:image" content="https://jobia.az/og-cover.png" />`, `og:image:width: 1200`, `og:image:height: 630`, `twitter:image` və `twitter:card: summary_large_image` teqləri əlavə edildi.
+     - Schema.org `EmploymentAgency` strukturlaşdırılmış məlumatına rəsmi `image` sahəsi inteqrasiya olundu.
+     - Səhifənin ilk yüklənməsi zamanı istifadəçini salamlayan brend `jobia` zərif hərəkətli preloader animasiyası aktivləşdirildi.
+  4. **İnteraktiv Üz Qabığı Baxış və Yükləmə Modalı (`BrandCoverModal.tsx` & `Footer.tsx`):**
+     - Saytın alt hissəsinə (Footer) "Rəsmi Üz Qabığı (OpenGraph 1200x630)" düyməsi əlavə edildi.
+     - İstifadəçi və partnyorlar bir kliklə rəsmi PNG (1200x630) və SVG fayllarını endirə, sosial şəbəkələrdəki paylaşım görünüşünü real vaxtda simulyasiya edə və HTML meta teqlərini kopyalaya bilirlər.
+
+- [x] **`jobia.az` Rəsmi Prototipinə 100% Uyğunlaşdırılmış Üz Qabığı (Header + Hero) və Korporativ Footer Memarlığı (Prototype Exact Parity - Oktyabr 2026):**
+  1. **Prototipə Uyğun Üzən Kapsul Başlıq (Floating Capsule Pill Header - `image_cb4301c5.png`):**
+     - Mərkəzi kapsul naviqasiya zolağı: `Vakansiyalar`, `Peşəkar şəbəkə`, `CV yarat`, `AI analizator`, `Alətlər ⌵`, `Haqqımızda`, `+ Elan yerləşdir`, `🌙 / ☀️`, `🇦🇿 AZ ⌵`.
+     - Zümrüd yaşılı haşiyəli `👑 Planlar` kapsulu, dairəvi bildiriş zəngi və `QA Qadir ⌵` avatar kapsulu.
+     - İki ədəd yaşıl birləşdirilmiş biometrik nöqtəli rəsmi `jobia` vektor loqosu (`JobiaLogo.tsx`).
+  2. **Daimi Görünən İkinci Dərəcəli Sistem Alətləri Alt Zolağı (Permanent Tools Sub-Bar):**
+     - İstifadəçinin rəyinə əsasən başlığın dərhal altında daimi görünən sistem alətləri zolağı quruldu: `👤 Üz Davamiyyəti (Face Attendance)`, `📊 HR Analitika (Time to Hire)`, `🧮 Maaş Kalkulyatoru`, `🏖️ Məzuniyyət`, `🗺️ Xəritə`, `💬 Komanda Çatı`, `🤖 AI Müsahibə`.
+     - Hər bir alətə 1 kliklə dərhal keçid və sağ tərəfdə işəgötürən/namizəd status açarı təmin edildi.
+  3. **Prototipə Uyğun Əsas Qapaq və Radar Konstellasiyası (`JobiaHero.tsx` - `image_cb4301c5.png`):**
+     - Sol tərəfdə `● KARYERANDA YENİ SƏHİFƏ` nişanı, qara `Doğru iş.` və zümrüd yaşılı `Yeni başlanğıc.` cəsur başlığı.
+     - İri dairəvi kapsul axtarış paneli: `🔍 Vəzifə, peşə və ya şirkət adı` daxiletməsi və zümrüd yaşılı `İş axtar ↗` düyməsi, altında `🛡️ Yeni imkanları bir axtarışla kəşf et` güvən nişanı.
+     - Sağ tərəfdə tünd zümrüd `SƏNİN KARYERA XƏRİTƏN: Bacarıqlarından yeni imkanlara.` kartı, mərkəzində `JOBIA` parlaq qovşağı və onunla lazer xətləri ilə birləşən `CV profili`, `AI analiz`, `Vakansiyalar` orbitləri.
+     - Üzən ağ kart: `KƏŞF ETMƏYƏ DƏYƏR: Baş aşpaz - Gabala Hospitality Group`, `📍 Qəbələ`, `Vakansiyaya bax ↗` interaktiv keçidi.
+     - Qaranlıq statistika çipi: `💼 12 Aktiv vakansiya | 10 Təsdiqli şirkət`, altda `01 / 02` slayd vərəqləmə və dayandırma (`⏸`) idarəediciləri.
+  4. **Nəhəng Su Nişanlı və 4 Sütunlu Korporativ Footer (`Footer.tsx` - `image_6c47657d.png`):**
+     - Arxa fonda yarı-şəffaf nəhəng `JOBIA` su nişanı (watermark) tipoqrafiyası.
+     - Sol sütunda brend loqosu, sloqan, `DƏSTƏK LAZIMDIR?` başlıqlı e-poçt kapsul abunəliyi (`✉ E-poçt ünvanınız` + yaşıl kağız təyyarə göndər düyməsi) və `Bizi izləyin` sosial şəbəkə kvadratları (Instagram, LinkedIn, YouTube).
+     - 3 strukturlaşdırılmış zümrüd yaşılı keçid sütunu: `NAMİZƏDLƏR`, `ŞİRKƏTLƏR`, `DƏSTƏK`.
+     - Alt qanuni xətt: `© 2026 Jobia.az. Bütün hüquqlar qorunur.` | `Məxfilik  İstifadə qaydaları  Kuki  Təhlükəsizlik`.
+
+- [x] **Mobil və Desktop Üçün Vahid Daimi Alt Naviqasiya Zolağı (Unified Fixed System Dock Bar - `SystemDockBottomBar.tsx` - Oktyabr 2026):**
+  1. **Bütün Əsas Sistem Alətlərinin Vahid Birləşdirilməsi:**
+     - **Maaş Kalkulyatoru (`Calculator`):** Gross ↔ Net vergi və xalis əməkhaqqı simulyasiyasına 1 toxunuşla birbaşa keçid.
+     - **CV Generator (`FileText`):** A4 PDF çıxarışı və 30 beynəlxalq şablonlu CV redaktoruna anında çıxış.
+     - **ATS Analizator (`Sparkles`):** AI əsaslı dərin ATS audit və vakansiya uyğunluq mühərriki.
+     - **Profil (`User` / Avatar / Login):** Qeydiyyatlı istifadəçilər üçün avatar və tənzimləmələr, qeydiyyatsız istifadəçilər üçün sürətli giriş/qeydiyyat pəncərəsi.
+     - **Vakansiyalar (`Search`):** Əsas iş axtarışı və canlı əmək bazarı lövhəsi.
+     - **Üz Davamiyyəti (`Camera`):** Süni intellektli kamera ilə davamiyyət qeydiyyatı.
+     - **VIP Planlar (`Crown`):** Abunəlik planları və qiymətlər.
+  2. **İkili Cihaz Uyğunlaşdırılması (Desktop Floating Dock + Mobile Fixed Bottom Bar):**
+     - **Masaüstü (Desktop):** Ekranın aşağı mərkəzində üzən zərif şüşəvari kapsul (`bg-white/95 backdrop-blur-xl border border-slate-200/90 shadow-[0_12px_40px_rgba(0,0,0,0.12)] rounded-full px-3 py-1.5`).
+     - **Mobil (Mobile):** Telefon ekranının altına sabitləşmiş, barmaqla toxunmaya rahat 5 sütunlu erqonomik zolaq (`safe-area-inset-bottom` qoruması ilə).
+  3. **Yenilənmiş Zümrüd Yaşılı Vizual Stil:**
+     - Jobia brendinə uyğun zümrüd yaşılı (`#00a859`) aktivlik işıqları, fərdi alət etiketləri və animasiyalı toxunma effektləri (`active:scale-95`).
+     - Səhifələrin məzmunu və footer düymələrinin örtülməməsi üçün əsas konteynerə (`main`) uyğunlaşdırılmış alt boşluq (`pb-28 md:pb-24`) tətbiq edildi.
+
+- [x] **Qlobal CSS Üzrə Vahid Ağ və Zümrüd Yaşılı (White & Emerald Green) Dizayn Sistemi (`src/index.css` - Oktyabr 2026):**
+  1. **Bütün Kartlar (Cards):** Təmiz ağ fon (`#ffffff`), zərif neytral çərçivələr (`border-slate-200`) və üzərinə gəldikdə (hover) yumşaq zümrüd yaşılı haşiyə (`hover:border-emerald-300`) və kölgə effekti.
+  2. **Bütün Düymələr (Buttons):** Əsas əməliyyat düymələri üçün rəsmi Jobia zümrüd yaşılı (`#00a859`), hover (`#00914c`) və active (`#007a40`) rəngləri ilə 100% harmonizasiya.
+  3. **Bütün Giriş Sahələri (Inputs & Textareas):** Hər bir daxiletmə sahəsinə fokuslandıqda 3px zümrüd yaşılı işıq halqası (`box-shadow: 0 0 0 3px rgba(0, 168, 89, 0.15)`) və rəsmi yaşıl çərçivə (`#00a859`), mətn seçimi üçün zümrüd yaşılı `::selection` vurğusu.
+
 ### 🔮 Növbəti Mərhələlər (Gələcək Planlar)
 - [ ] **Mobil Tətbiq (iOS & Android):** Namizədlər üçün anlıq bildirişlər və mobil iş axtarışı.
 - [ ] **WhatsApp & Telegram Bot İnteqrasiyası:** Yeni vakansiyalar haqqında namizədlərə anlıq çat bildirişləri.

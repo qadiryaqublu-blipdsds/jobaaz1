@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: jobia_attendance_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: jobia_user
+      POSTGRES_PASSWORD: secure_face_pass_2025
+      POSTGRES_DB: jobia_attendance
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U jobia_user -d jobia_attendance"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build: .
+    container_name: jobia_attendance_api
+    restart: always
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://jobia_user:secure_face_pass_2025@db:5432/jobia_attendance
+      AES_MASTER_KEY_HEX: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+      JWT_SECRET_KEY: super_secret_jwt_face_attendance_key_2025
+      ENVIRONMENT: production
+      DEBUG: "False"
+    ports:
+      - "8000:8000"
+
+volumes:
+  postgres_data:

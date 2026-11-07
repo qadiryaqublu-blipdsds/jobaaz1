@@ -17,9 +17,17 @@
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://jobia.az" />
     <meta property="og:site_name" content="Jobia.az" />
+    <meta property="og:image" content="https://jobia.az/og-cover.png" />
+    <meta property="og:image:secure_url" content="https://jobia.az/og-cover.png" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="jobia.az - Müasir Vakansiya və Ağıllı Karyera Portalı" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="jobia.az - Müasir Vakansiya və Ağıllı Karyera Portalı" />
     <meta name="twitter:description" content="Azərbaycanın aparıcı şirkətlərindən ən yeni iş elanları, peşəkar CV hazırlama və canlı əmək bazarı analitikası." />
+    <meta name="twitter:image" content="https://jobia.az/og-cover.png" />
+    <meta name="twitter:image:alt" content="jobia.az - Müasir Vakansiya və Ağıllı Karyera Portalı" />
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
@@ -27,6 +35,7 @@
         "name": "Jobia.az",
         "url": "https://jobia.az",
         "logo": "https://jobia.az/jobia-logo.svg",
+        "image": "https://jobia.az/og-cover.png",
         "description": "Azərbaycanın müasir vakansiya və ağıllı karyera platforması. AI dəstəkli CV hazırlama və təhlil xidmətləri.",
         "address": {
           "@type": "PostalAddress",
@@ -35,9 +44,75 @@
         }
       }
     </script>
+    <style>
+      .jobia-loading--fullscreen {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        background: #0b1b2b;
+        color: #ffffff;
+        font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+        z-index: 9999;
+      }
+      .jobia-loading__word {
+        font-size: 3rem;
+        font-weight: 800;
+        letter-spacing: -0.04em;
+        display: flex;
+        gap: 2px;
+      }
+      .jobia-loading__letter:nth-child(1),
+      .jobia-loading__letter:nth-child(2),
+      .jobia-loading__letter:nth-child(3) {
+        color: #00a859;
+      }
+      .jobia-loading__letter:nth-child(4),
+      .jobia-loading__letter:nth-child(5) {
+        color: #ffffff;
+      }
+      .jobia-loading__track {
+        width: 140px;
+        height: 3px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 9999px;
+        margin-top: 1.5rem;
+        position: relative;
+        overflow: hidden;
+      }
+      .jobia-loading__track::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -50%;
+        width: 50%;
+        height: 100%;
+        background: #00a859;
+        border-radius: 9999px;
+        animation: jobiaSlide 1.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+      }
+      @keyframes jobiaSlide {
+        0% { left: -50%; width: 40%; }
+        50% { left: 30%; width: 60%; }
+        100% { left: 100%; width: 40%; }
+      }
+    </style>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div class="jobia-loading jobia-loading--fullscreen" role="status" aria-label="Jobia yüklənir">
+        <div class="jobia-loading__word" aria-hidden="true">
+          <span class="jobia-loading__letter">j</span>
+          <span class="jobia-loading__letter">o</span>
+          <span class="jobia-loading__letter">b</span>
+          <span class="jobia-loading__letter">i</span>
+          <span class="jobia-loading__letter">a</span>
+        </div>
+        <div class="jobia-loading__track" aria-hidden="true"></div>
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

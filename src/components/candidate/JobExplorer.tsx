@@ -85,6 +85,7 @@ import {
   generateLivePortalSearchUrl
 } from '../../services/webVacancyAggregator';
 import { JobiaLogo } from '../JobiaLogo';
+import { JobiaHero } from './JobiaHero';
 import { SectionBottomLogo } from '../common/SectionBottomLogo';
 import { ModalBottomLogo } from '../ModalBottomLogo';
 import { PlatformEcosystemModal } from '../common/PlatformEcosystemModal';
@@ -1661,6 +1662,21 @@ export const JobExplorer: React.FC<JobExplorerProps> = ({
 
   return (
     <div className="space-y-4">
+      {/* ========================================================================= */}
+      {/* PROTOTYPE COVER: JOBIA HERO SECTION (Matches image_cb4301c5.png)         */}
+      {/* ========================================================================= */}
+      <JobiaHero
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        onSearchSubmit={() => {
+          const searchEl = document.getElementById('top-quick-search-input');
+          searchEl?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }}
+        onSelectVacancy={onSelectVacancy}
+        vacancies={vacancies}
+        onNavigateToTab={onNavigateToTab}
+      />
+
       {/* ========================================================================= */}
       {/* 0. PLATFORM IDENTITY & ENTERPRISE ECOSYSTEM SHOWCASE                     */}
       {/* ========================================================================= */}

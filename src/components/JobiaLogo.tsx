@@ -63,27 +63,35 @@ export const JobiaLogo: React.FC<JobiaLogoProps> = ({
         clickable ? 'cursor-pointer focus:outline-hidden focus-visible:ring-2 focus-visible:ring-emerald-500 rounded-lg p-0.5' : ''
       } ${className}`}
     >
-      {/* Animated Letters Container */}
-      <div 
-        className="inline-flex items-center logo-floating-badge"
-        style={{ 
-          fontFamily: "'Outfit', 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
-          fontSize: current.fontSize,
-          lineHeight: 1,
-        }}
-      >
-        {/* Animated Letters: Letters topple, wave & rise back up, 'o' spins 360°/720° */}
-        <span className="logo-anim-j text-[#00a859] inline-block">j</span>
-        <span className="logo-anim-o text-[#00a859] inline-block px-[0.5px]">o</span>
-        <span className="logo-anim-b text-[#00a859] inline-block">b</span>
-        <span className="logo-anim-i text-[#0b1b2b] inline-block">i</span>
-        <span className="logo-anim-a1 text-[#0b1b2b] inline-block">a</span>
-        <span className="logo-anim-dot text-[#0b1b2b] inline-block">.</span>
-        <span className="logo-anim-a2 text-[#00a859] inline-block">a</span>
-        <span className="logo-anim-z text-[#00a859] inline-block">z</span>
-        {showDotPing && (
-          <span className="ml-1 w-2 h-2 rounded-full bg-emerald-500 animate-ping inline-block" />
-        )}
+      {/* Logo container with prototype emerald twin-node icon */}
+      <div className="inline-flex items-center gap-1.5 logo-floating-badge">
+        <svg 
+          className="shrink-0 group-hover:scale-105 transition-transform" 
+          width={size === 'xs' ? '18' : size === 'sm' ? '22' : size === 'md' ? '26' : size === 'lg' ? '32' : '38'} 
+          height={size === 'xs' ? '18' : size === 'sm' ? '22' : size === 'md' ? '26' : size === 'lg' ? '32' : '38'} 
+          viewBox="0 0 28 28" 
+          fill="none" 
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          {/* Left tall capsule with head circle */}
+          <circle cx="9" cy="5.5" r="3" fill="#00a859" />
+          <rect x="6" y="11" width="6" height="12" rx="3" fill="#00a859" />
+          {/* Right interconnected lower capsule with head circle */}
+          <circle cx="19" cy="8.5" r="3" fill="#00a859" />
+          <path d="M16 14C16 12.3431 17.3431 11 19 11C20.6569 11 22 12.3431 22 14V20C22 21.6569 20.6569 23 19 23C17.3431 23 16 21.6569 16 20V14Z" fill="#00a859" />
+        </svg>
+
+        <div 
+          className="inline-flex items-center font-bold tracking-tight text-[#062319]"
+          style={{ 
+            fontFamily: "'Onest', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+            fontSize: current.fontSize,
+            lineHeight: 1,
+            letterSpacing: '-0.03em',
+          }}
+        >
+          <span className="text-[#062319]">jobia</span>
+        </div>
       </div>
 
       {/* Subtitle if requested: Job Intelligence & Automation */}

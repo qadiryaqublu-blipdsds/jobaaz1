@@ -2,35 +2,17 @@ import React, { useState } from 'react';
 import { JobiaLogo } from './JobiaLogo';
 import { UserRole } from '../types';
 import { useLanguage } from '../context/LanguageContext';
-import { LanguageSwitcher } from './LanguageSwitcher';
-import { LegalInfoModal, LegalModalType } from './common/LegalInfoModal';
+import { LegalInfoModal } from './common/LegalInfoModal';
+import { BrandCoverModal } from './common/BrandCoverModal';
 import { 
-  Briefcase, 
-  Sparkles, 
-  FileText, 
-  TrendingUp, 
-  ShieldCheck, 
-  Heart, 
-  CheckCircle, 
-  MessageSquare,
-  Building2,
-  Lock,
-  Zap,
-  Calculator,
-  Palmtree,
-  FileCheck,
-  Scale,
-  Phone,
-  Mail,
-  MapPin,
-  Globe,
-  Map as MapIcon,
-  ShieldAlert,
-  UserCheck,
-  HelpCircle,
-  Clock,
-  BarChart3,
-  Layers
+  Mail, 
+  Send, 
+  Instagram, 
+  Linkedin, 
+  Youtube, 
+  Check, 
+  Sparkles,
+  Share2
 } from 'lucide-react';
 
 interface FooterProps {
@@ -50,51 +32,128 @@ export const Footer: React.FC<FooterProps> = ({
   onOpenIntroTour,
   onOpenHelpContact,
 }) => {
-  const { dict, brandAcronym, brandAcronymFull, language } = useLanguage();
+  const { language } = useLanguage();
   const [activeLegalModal, setActiveLegalModal] = useState<'privacy' | 'terms' | 'cookies' | 'security' | 'compliance' | null>(null);
+  const [isCoverModalOpen, setIsCoverModalOpen] = useState(false);
+  const [newsletterEmail, setNewsletterEmail] = useState('');
+  const [newsletterSubmitted, setNewsletterSubmitted] = useState(false);
+
+  const handleNewsletterSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newsletterEmail.trim()) return;
+    setNewsletterSubmitted(true);
+    setTimeout(() => {
+      setNewsletterEmail('');
+      setNewsletterSubmitted(false);
+    }, 2800);
+  };
 
   return (
-    <footer id="jobia-main-footer" className="w-full max-w-full overflow-hidden bg-white border-t border-slate-200 mt-12 text-slate-700">
-      {/* Main Footer Links & Structured Columns */}
-      <div className="w-full max-w-full px-4 sm:px-6 lg:px-8 xl:px-10 2xl:px-12 py-10">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+    <footer id="jobia-main-footer" className="relative w-full max-w-full overflow-hidden bg-white border-t border-slate-200/80 mt-16 text-slate-700">
+      {/* GIANT FAINT WATERMARK "JOBIA" BACKGROUND (Matching prototype image_6c47657d.png) */}
+      <div 
+        className="pointer-events-none select-none absolute bottom-0 right-0 sm:right-6 lg:right-16 text-[110px] sm:text-[180px] lg:text-[240px] font-black text-[#00a859]/[0.05] tracking-widest leading-none z-0"
+        aria-hidden="true"
+        style={{ fontFamily: "'Onest', 'Inter', sans-serif" }}
+      >
+        JOBIA
+      </div>
+
+      <div className="relative z-10 w-full max-w-full px-5 sm:px-8 lg:px-12 xl:px-16 pt-12 pb-8">
+        {/* 4 STRUCTURED COLUMNS */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-8 lg:gap-10">
           
-          {/* Col 1: Jobia.az (About, Legal, Credentials) */}
-          <div className="space-y-3">
-            <div className="flex items-center gap-2">
-              <JobiaLogo size="sm" withSubtitle={true} subtitle="Job Intelligence & Automation" />
+          {/* COLUMN 1: LOGO, TAGLINE, NEWSLETTER CAPSULE & SOCIAL ICONS (lg:col-span-4) */}
+          <div className="lg:col-span-4 space-y-4">
+            {/* Logo */}
+            <div>
+              <JobiaLogo size="md" />
             </div>
-            <p className="text-xs text-slate-500 leading-relaxed">
-              {language === 'en' 
-                ? 'Jobia.az — Modern employment platform connecting job seekers with leading employers across Azerbaijan.'
-                : language === 'ru'
-                ? 'Jobia.az — современная платформа, соединяющая соискателей с ведущими компаниями на рынке труда Азербайджана.'
-                : 'Jobia.az — Azərbaycanın rəqəmsal əmək bazarında iş axtaranlar ilə aparıcı şirkətləri birləşdirən müasir platformadır.'}
+
+            {/* Tagline */}
+            <p className="text-xs sm:text-sm text-slate-600 font-medium leading-relaxed max-w-sm">
+              Doğru işi və doğru istedadı bir araya gətirən ağıllı karyera platforması.
             </p>
-            <div className="pt-1 text-xs text-slate-600 font-medium space-y-1.5">
-              <div className="flex items-center gap-1.5 text-emerald-600 font-bold">
-                <CheckCircle className="w-4 h-4 shrink-0" />
-                <span>{language === 'en' ? 'Daily Updated Official Jobs' : language === 'ru' ? 'Ежедневно обновляемые вакансии' : 'Gündəlik Yenilənən Rəsmi Vakansiyalar'}</span>
-              </div>
-              <div className="text-[11px] text-slate-500 font-mono">
-                {brandAcronymFull}
-              </div>
-              <div className="text-[11px] text-slate-500 flex items-center gap-1.5">
-                <Scale className="w-3.5 h-3.5 text-blue-600 shrink-0" />
-                <span>{language === 'en' ? 'TIN' : language === 'ru' ? 'ИНН' : 'VÖEN'}: <strong>1406283921</strong> ({language === 'en' ? 'State Registration' : language === 'ru' ? 'Госрегистрация' : 'Dövlət Qeydiyyatı'})</span>
-              </div>
-            </div>
+
+            {/* Support / Newsletter Title */}
             <div className="pt-2">
-              <LanguageSwitcher variant="buttons" />
+              <span className="text-[11px] font-extrabold uppercase tracking-wider text-[#00a859]">
+                DƏSTƏK LAZIMDIR?
+              </span>
+
+              {/* Newsletter Capsule Input */}
+              <form onSubmit={handleNewsletterSubmit} className="mt-2 max-w-sm">
+                <div className="flex items-center bg-white border border-slate-200/90 rounded-full p-1 pl-3.5 shadow-2xs hover:border-slate-300 focus-within:border-[#00a859] focus-within:ring-2 focus-within:ring-emerald-500/10 transition-all">
+                  <Mail className="w-4 h-4 text-slate-400 shrink-0 mr-2" />
+                  <input
+                    type="email"
+                    value={newsletterEmail}
+                    onChange={(e) => setNewsletterEmail(e.target.value)}
+                    placeholder="E-poçt ünvanınız"
+                    className="w-full bg-transparent text-xs font-semibold text-slate-800 placeholder:text-slate-400 outline-none pr-1"
+                    disabled={newsletterSubmitted}
+                  />
+                  <button
+                    type="submit"
+                    className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 transition-all cursor-pointer shadow-xs ${
+                      newsletterSubmitted 
+                        ? 'bg-emerald-600 text-white' 
+                        : 'bg-[#00a859] hover:bg-[#00924d] text-white active:scale-90'
+                    }`}
+                    title="Göndər"
+                  >
+                    {newsletterSubmitted ? <Check className="w-3.5 h-3.5" /> : <Send className="w-3.5 h-3.5" />}
+                  </button>
+                </div>
+                {newsletterSubmitted && (
+                  <p className="text-[11px] font-bold text-[#00a859] mt-1.5 pl-3">
+                    Təşəkkür edirik! Dəstək komandamız tezliklə sizinlə əlaqə saxlayacaq.
+                  </p>
+                )}
+              </form>
+            </div>
+
+            {/* Social Media Icons */}
+            <div className="pt-2 flex items-center gap-2">
+              <a
+                href="https://instagram.com"
+                target="_blank"
+                rel="noreferrer"
+                className="w-8 h-8 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 flex items-center justify-center text-slate-600 hover:text-slate-900 transition-colors shadow-2xs"
+                title="Instagram"
+              >
+                <Instagram className="w-4 h-4" />
+              </a>
+              <a
+                href="https://linkedin.com"
+                target="_blank"
+                rel="noreferrer"
+                className="w-8 h-8 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 flex items-center justify-center text-slate-600 hover:text-slate-900 transition-colors shadow-2xs"
+                title="LinkedIn"
+              >
+                <Linkedin className="w-4 h-4" />
+              </a>
+              <a
+                href="https://youtube.com"
+                target="_blank"
+                rel="noreferrer"
+                className="w-8 h-8 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 flex items-center justify-center text-slate-600 hover:text-slate-900 transition-colors shadow-2xs"
+                title="YouTube"
+              >
+                <Youtube className="w-4 h-4" />
+              </a>
+              <span className="text-xs font-semibold text-slate-500 pl-1">
+                Bizi izləyin
+              </span>
             </div>
           </div>
 
-          {/* Col 2: İş Axtaranlar (For Candidates) */}
-          <div>
-            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-900 mb-3">
-              {language === 'en' ? 'Job Seekers' : language === 'ru' ? 'Соискателям' : 'İş Axtaranlar'}
+          {/* COLUMN 2: NAMİZƏDLƏR (lg:col-span-2 or 3) */}
+          <div className="lg:col-span-3 space-y-3">
+            <h4 className="text-xs font-extrabold uppercase tracking-wider text-[#00a859]">
+              NAMİZƏDLƏR
             </h4>
-            <ul className="space-y-2 text-xs text-slate-600">
+            <ul className="space-y-2.5 text-xs font-medium text-slate-600">
               <li>
                 <button
                   type="button"
@@ -102,10 +161,9 @@ export const Footer: React.FC<FooterProps> = ({
                     if (onRoleChange) onRoleChange('candidate');
                     if (onNavigateCandidateTab) onNavigateCandidateTab('jobs');
                   }}
-                  className="hover:text-blue-600 flex items-center gap-1.5 transition-colors cursor-pointer text-left"
+                  className="hover:text-slate-950 transition-colors cursor-pointer text-left"
                 >
-                  <Briefcase className="w-3.5 h-3.5 text-slate-400" />
-                  <span>{dict.nav.jobs}</span>
+                  Vakansiyalar
                 </button>
               </li>
               <li>
@@ -115,98 +173,53 @@ export const Footer: React.FC<FooterProps> = ({
                     if (onRoleChange) onRoleChange('candidate');
                     if (onNavigateCandidateTab) onNavigateCandidateTab('nearby-map');
                   }}
-                  className="hover:text-blue-600 flex items-center gap-1.5 transition-colors cursor-pointer text-left font-semibold text-blue-600"
+                  className="hover:text-slate-950 transition-colors cursor-pointer text-left"
                 >
-                  <MapIcon className="w-3.5 h-3.5 text-blue-600" />
-                  <span>{dict.nav.nearbyJobs || (language === 'en' ? 'Jobs on Map' : language === 'ru' ? 'Поиск на карте' : 'Xəritə ilə Axtarış')}</span>
+                  Xəritədə vakansiyalar
                 </button>
               </li>
               <li>
                 <button
                   type="button"
-                  onClick={() => {
-                    if (onRoleChange) onRoleChange('candidate');
-                    if (onNavigateCandidateTab) onNavigateCandidateTab('salary-trends');
-                  }}
-                  className="hover:text-blue-600 flex items-center gap-1.5 transition-colors cursor-pointer text-left"
-                >
-                  <TrendingUp className="w-3.5 h-3.5 text-slate-400" />
-                  <span>{dict.nav.salaryTrends}</span>
-                </button>
-              </li>
-              <li>
-                <button
-                  type="button"
-                  id="footer-nav-salary-calc"
                   onClick={() => {
                     if (onRoleChange) onRoleChange('candidate');
                     if (onNavigateCandidateTab) onNavigateCandidateTab('salary-calculator');
                   }}
-                  className="hover:text-blue-700 flex items-center gap-1.5 transition-colors cursor-pointer text-left font-bold text-slate-700"
+                  className="hover:text-slate-950 transition-colors cursor-pointer text-left"
                 >
-                  <Calculator className="w-3.5 h-3.5 text-blue-600" />
-                  <span>{language === 'en' ? 'Calculate Salary' : language === 'ru' ? 'Рассчитать зарплату' : 'Maaşını hesabla'}</span>
+                  Maaş kalkulyatoru
                 </button>
               </li>
               <li>
                 <button
                   type="button"
-                  id="footer-nav-vacation-calc"
                   onClick={() => {
                     if (onRoleChange) onRoleChange('candidate');
                     if (onNavigateCandidateTab) onNavigateCandidateTab('vacation-calculator');
                   }}
-                  className="hover:text-emerald-700 flex items-center gap-1.5 transition-colors cursor-pointer text-left font-bold text-slate-700"
+                  className="hover:text-slate-950 transition-colors cursor-pointer text-left"
                 >
-                  <Palmtree className="w-3.5 h-3.5 text-emerald-600" />
-                  <span>{language === 'en' ? 'Calculate Vacation' : language === 'ru' ? 'Рассчитать отпуск' : 'Məzuniyyətini hesabla'}</span>
-                </button>
-              </li>
-              <li>
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (onRoleChange) onRoleChange('candidate');
-                    if (onNavigateCandidateTab) (onNavigateCandidateTab as any)('practice-interview');
-                  }}
-                  className="hover:text-purple-700 flex items-center gap-1.5 transition-colors cursor-pointer text-left font-semibold text-purple-700"
-                >
-                  <Sparkles className="w-3.5 h-3.5 text-purple-600" />
-                  <span>AI Müsahibə Məşqi (STAR Metodu)</span>
-                </button>
-              </li>
-              <li>
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (onRoleChange) onRoleChange('candidate');
-                    if (onNavigateCandidateTab) (onNavigateCandidateTab as any)('cv-creator');
-                  }}
-                  className="hover:text-emerald-700 flex items-center gap-1.5 transition-colors cursor-pointer text-left"
-                >
-                  <FileText className="w-3.5 h-3.5 text-emerald-600" />
-                  <span>CV Yaradıcı & Birbaşa A4 PDF</span>
+                  Məzuniyyət kalkulyatoru
                 </button>
               </li>
             </ul>
           </div>
 
-          {/* Col 3: İşəgötürənlər (For Employers) */}
-          <div>
-            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-900 mb-3">
-              {language === 'en' ? 'Employers' : language === 'ru' ? 'Работодателям' : 'İşəgötürənlər'}
+          {/* COLUMN 3: ŞİRKƏTLƏR (lg:col-span-2 or 3) */}
+          <div className="lg:col-span-3 space-y-3">
+            <h4 className="text-xs font-extrabold uppercase tracking-wider text-[#00a859]">
+              ŞİRKƏTLƏR
             </h4>
-            <ul className="space-y-2 text-xs text-slate-600">
+            <ul className="space-y-2.5 text-xs font-medium text-slate-600">
               <li>
                 <button
                   type="button"
                   onClick={() => {
                     if (onRoleChange) onRoleChange('business');
                   }}
-                  className="hover:text-blue-600 flex items-center gap-1.5 transition-colors cursor-pointer text-left"
+                  className="hover:text-slate-950 transition-colors cursor-pointer text-left"
                 >
-                  <Building2 className="w-3.5 h-3.5 text-slate-400" />
-                  <span>{language === 'en' ? 'Employer Cabinet' : language === 'ru' ? 'Кабинет работодателя' : 'İşəgötürən Kabineti'}</span>
+                  İşəgötürən kabineti
                 </button>
               </li>
               <li>
@@ -215,10 +228,9 @@ export const Footer: React.FC<FooterProps> = ({
                   onClick={() => {
                     if (onRoleChange) onRoleChange('business');
                   }}
-                  className="hover:text-blue-600 flex items-center gap-1.5 transition-colors cursor-pointer text-left font-semibold text-blue-600"
+                  className="hover:text-slate-950 transition-colors cursor-pointer text-left"
                 >
-                  <Zap className="w-3.5 h-3.5 text-blue-600" />
-                  <span>{language === 'en' ? 'Post a Vacancy' : language === 'ru' ? 'Разместить вакансию' : 'Vakansiya Yerləşdir'}</span>
+                  Vakansiya yerləşdir
                 </button>
               </li>
               <li>
@@ -227,22 +239,9 @@ export const Footer: React.FC<FooterProps> = ({
                   onClick={() => {
                     if (onRoleChange) onRoleChange('business');
                   }}
-                  className="hover:text-blue-600 flex items-center gap-1.5 transition-colors cursor-pointer text-left"
+                  className="hover:text-slate-950 transition-colors cursor-pointer text-left"
                 >
-                  <UserCheck className="w-3.5 h-3.5 text-slate-400" />
-                  <span>{language === 'en' ? 'Company Profile & Verification' : language === 'ru' ? 'Профиль компании и верификация' : 'Şirkət Profili & Verifikasiya'}</span>
-                </button>
-              </li>
-              <li>
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (onRoleChange) onRoleChange('business');
-                  }}
-                  className="hover:text-blue-600 flex items-center gap-1.5 transition-colors cursor-pointer text-left"
-                >
-                  <FileText className="w-3.5 h-3.5 text-slate-400" />
-                  <span>{language === 'en' ? 'Official Job Offer Portal' : language === 'ru' ? 'Официальный портал офферов' : 'Rəsmi İş Təklifi (Job Offer) Portalı'}</span>
+                  Namizəd bazası
                 </button>
               </li>
               <li>
@@ -251,211 +250,111 @@ export const Footer: React.FC<FooterProps> = ({
                   onClick={() => {
                     if (onOpenPricing) onOpenPricing();
                   }}
-                  className="hover:text-blue-600 flex items-center gap-1.5 transition-colors cursor-pointer text-left"
+                  className="hover:text-slate-950 transition-colors cursor-pointer text-left"
                 >
-                  <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-                  <span>{language === 'en' ? 'Recruiting Analytics & Pricing' : language === 'ru' ? 'Аналитика рекрутинга и цены' : 'Recruiting Analytics & Qiymətlər'}</span>
-                </button>
-              </li>
-              <li>
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (onRoleChange) onRoleChange('business');
-                  }}
-                  className="hover:text-blue-600 flex items-center gap-1.5 transition-colors cursor-pointer text-left text-blue-600 font-semibold"
-                >
-                  <Clock className="w-3.5 h-3.5 text-blue-600" />
-                  <span>Time to Fill / Time to Hire Analitikası</span>
-                </button>
-              </li>
-              <li>
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (onRoleChange) onRoleChange('business');
-                  }}
-                  className="hover:text-blue-600 flex items-center gap-1.5 transition-colors cursor-pointer text-left font-semibold text-indigo-700"
-                >
-                  <Layers className="w-3.5 h-3.5 text-indigo-600" />
-                  <span>11 Mərhələli Recruitment Funnel</span>
-                </button>
-              </li>
-              <li>
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (onRoleChange) onRoleChange('admin');
-                  }}
-                  className="hover:text-blue-600 flex items-center gap-1.5 transition-colors cursor-pointer text-left font-semibold text-slate-700"
-                >
-                  <ShieldCheck className="w-3.5 h-3.5 text-blue-600" />
-                  <span>{dict.nav.admin}</span>
+                  Planlar və qiymətlər
                 </button>
               </li>
             </ul>
           </div>
 
-          {/* Col 4: Hüquqi & Əlaqə */}
-          <div>
-            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-900 mb-3">
-              {language === 'en' ? 'Legal & Security' : language === 'ru' ? 'Правовая информация' : 'Hüquqi & Təhlükəsizlik'}
+          {/* COLUMN 4: DƏSTƏK (lg:col-span-2) */}
+          <div className="lg:col-span-2 space-y-3">
+            <h4 className="text-xs font-extrabold uppercase tracking-wider text-[#00a859]">
+              DƏSTƏK
             </h4>
-            <ul className="space-y-2 text-xs text-slate-600">
+            <ul className="space-y-2.5 text-xs font-medium text-slate-600">
               <li>
                 <button
                   type="button"
-                  onClick={() => setActiveLegalModal('privacy')}
-                  className="hover:text-blue-600 flex items-center gap-1.5 transition-colors cursor-pointer text-left"
+                  onClick={() => {
+                    if (onOpenIntroTour) onOpenIntroTour();
+                  }}
+                  className="hover:text-slate-950 transition-colors cursor-pointer text-left"
                 >
-                  <Lock className="w-3.5 h-3.5 text-slate-400" />
-                  <span>{language === 'en' ? 'Privacy Policy' : language === 'ru' ? 'Политика конфиденциальности' : 'Məxfilik Siyasəti (Privacy Policy)'}</span>
+                  Platformanı tanı
                 </button>
               </li>
               <li>
                 <button
                   type="button"
-                  onClick={() => setActiveLegalModal('terms')}
-                  className="hover:text-blue-600 flex items-center gap-1.5 transition-colors cursor-pointer text-left"
+                  onClick={() => {
+                    if (onOpenHelpContact) onOpenHelpContact('faq');
+                  }}
+                  className="hover:text-slate-950 transition-colors cursor-pointer text-left"
                 >
-                  <FileCheck className="w-3.5 h-3.5 text-slate-400" />
-                  <span>{language === 'en' ? 'Terms of Service' : language === 'ru' ? 'Пользовательское соглашение' : 'İstifadəçi Müqaviləsi (Terms of Service)'}</span>
+                  Tez-tez verilən suallar
                 </button>
               </li>
               <li>
                 <button
                   type="button"
-                  onClick={() => setActiveLegalModal('cookies')}
-                  className="hover:text-blue-600 flex items-center gap-1.5 transition-colors cursor-pointer text-left"
+                  onClick={() => {
+                    if (onOpenHelpContact) onOpenHelpContact('contact');
+                  }}
+                  className="hover:text-slate-950 transition-colors cursor-pointer text-left"
                 >
-                  <Globe className="w-3.5 h-3.5 text-slate-400" />
-                  <span>{language === 'en' ? 'Cookie Policy' : language === 'ru' ? 'Политика файлов cookie' : 'Kuki (Cookie) Siyasəti'}</span>
-                </button>
-              </li>
-              <li>
-                <button
-                  type="button"
-                  onClick={() => setActiveLegalModal('security')}
-                  className="hover:text-blue-600 flex items-center gap-1.5 transition-colors cursor-pointer text-left"
-                >
-                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
-                  <span>{language === 'en' ? 'Security & SSL Standards' : language === 'ru' ? 'Безопасность и стандарты SSL' : 'Təhlükəsizlik & SSL Standartları'}</span>
+                  Bizimlə əlaqə
                 </button>
               </li>
               <li>
                 <button
                   type="button"
                   onClick={() => setActiveLegalModal('compliance')}
-                  className="hover:text-blue-600 flex items-center gap-1.5 transition-colors cursor-pointer text-left font-semibold text-slate-800"
+                  className="hover:text-slate-950 transition-colors cursor-pointer text-left"
                 >
-                  <Scale className="w-3.5 h-3.5 text-blue-600" />
-                  <span>{language === 'en' ? 'Labor Code Compliance' : language === 'ru' ? 'Соответствие трудовому кодексу АР' : 'AR Əmək Məcəlləsi Uyğunluğu'}</span>
+                  Əmək məcəlləsinə uyğunluq
                 </button>
-              </li>
-              {onOpenHelpContact && (
-                <>
-                  <li>
-                    <button
-                      type="button"
-                      onClick={() => onOpenHelpContact('faq')}
-                      className="hover:text-blue-600 flex items-center gap-1.5 transition-colors cursor-pointer text-left font-semibold text-blue-700"
-                    >
-                      <HelpCircle className="w-3.5 h-3.5 text-blue-600" />
-                      <span>{language === 'en' ? 'FAQ & Help Center' : language === 'ru' ? 'Частые вопросы (FAQ)' : 'Tez-tez Verilən Suallar (FAQ)'}</span>
-                    </button>
-                  </li>
-                  <li>
-                    <button
-                      type="button"
-                      onClick={() => onOpenHelpContact('contact')}
-                      className="hover:text-blue-600 flex items-center gap-1.5 transition-colors cursor-pointer text-left font-semibold text-indigo-700"
-                    >
-                      <MessageSquare className="w-3.5 h-3.5 text-indigo-600" />
-                      <span>{language === 'en' ? 'Contact & Feedback' : language === 'ru' ? 'Связаться с нами' : 'Bizimlə Əlaqə & Dəstək'}</span>
-                    </button>
-                  </li>
-                </>
-              )}
-              <li className="pt-2 text-slate-500 text-[11px] space-y-1">
-                <div className="flex items-center gap-1.5">
-                  <Mail className="w-3 h-3 text-slate-400" />
-                  <a href="mailto:support@jobia.az" className="hover:text-blue-600 font-medium">support@jobia.az</a>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <Phone className="w-3 h-3 text-slate-400" />
-                  <span>+994 (12) 404-18-18</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <MapPin className="w-3 h-3 text-slate-400" />
-                  <span>{language === 'en' ? 'Baku, Azure Business Center' : language === 'ru' ? 'Баку, Azure Бизнес-центр' : 'Bakı, Azure Biznes Mərkəzi'}</span>
-                </div>
               </li>
             </ul>
           </div>
 
         </div>
 
-        {/* Enterprise Ecosystem Showcase Strip */}
-        <div className="mt-8 pt-6 border-t border-slate-200/80 bg-slate-50/80 rounded-2xl p-4 sm:p-5 border space-y-3">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-            <div className="flex items-center gap-2">
-              <span className="font-bold text-blue-700 bg-blue-100/70 border border-blue-200 px-2.5 py-0.5 rounded-full text-[11px]">
-                jobia.az • Müasir Vakansiya və Ağıllı Karyera Portalı
-              </span>
-              <span className="text-slate-400 text-xs hidden sm:inline">•</span>
-              <span className="text-xs text-slate-600 font-medium hidden sm:inline">
-                Azərbaycanın Tam HR İşə Qəbul, Ağıllı CV və Enterprise Recruiting Analytics Platforması
-              </span>
-            </div>
+        {/* BOTTOM LEGAL & COPYRIGHT ROW (Matching prototype image_6c47657d.png) */}
+        <div className="mt-12 pt-6 border-t border-slate-200/70 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs font-medium text-slate-500">
+          <div>
+            © 2026 Jobia.az. Bütün hüquqlar qorunur.
           </div>
 
-          <div className="flex flex-wrap items-center gap-2 text-[11px] font-semibold text-slate-700">
-            <span className="px-2.5 py-1 rounded-lg bg-white border border-slate-200/80 shadow-2xs flex items-center gap-1.5">
-              <Clock className="w-3.5 h-3.5 text-blue-600" />
-              <span>Time to Fill / Time to Hire analitikası</span>
-            </span>
-            <span className="px-2.5 py-1 rounded-lg bg-white border border-slate-200/80 shadow-2xs flex items-center gap-1.5">
-              <Layers className="w-3.5 h-3.5 text-indigo-600" />
-              <span>11 mərhələli recruitment funnel</span>
-            </span>
-            <span className="px-2.5 py-1 rounded-lg bg-white border border-slate-200/80 shadow-2xs flex items-center gap-1.5">
-              <BarChart3 className="w-3.5 h-3.5 text-emerald-600" />
-              <span>Bazar benchmarkları</span>
-            </span>
-            <span className="px-2.5 py-1 rounded-lg bg-white border border-slate-200/80 shadow-2xs flex items-center gap-1.5">
-              <Sparkles className="w-3.5 h-3.5 text-purple-600" />
-              <span>AI müsahibə və iş təklifi workflow-u</span>
-            </span>
-            <span className="px-2.5 py-1 rounded-lg bg-white border border-slate-200/80 shadow-2xs flex items-center gap-1.5">
-              <FileCheck className="w-3.5 h-3.5 text-rose-600" />
-              <span>AI Job Offer tərtibatı & 1 kliklə e-poçt</span>
-            </span>
-            <span className="px-2.5 py-1 rounded-lg bg-white border border-slate-200/80 shadow-2xs flex items-center gap-1.5">
-              <FileText className="w-3.5 h-3.5 text-amber-600" />
-              <span>Birbaşa A4 PDF generasiyası</span>
-            </span>
-            <span className="px-2.5 py-1 rounded-lg bg-white border border-slate-200/80 shadow-2xs flex items-center gap-1.5">
-              <ShieldCheck className="w-3.5 h-3.5 text-teal-600" />
-              <span>Təhlükəsiz namizəd portali</span>
-            </span>
-            <span className="px-2.5 py-1 rounded-lg bg-white border border-slate-200/80 shadow-2xs flex items-center gap-1.5">
-              <Calculator className="w-3.5 h-3.5 text-blue-600" />
-              <span>2026 AR Vergi kalkulyatoru</span>
-            </span>
-          </div>
-        </div>
-
-        {/* Bottom Bar: Slogan, Jobia Logo & Copyright */}
-        <div className="mt-6 pt-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500">
-          <div className="flex items-center gap-3">
-            <JobiaLogo size="xs" withSubtitle={true} subtitle="Job Intelligence & Automation" showDotPing={true} />
-            <span className="text-slate-300 hidden sm:inline">|</span>
-            <span>{language === 'en' ? '© 2026 All rights reserved.' : language === 'ru' ? '© 2026 Все права защищены.' : '© 2026 Bütün hüquqlar qorunur.'}</span>
-          </div>
-
-          <div className="flex items-center gap-1.5 text-slate-600 text-xs font-semibold">
-            <span>{dict.brand.slogan || (language === 'en' ? "Azerbaijan's Smartest Job & Career Platform" : language === 'ru' ? 'Самая умная платформа вакансий и карьеры в Азербайджане' : 'Azərbaycanın Ən Ağıllı Vakansiya və Karyera Platforması')}</span>
-            <Heart className="w-3.5 h-3.5 text-red-500 fill-red-500 inline ml-0.5" />
+          <div className="flex flex-wrap items-center gap-4 sm:gap-6 text-slate-500">
+            <button
+              type="button"
+              onClick={() => setActiveLegalModal('privacy')}
+              className="hover:text-slate-900 transition-colors cursor-pointer"
+            >
+              Məxfilik
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveLegalModal('terms')}
+              className="hover:text-slate-900 transition-colors cursor-pointer"
+            >
+              İstifadə qaydaları
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveLegalModal('cookies')}
+              className="hover:text-slate-900 transition-colors cursor-pointer"
+            >
+              Kuki
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveLegalModal('security')}
+              className="hover:text-slate-900 transition-colors cursor-pointer"
+            >
+              Təhlükəsizlik
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsCoverModalOpen(true)}
+              className="hover:text-[#00a859] transition-colors cursor-pointer flex items-center gap-1 text-[11px] font-bold"
+              title="Rəsmi Üz Qabığı Bələdçisi"
+            >
+              <Share2 className="w-3 h-3 text-[#00a859]" />
+              <span>Üz Qabığı</span>
+            </button>
           </div>
         </div>
       </div>
@@ -464,6 +363,12 @@ export const Footer: React.FC<FooterProps> = ({
       <LegalInfoModal
         type={activeLegalModal}
         onClose={() => setActiveLegalModal(null)}
+      />
+
+      {/* Official Brand Cover & OpenGraph Modal */}
+      <BrandCoverModal
+        isOpen={isCoverModalOpen}
+        onClose={() => setIsCoverModalOpen(false)}
       />
     </footer>
   );

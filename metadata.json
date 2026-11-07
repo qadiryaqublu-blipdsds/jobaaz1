@@ -3,7 +3,8 @@
   "description": "Azərbaycan dilində müasir vakansiya platforması, AI dəstəkli CV generatoru, ATS CV analizi və rəy sistemi, iş axtaran, biznes və admin paneli.",
   "requestFramePermissions": [
     "geolocation",
-    "microphone"
+    "microphone",
+    "camera"
   ],
   "majorCapabilities": [
     "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"

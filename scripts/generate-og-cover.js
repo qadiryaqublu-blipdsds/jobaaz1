@@ -1,0 +1,313 @@
+import fs from 'fs';
+import path from 'path';
+import sharp from 'sharp';
+
+const svgContent = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630">
+  <defs>
+    <!-- Dark corporate background gradients matching #0b1b2b -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0b1b2b" />
+      <stop offset="50%" stop-color="#071320" />
+      <stop offset="100%" stop-color="#040b13" />
+    </linearGradient>
+
+    <!-- Emerald Brand Glow -->
+    <radialGradient id="emeraldGlow" cx="20%" cy="20%" r="55%">
+      <stop offset="0%" stop-color="#00a859" stop-opacity="0.28" />
+      <stop offset="60%" stop-color="#00a859" stop-opacity="0.05" />
+      <stop offset="100%" stop-color="#00a859" stop-opacity="0" />
+    </radialGradient>
+
+    <!-- Deep Blue / Cyan Ambient Glow -->
+    <radialGradient id="blueGlow" cx="85%" cy="30%" r="65%">
+      <stop offset="0%" stop-color="#0284c7" stop-opacity="0.24" />
+      <stop offset="50%" stop-color="#1d4ed8" stop-opacity="0.10" />
+      <stop offset="100%" stop-color="#0b1b2b" stop-opacity="0" />
+    </radialGradient>
+
+    <!-- Glass card gradient -->
+    <linearGradient id="glassGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#16293d" stop-opacity="0.88" />
+      <stop offset="100%" stop-color="#0d1b2a" stop-opacity="0.94" />
+    </linearGradient>
+
+    <!-- Pill gradient -->
+    <linearGradient id="pillGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#00a859" stop-opacity="0.2" />
+      <stop offset="100%" stop-color="#06b6d4" stop-opacity="0.1" />
+    </linearGradient>
+
+    <linearGradient id="funnelGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#00a859" />
+      <stop offset="100%" stop-color="#06b6d4" />
+    </linearGradient>
+
+    <!-- Drop Shadows -->
+    <filter id="shadowLg" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="18" stdDeviation="24" flood-color="#000000" flood-opacity="0.65" />
+    </filter>
+
+    <filter id="glowGreen" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="0" stdDeviation="12" flood-color="#00a859" flood-opacity="0.45" />
+    </filter>
+
+    <!-- Subtle Tech Grid Pattern -->
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1e3a5f" stroke-width="0.7" stroke-opacity="0.35" />
+      <circle cx="40" cy="40" r="1.2" fill="#00a859" fill-opacity="0.3" />
+    </pattern>
+  </defs>
+
+  <style>
+    .font-heavy { font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; font-weight: 900; }
+    .font-bold { font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; font-weight: 700; }
+    .font-semibold { font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; font-weight: 600; }
+    .font-medium { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; font-weight: 500; }
+    .font-mono { font-family: 'JetBrains Mono', monospace; }
+  </style>
+
+  <!-- Background Base -->
+  <rect width="1200" height="630" fill="url(#bgGrad)" />
+  <rect width="1200" height="630" fill="url(#grid)" />
+
+  <!-- Ambient Glow Spheres -->
+  <circle cx="240" cy="180" r="420" fill="url(#emeraldGlow)" />
+  <circle cx="980" cy="220" r="460" fill="url(#blueGlow)" />
+
+  <!-- Top Accent Border Line -->
+  <rect x="0" y="0" width="1200" height="4" fill="url(#funnelGrad)" />
+
+  <!-- ================= LEFT COLUMN: HERO BRANDING ================= -->
+
+  <!-- Top Badge -->
+  <g transform="translate(80, 72)">
+    <rect width="395" height="34" rx="17" fill="url(#pillGrad)" stroke="#00a859" stroke-width="1.2" stroke-opacity="0.5" />
+    <circle cx="20" cy="17" r="5" fill="#00a859" filter="url(#glowGreen)" />
+    <text x="35" y="22" fill="#6ee7b7" class="font-bold" font-size="12" letter-spacing="0.08em">AZƏRBAYCANIN MÜASİR HR &amp; VAKANSİYA PORTALI</text>
+  </g>
+
+  <!-- Main Logo: jobia.az -->
+  <g transform="translate(80, 192)">
+    <text class="font-heavy" font-size="78" letter-spacing="-0.035em">
+      <tspan fill="#00a859">job</tspan><tspan fill="#ffffff">ia.</tspan><tspan fill="#00a859">az</tspan>
+    </text>
+  </g>
+
+  <!-- Title Tagline -->
+  <g transform="translate(80, 246)">
+    <text class="font-bold" font-size="30" fill="#f8fafc" letter-spacing="-0.02em">
+      Müasir Vakansiya və Ağıllı Karyera Portalı
+    </text>
+    <text class="font-medium" font-size="16" fill="#94a3b8" y="32">
+      AI Müsahibə, Ağıllı CV, Biometrik Davamiyyət və Enterprise HR Analitikası
+    </text>
+  </g>
+
+  <!-- Feature Checklist Items -->
+  <g transform="translate(80, 326)">
+    <!-- Item 1 -->
+    <g transform="translate(0, 0)">
+      <circle cx="12" cy="12" r="12" fill="#00a859" fill-opacity="0.18" />
+      <path d="M7 12 l3 3 l7 -7" stroke="#00e676" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+      <text x="36" y="17" fill="#e2e8f0" class="font-semibold" font-size="15.5">11 Mərhələli Recruitment Funnel &amp; Benchmarklar</text>
+    </g>
+
+    <!-- Item 2 -->
+    <g transform="translate(0, 42)">
+      <circle cx="12" cy="12" r="12" fill="#00a859" fill-opacity="0.18" />
+      <path d="M7 12 l3 3 l7 -7" stroke="#00e676" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+      <text x="36" y="17" fill="#e2e8f0" class="font-semibold" font-size="15.5">AI Müsahibə Təhlili &amp; Ağıllı Namizəd Dəyərləndirməsi</text>
+    </g>
+
+    <!-- Item 3 -->
+    <g transform="translate(0, 84)">
+      <circle cx="12" cy="12" r="12" fill="#00a859" fill-opacity="0.18" />
+      <path d="M7 12 l3 3 l7 -7" stroke="#00e676" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+      <text x="36" y="17" fill="#e2e8f0" class="font-semibold" font-size="15.5">Biometrik Üz Tanıma (Face Attendance) &amp; PWA</text>
+    </g>
+
+    <!-- Item 4 -->
+    <g transform="translate(0, 126)">
+      <circle cx="12" cy="12" r="12" fill="#00a859" fill-opacity="0.18" />
+      <path d="M7 12 l3 3 l7 -7" stroke="#00e676" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+      <text x="36" y="17" fill="#e2e8f0" class="font-semibold" font-size="15.5">AR Vergi Kalkulyatoru &amp; Rəsmi Job Offer Workflow</text>
+    </g>
+  </g>
+
+  <!-- Bottom Location & Trust Pill -->
+  <g transform="translate(80, 535)">
+    <rect width="470" height="38" rx="8" fill="#091724" stroke="#1e3a5f" stroke-width="1" />
+    <!-- Pin Icon -->
+    <circle cx="22" cy="19" r="4" fill="#00a859" />
+    <text x="36" y="24" fill="#94a3b8" class="font-medium" font-size="13">
+      <tspan fill="#38bdf8">Bakı, Azərbaycan</tspan> • <tspan fill="#cbd5e1">https://jobia.az</tspan> • <tspan fill="#a7f3d0">Enterprise Ready</tspan>
+    </text>
+  </g>
+
+  <!-- ================= RIGHT COLUMN: INTERACTIVE GLASS CARDS ================= -->
+
+  <!-- Main Glass Card Container -->
+  <g transform="translate(640, 75)" filter="url(#shadowLg)">
+    <!-- Card Frame -->
+    <rect width="480" height="485" rx="20" fill="url(#glassGrad)" stroke="#224263" stroke-width="1.4" />
+
+    <!-- Card Top Header -->
+    <rect width="480" height="48" rx="20" fill="#0a1726" fill-opacity="0.8" />
+    <rect y="36" width="480" height="12" fill="#0a1726" fill-opacity="0.8" />
+    <line x1="0" y1="48" x2="480" y2="48" stroke="#1e3a5f" stroke-width="1" />
+    
+    <!-- Mac-style dots -->
+    <circle cx="24" cy="24" r="5" fill="#ef4444" opacity="0.85" />
+    <circle cx="42" cy="24" r="5" fill="#f59e0b" opacity="0.85" />
+    <circle cx="60" cy="24" r="5" fill="#10b981" opacity="0.85" />
+    
+    <text x="82" y="29" fill="#94a3b8" class="font-semibold" font-size="13" letter-spacing="0.04em">JOBIA ENTERPRISE RECRUITING SUITE</text>
+
+    <!-- LIVE Status -->
+    <rect x="390" y="14" width="68" height="20" rx="10" fill="#00a859" fill-opacity="0.2" stroke="#00a859" stroke-width="1" />
+    <circle cx="402" cy="24" r="3.5" fill="#00e676" />
+    <text x="412" y="28" fill="#a7f3d0" class="font-bold" font-size="10.5">CANLI</text>
+
+    <!-- Inside Card: 2 Column Metrics -->
+    <g transform="translate(24, 70)">
+      <!-- Metric 1 -->
+      <rect width="206" height="106" rx="12" fill="#091726" stroke="#1a3550" stroke-width="1" />
+      <text x="16" y="28" fill="#64748b" class="font-semibold" font-size="12">AI Namizəd Uyğunluğu</text>
+      <text x="16" y="68" fill="#ffffff" class="font-heavy" font-size="34">98.4%</text>
+      <g transform="translate(16, 80)">
+        <rect width="174" height="6" rx="3" fill="#1e293b" />
+        <rect width="171" height="6" rx="3" fill="url(#funnelGrad)" />
+      </g>
+      <text x="16" y="98" fill="#34d399" class="font-bold" font-size="11">✓ Yüksək Uyğunluq Skoru</text>
+
+      <!-- Metric 2 -->
+      <g transform="translate(226, 0)">
+        <rect width="206" height="106" rx="12" fill="#091726" stroke="#1a3550" stroke-width="1" />
+        <text x="16" y="28" fill="#64748b" class="font-semibold" font-size="12">Time to Fill (Ortalama)</text>
+        <text x="16" y="68" fill="#38bdf8" class="font-heavy" font-size="34">11.4 <tspan font-size="16" fill="#94a3b8" font-family="Inter">gün</tspan></text>
+        <text x="16" y="94" fill="#10b981" class="font-semibold" font-size="12">↓ 44% daha sürətli</text>
+      </g>
+    </g>
+
+    <!-- Inside Card: Biometric Match Verification Badge -->
+    <g transform="translate(24, 200)">
+      <rect width="432" height="92" rx="14" fill="#0c1d2e" stroke="#00a859" stroke-width="1.2" stroke-opacity="0.6" />
+      
+      <!-- Face Recognition Icon / Scanner simulation -->
+      <g transform="translate(18, 18)">
+        <rect width="56" height="56" rx="12" fill="#00a859" fill-opacity="0.15" />
+        <!-- Corner brackets -->
+        <path d="M 8 18 L 8 8 L 18 8" stroke="#00e676" stroke-width="2" fill="none" />
+        <path d="M 48 18 L 48 8 L 38 8" stroke="#00e676" stroke-width="2" fill="none" />
+        <path d="M 8 38 L 8 48 L 18 48" stroke="#00e676" stroke-width="2" fill="none" />
+        <path d="M 48 38 L 48 48 L 38 48" stroke="#00e676" stroke-width="2" fill="none" />
+        <!-- Center Face SVG -->
+        <circle cx="28" cy="24" r="8" fill="none" stroke="#00e676" stroke-width="1.8" />
+        <path d="M 19 40 C 21 33, 35 33, 37 40" fill="none" stroke="#00e676" stroke-width="1.8" stroke-linecap="round" />
+      </g>
+
+      <text x="90" y="38" fill="#f8fafc" class="font-bold" font-size="16">Biometrik Üz Tanıma Sistemi (Live Attendance)</text>
+      <text x="90" y="58" fill="#94a3b8" class="font-medium" font-size="13">Liveness Detection &amp; 128D Vektor Eyniləşdirməsi</text>
+      
+      <g transform="translate(90, 68)">
+        <rect width="112" height="20" rx="10" fill="#00a859" fill-opacity="0.25" />
+        <text x="10" y="14" fill="#4ade80" class="font-bold" font-size="11">MATCHED: 99.2%</text>
+      </g>
+      <g transform="translate(210, 68)">
+        <rect width="90" height="20" rx="10" fill="#0284c7" fill-opacity="0.2" />
+        <text x="10" y="14" fill="#38bdf8" class="font-bold" font-size="11">PWA Offline OK</text>
+      </g>
+    </g>
+
+    <!-- Inside Card: 11-Stage Recruitment Pipeline preview -->
+    <g transform="translate(24, 314)">
+      <rect width="432" height="136" rx="14" fill="#091726" stroke="#1a3550" stroke-width="1" />
+      <text x="18" y="26" fill="#cbd5e1" class="font-bold" font-size="13">11 Mərhələli İşə Qəbul Funneli (Live Pipeline)</text>
+      
+      <!-- Stages Graphic -->
+      <g transform="translate(18, 44)">
+        <!-- Step 1 -->
+        <g transform="translate(0, 0)">
+          <text x="0" y="11" fill="#64748b" class="font-medium" font-size="11">Vakansiya</text>
+          <rect y="16" width="70" height="18" rx="4" fill="#1e3a5f" />
+          <text x="16" y="30" fill="#93c5fd" class="font-bold" font-size="11">1,480</text>
+        </g>
+        <!-- Arrow -->
+        <text x="75" y="30" fill="#475569" font-size="12">→</text>
+        
+        <!-- Step 2 -->
+        <g transform="translate(92, 0)">
+          <text x="0" y="11" fill="#64748b" class="font-medium" font-size="11">Skrininq</text>
+          <rect y="16" width="70" height="18" rx="4" fill="#1e40af" />
+          <text x="20" y="30" fill="#bfdbfe" class="font-bold" font-size="11">640</text>
+        </g>
+        <!-- Arrow -->
+        <text x="167" y="30" fill="#475569" font-size="12">→</text>
+
+        <!-- Step 3 -->
+        <g transform="translate(184, 0)">
+          <text x="0" y="11" fill="#64748b" class="font-medium" font-size="11">AI Müsahibə</text>
+          <rect y="16" width="70" height="18" rx="4" fill="#0369a1" />
+          <text x="20" y="30" fill="#7dd3fc" class="font-bold" font-size="11">210</text>
+        </g>
+        <!-- Arrow -->
+        <text x="259" y="30" fill="#475569" font-size="12">→</text>
+
+        <!-- Step 4 -->
+        <g transform="translate(276, 0)">
+          <text x="0" y="11" fill="#64748b" class="font-medium" font-size="11">Job Offer</text>
+          <rect y="16" width="70" height="18" rx="4" fill="#047857" />
+          <text x="24" y="30" fill="#a7f3d0" class="font-bold" font-size="11">48</text>
+        </g>
+        <!-- Arrow -->
+        <text x="351" y="30" fill="#475569" font-size="12">→</text>
+
+        <!-- Step 5 (Hired) -->
+        <g transform="translate(366, 0)">
+          <text x="0" y="11" fill="#00e676" class="font-bold" font-size="11">Qəbul</text>
+          <rect y="16" width="30" height="18" rx="4" fill="#00a859" />
+          <text x="8" y="30" fill="#ffffff" class="font-heavy" font-size="11">36</text>
+        </g>
+      </g>
+
+      <!-- Bottom mini stats bar -->
+      <line x1="18" y1="96" x2="414" y2="96" stroke="#1e293b" stroke-width="1" />
+      <g transform="translate(18, 118)">
+        <text fill="#64748b" class="font-medium" font-size="11.5">
+          Orta çevrilmə: <tspan fill="#34d399" class="font-bold">2.4%</tspan> • Avtomatlaşdırma: <tspan fill="#38bdf8" class="font-bold">88%</tspan> • AR Vergi: <tspan fill="#e2e8f0" class="font-bold">Hesablandı</tspan>
+        </text>
+      </g>
+    </g>
+  </g>
+</svg>`;
+
+async function run() {
+  const publicDir = path.resolve('/app/applet/public');
+  if (!fs.existsSync(publicDir)) {
+    fs.mkdirSync(publicDir, { recursive: true });
+  }
+
+  // 1. Write the clean SVG file
+  const svgPath = path.join(publicDir, 'og-cover.svg');
+  fs.writeFileSync(svgPath, svgContent, 'utf-8');
+  console.log('Saved SVG to:', svgPath);
+
+  // 2. Render to 1200x630 PNG using sharp
+  const pngPath = path.join(publicDir, 'og-cover.png');
+  await sharp(Buffer.from(svgContent))
+    .resize(1200, 630)
+    .png({ quality: 95, compressionLevel: 8 })
+    .toFile(pngPath);
+  console.log('Rendered PNG to:', pngPath);
+
+  // 3. Also render a jobia-cover.png and apple touch / square preview
+  const coverAltPath = path.join(publicDir, 'jobia-cover.png');
+  fs.copyFileSync(pngPath, coverAltPath);
+
+  console.log('All cover images generated successfully!');
+}
+
+run().catch((err) => {
+  console.error('Generation failed:', err);
+  process.exit(1);
+});

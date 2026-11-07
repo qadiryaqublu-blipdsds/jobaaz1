@@ -1500,7 +1500,8 @@ export type BusinessTabType =
   | 'talent-pool'
   | 'smart-cv-pool'
   | 'vacation-calculator'
-  | 'smart-forms';
+  | 'smart-forms'
+  | 'face-attendance';
 
 export type SmartCandidatePipelineStage =
   | 'sourced'

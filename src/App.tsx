@@ -105,7 +105,7 @@ import { Footer } from './components/Footer';
 import { HelpContactModal } from './components/common/HelpContactModal';
 import { StatusErrorView } from './components/common/StatusErrorView';
 import { LegalInfoModal, LegalModalType } from './components/common/LegalInfoModal';
-import { MobileFrozenBottomBar } from './components/MobileFrozenBottomBar';
+import { SystemDockBottomBar, MobileFrozenBottomBar } from './components/SystemDockBottomBar';
 import { ModalBottomLogo } from './components/ModalBottomLogo';
 import { GuestJobPostingModal } from './components/common/GuestJobPostingModal';
 import { OpenCVManagerModal } from './components/candidate/OpenCVManagerModal';
@@ -232,16 +232,14 @@ export default function App() {
     });
   };
 
-  // Auto-launch intro tour for first-time visitors
+  // Scroll main container to top smoothly/instantly on tab or role change
   useEffect(() => {
-    const hasCompletedTour = localStorage.getItem('jobia_intro_tour_completed');
-    if (!hasCompletedTour) {
-      const timer = setTimeout(() => {
-        setIsIntroTourOpen(true);
-      }, 700);
-      return () => clearTimeout(timer);
+    const mainScroll = document.getElementById('main-content-scroll');
+    if (mainScroll) {
+      mainScroll.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
     }
-  }, []);
+    window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
+  }, [currentRole, candidateTab, businessTab, isPricingViewOpen]);
 
   // Authentication State
   const [currentUser, setCurrentUser] = useState<User | null>(() => getCurrentUser());
@@ -791,8 +789,8 @@ export default function App() {
         }
 
         if (tabParam) {
-          const candidateTabs = ['jobs', 'nearby-map', 'my-applications', 'salary-trends', 'salary-calculator', 'vacation-calculator', 'calculia', 'google-chat', 'cv-analyzer', 'cv-creator', 'network'];
-          const businessTabs = ['vacancies', 'applicants', 'interviews', 'offers', 'analytics', 'templates', 'company-profile', 'talent-pool', 'smart-cv-pool', 'smart-forms', 'vacation-calculator'];
+          const candidateTabs = ['jobs', 'nearby-map', 'my-applications', 'salary-trends', 'salary-calculator', 'vacation-calculator', 'calculia', 'google-chat', 'cv-analyzer', 'cv-creator', 'network', 'practice-interview', 'open-cv', 'smart-forms'];
+          const businessTabs = ['vacancies', 'applicants', 'interviews', 'offers', 'analytics', 'templates', 'company-profile', 'talent-pool', 'smart-cv-pool', 'smart-forms', 'vacation-calculator', 'face-attendance', 'team-users', 'open-cv-catalog', 'email-history'];
 
           if (candidateTabs.includes(tabParam)) {
             setCandidateTab(tabParam as any);
@@ -996,12 +994,6 @@ export default function App() {
     setAuthSession(getCurrentSession());
     if (user) {
       setCurrentSubscription(getUserSubscription(user.id, user.role));
-      // Strict role isolation: candidate cannot view business/admin, business cannot view candidate/admin
-      if (user.role === 'candidate' && currentRole !== 'candidate') {
-        setCurrentRole('candidate');
-      } else if (user.role === 'business' && currentRole !== 'business') {
-        setCurrentRole('business');
-      }
     } else {
       setCurrentSubscription(getUserSubscription(undefined, currentRole));
     }
@@ -1036,7 +1028,7 @@ export default function App() {
     }
   }, [currentUser, companies]);
 
-  // Safe role change with strict RBAC enforcement
+  // Safe role change with admin RBAC enforcement & free Candidate/Employer navigation
   const handleRoleChangeWithRBAC = (newRole: UserRole) => {
     setIsPricingViewOpen(false);
     setUrlStatusError(null);
@@ -1049,16 +1041,6 @@ export default function App() {
       }
     }
 
-    if (currentUser) {
-      if (currentUser.role === 'candidate' && newRole !== 'candidate') {
-        showToast('⚠️ Namizəd hesabı ilə yalnız Namizəd bölməsini istifadə edə bilərsiniz.');
-        return;
-      }
-      if (currentUser.role === 'business' && newRole !== 'business') {
-        showToast('⚠️ İşəgötürən hesabı ilə yalnız İşəgötürən bölməsini istifadə edə bilərsiniz.');
-        return;
-      }
-    }
     setCurrentRole(newRole);
   };
 
@@ -2129,16 +2111,6 @@ export default function App() {
             onRequireAuth={() => handleOpenAuth('login', currentRole)}
           />
         )}
-        {/* Mobile Frozen Bottom Bar */}
-        <MobileFrozenBottomBar
-          currentUser={currentUser}
-          currentSubscription={currentSubscription}
-          currentRole={currentRole}
-          onOpenPricing={() => setIsPricingViewOpen(true)}
-          onOpenAuthModal={handleOpenAuth}
-          onOpenProfileModal={handleOpenProfileModal}
-          onLogout={handleLogout}
-        />
 
         {/* User Profile & Email Notification Preferences Modal */}
         {isProfileModalOpen && currentUser && (
@@ -2266,7 +2238,7 @@ export default function App() {
         {/* Scrollable Main Area (Body + Footer scroll smoothly under frozen header & sidebar) */}
         <div id="main-content-scroll" className="flex-1 overflow-y-auto min-h-0 w-full flex flex-col scroll-smooth">
           {/* Main App Container */}
-          <main className="flex-1 w-full max-w-full px-3 sm:px-4 md:px-5 lg:px-6 xl:px-8 py-3.5 sm:py-5 lg:py-6 pb-28 md:pb-8">
+          <main className="flex-1 w-full max-w-full px-3 sm:px-4 md:px-5 lg:px-6 xl:px-8 py-3.5 sm:py-5 lg:py-6 pb-28 md:pb-24">
             {/* Unverified Account Security Alert Banner */}
             {currentUser && !currentUser.emailVerified && !isVerifBannerDismissed && (
               <div className="mb-4 p-3 sm:p-3.5 rounded-xl bg-amber-50/90 border border-amber-200/90 shadow-2xs animate-fadeIn relative">
@@ -3021,11 +2993,22 @@ export default function App() {
         }}
       />
 
-      {/* Mobile Frozen Bottom Bar (VIP Planlar / PRO & Daxil ol / Qeydiyyat) */}
-      <MobileFrozenBottomBar
+      {/* Unified System Tools Fixed Bottom Navigation Bar (Mobile & Desktop) */}
+      <SystemDockBottomBar
         currentUser={currentUser}
         currentSubscription={currentSubscription}
         currentRole={currentRole}
+        onRoleChange={handleRoleChangeWithRBAC}
+        candidateTab={candidateTab}
+        onCandidateTabChange={(tab) => {
+          setIsPricingViewOpen(false);
+          setCandidateTab(tab);
+        }}
+        businessTab={businessTab}
+        onBusinessTabChange={(tab) => {
+          setIsPricingViewOpen(false);
+          setBusinessTab(tab);
+        }}
         onOpenPricing={() => setIsPricingViewOpen(true)}
         onOpenAuthModal={handleOpenAuth}
         onOpenProfileModal={handleOpenProfileModal}

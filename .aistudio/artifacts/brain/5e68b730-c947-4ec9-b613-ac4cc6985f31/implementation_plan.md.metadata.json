@@ -1,6 +1,6 @@
 {
-  "summary": "Implementation plan for the Professional Summary report component inside DeepCVAnalyzerView with structural checklist, keyword comparison, actionable rewrites, and copyable drafts.",
-  "updatedAt": "2026-10-20T07:52:07.438569725Z",
-  "requestFeedback": true,
-  "userFacing": true
+  "summary":  "Jobia.az prototipinə (şəkillər və HTML strukturu əsasında) uyğunlaşdırma üzrə tam tətbiq planı:\n1. Üz Qabığı və Başlıq (Header & Hero) Redizaynı (mərkəzi kapsul menyu, \"Doğru iş. Yeni başlanğıc.\" başlığı, interaktiv konstellasiya radarı və kəşf kartı).\n2. Daimi Alt Alətlər Zolağı (Sub-bar) inteqrasiyası (Üz tanıma, Maaş kalkulyatoru, Məzuniyyət, HR analitika, Xəritə).\n3. Yeni Təmiz Ağ-Zümrüd Yaşılı Korporativ Footer (nəhəng 'JOBIA' su nişanı, e-poçt abunə kapsulu və 4 sütunlu struktur).\n4. Daxili Bölmələrin (Vakansiya kartları, filtrlər, CV analizi, modallar) vahid Jobia dizayn standartına köçürülməsi.\n5. BUSINESS_PLAN.md yenilənməsi və verifikasiya.",
+  "updatedAt":  "2026-10-31T08:21:09.078200415Z",
+  "requestFeedback":  true,
+  "userFacing":  true
 }

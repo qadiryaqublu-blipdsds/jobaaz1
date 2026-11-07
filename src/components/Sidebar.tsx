@@ -37,7 +37,8 @@ import {
   FileCheck,
   Calendar,
   Mic,
-  Globe
+  Globe,
+  Camera
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -206,7 +207,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     onCloseMobile();
   };
 
-  // Primary Core Navigation for Candidates
+  // Primary Core Navigation for Candidates (5 Core Open Sections)
   const primaryNavItems = [
     {
       id: 'jobs' as const,
@@ -216,17 +217,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
       color: 'blue',
     },
     {
-      id: 'practice-interview' as const,
-      label: language === 'en' ? 'Practice Interview' : language === 'ru' ? 'Тренировка интервью' : 'AI Müsahibə Məşqi',
-      icon: Mic,
-      badge: 'AI Səs',
-      badgeClass: 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-black',
-      color: 'purple',
-    },
-    {
-      id: 'network' as const,
-      label: language === 'en' ? 'Network' : language === 'ru' ? 'Сеть' : 'Peşəkar Şəbəkə',
-      icon: Users,
+      id: 'open-cv' as const,
+      label: language === 'en' ? 'Public CV Catalog' : language === 'ru' ? 'Открытые CV' : 'Açıq CV Kataloqu',
+      icon: Globe,
       badge: null,
       color: 'blue',
     },
@@ -249,28 +242,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
       label: dict.nav.myApplications,
       icon: CheckCircle2,
       badge: applicationsCount > 0 ? applicationsCount : null,
-      badgeClass: 'bg-blue-600 text-white font-bold',
-      color: 'blue',
-    },
-    {
-      id: 'smart-forms' as const,
-      label: language === 'en' ? 'Smart Forms & E-Sign' : language === 'ru' ? 'Формы и Э-Подпись' : 'Ağıllı Formalar & E-İmza',
-      icon: FileCheck,
-      badge: 'AI',
-      badgeClass: 'bg-emerald-600 text-white font-bold',
-      color: 'blue',
-    },
-    {
-      id: 'open-cv' as const,
-      label: language === 'en' ? 'Public CV Catalog' : language === 'ru' ? 'Открытые CV' : 'Açıq CV Kataloqu',
-      icon: Globe,
-      badge: 'Yeni',
-      badgeClass: 'bg-emerald-600 text-white font-bold',
+      badgeClass: 'bg-blue-600 text-white font-bold tabular-nums',
       color: 'blue',
     },
   ];
 
-  // Secondary Tools Navigation for Candidates (Ayrı-ayrı Maaşını hesabla və Məzuniyyətini hesabla)
+  // Secondary Tools Navigation for Candidates (Grouped Career & Calculation Tools)
   const toolsNavItems = [
     {
       id: 'salary-calculator' as const,
@@ -301,6 +278,39 @@ export const Sidebar: React.FC<SidebarProps> = ({
       color: 'blue',
     },
     {
+      id: 'practice-interview' as const,
+      label: language === 'en' ? 'Practice Interview' : language === 'ru' ? 'Тренировка интервью' : 'AI Müsahibə Məşqi',
+      icon: Mic,
+      badge: null,
+      color: 'blue',
+    },
+    {
+      id: 'network' as const,
+      label: language === 'en' ? 'Network' : language === 'ru' ? 'Сеть' : 'Peşəkar Şəbəkə',
+      icon: Users,
+      badge: null,
+      color: 'blue',
+    },
+    {
+      id: 'smart-forms' as const,
+      label: language === 'en' ? 'Smart Forms & E-Sign' : language === 'ru' ? 'Формы и Э-Подпись' : 'Ağıllı Formalar & E-İmza',
+      icon: FileCheck,
+      badge: null,
+      color: 'blue',
+    },
+    {
+      id: 'face-attendance-shortcut' as any,
+      label: language === 'en' ? 'Face Attendance PWA' : language === 'ru' ? 'Биометрия и Табель' : 'Üz Davamiyyəti & Tabel',
+      icon: Camera,
+      badge: null,
+      color: 'blue',
+      onClick: () => {
+        onRoleChange('business');
+        if (onBusinessTabChange) onBusinessTabChange('face-attendance');
+        onCloseMobile();
+      }
+    },
+    {
       id: 'job-alerts' as any,
       label: language === 'en' ? 'Job Alerts' : language === 'ru' ? 'Уведомления' : 'İzləmə & Bildirişlər',
       icon: BellRing,
@@ -311,18 +321,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
           onOpenJobAlerts();
           onCloseMobile();
         }
-      }
-    },
-    {
-      id: 'talent-pool' as any,
-      label: language === 'en' ? 'Candidate Pool' : language === 'ru' ? 'База кадров' : 'Kadr Bankı',
-      icon: UserCheck,
-      badge: 'PRO',
-      color: 'blue',
-      onClick: () => {
-        onRoleChange('business');
-        if (onBusinessTabChange) onBusinessTabChange('talent-pool');
-        onCloseMobile();
       }
     },
     {
@@ -474,56 +472,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
               </label>
             )}
             
-            {/* If user is logged in as Candidate */}
-            {currentUser?.role === 'candidate' ? (
-              isCollapsed ? (
-                <div className="flex flex-col items-center">
-                  <div 
-                    className="w-10 h-10 flex items-center justify-center rounded-xl bg-blue-600 text-white shadow-xs"
-                    title={language === 'en' ? 'Candidate Portal' : language === 'ru' ? 'Портал соискателя' : 'Namizəd Portalı'}
-                  >
-                    <UserIcon className="w-5 h-5" />
-                  </div>
-                </div>
-              ) : (
-                <div className="flex items-center gap-2.5 p-2 bg-blue-50/90 border border-blue-200/80 rounded-xl shadow-2xs">
-                  <div className="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center shrink-0">
-                    <UserIcon className="w-4 h-4" />
-                  </div>
-                  <div className="flex flex-col min-w-0">
-                    <span className="text-[11px] font-black text-blue-950 truncate">
-                      {language === 'en' ? 'Candidate Portal' : language === 'ru' ? 'Портал соискателя' : 'Namizəd Portalı'}
-                    </span>
-                    <span className="text-[9px] text-blue-700 font-semibold truncate">{currentUser.fullName || currentUser.email}</span>
-                  </div>
-                </div>
-              )
-            ) : currentUser?.role === 'business' ? (
-              /* If user is logged in as Employer (Business) */
-              isCollapsed ? (
-                <div className="flex flex-col items-center">
-                  <div 
-                    className="w-10 h-10 flex items-center justify-center rounded-xl bg-slate-900 text-white shadow-xs"
-                    title={language === 'en' ? 'Employer Dashboard' : language === 'ru' ? 'Панель работодателя' : 'İşəgötürən Paneli'}
-                  >
-                    <Building2 className="w-5 h-5 text-blue-400" />
-                  </div>
-                </div>
-              ) : (
-                <div className="flex items-center gap-2.5 p-2 bg-slate-900 border border-slate-800 rounded-xl text-white shadow-2xs">
-                  <div className="w-8 h-8 rounded-lg bg-white/15 text-blue-400 flex items-center justify-center shrink-0">
-                    <Building2 className="w-4 h-4" />
-                  </div>
-                  <div className="flex flex-col min-w-0">
-                    <span className="text-[11px] font-black text-white truncate">
-                      {language === 'en' ? 'Employer Dashboard' : language === 'ru' ? 'Панель работодателя' : 'İşəgötürən Paneli'}
-                    </span>
-                    <span className="text-[9px] text-slate-300 font-semibold truncate">{currentUser.companyName || currentUser.fullName}</span>
-                  </div>
-                </div>
-              )
-            ) : currentUser?.role === 'admin' ? (
-              /* If user is logged in as Admin: allow switching to test/moderate all views */
+            {/* Role Switcher for all users (Admin gets 3 tabs, others get Candidate & Employer) */}
+            {currentUser?.role === 'admin' ? (
               isCollapsed ? (
                 <div className="flex flex-col gap-1.5 items-center">
                   <button
@@ -612,7 +562,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 </div>
               )
             ) : (
-              /* Guest / Visitor (Not logged in): Allow previewing Candidate vs Employer */
               isCollapsed ? (
                 <div className="flex flex-col gap-1.5 items-center">
                   <button
@@ -956,6 +905,22 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   </button>
 
                   <button
+                    id="sidebar-collapsed-business-face-attendance"
+                    onClick={() => {
+                      if (onBusinessTabChange) onBusinessTabChange('face-attendance');
+                      onCloseMobile();
+                    }}
+                    className={`w-10 h-10 flex items-center justify-center rounded-xl transition-all cursor-pointer ${
+                      businessTab === 'face-attendance'
+                        ? 'bg-blue-600 text-white shadow-xs'
+                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                    }`}
+                    title="Üz Davamiyyəti & Tabel (Face Attendance)"
+                  >
+                    <Camera className="w-5 h-5 text-blue-500" />
+                  </button>
+
+                  <button
                     onClick={() => {
                       if (onBusinessTabChange) onBusinessTabChange('vacancies');
                       onCloseMobile();
@@ -1271,6 +1236,27 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       <span className="truncate">{language === 'en' ? 'Open CV Catalog' : language === 'ru' ? 'Каталог резюме' : 'Açıq CV Kataloqu'}</span>
                     </div>
                     <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800">SEO</span>
+                  </button>
+
+                  <button
+                    id="sidebar-business-tab-face-attendance"
+                    onClick={() => {
+                      if (onBusinessTabChange) onBusinessTabChange('face-attendance');
+                      onCloseMobile();
+                    }}
+                    className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs sm:text-[13px] font-bold transition-all cursor-pointer ${
+                      businessTab === 'face-attendance'
+                        ? 'bg-blue-600 text-white shadow-xs'
+                        : 'text-slate-700 hover:text-slate-900 hover:bg-slate-100'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className={`p-1.5 rounded-lg shrink-0 ${businessTab === 'face-attendance' ? 'bg-white/20 text-white' : 'bg-blue-50 text-blue-600'}`}>
+                        <Camera className="w-3.5 h-3.5" />
+                      </div>
+                      <span className="truncate">Üz Davamiyyəti & Tabel</span>
+                    </div>
+                    <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-blue-100 text-blue-700">PWA AI</span>
                   </button>
 
                   <div className="pt-2">

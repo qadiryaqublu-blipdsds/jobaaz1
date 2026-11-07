@@ -25,6 +25,7 @@ import { InterviewSchedulerModal } from './interviews/InterviewSchedulerModal';
 import { EmailHistoryTab } from './interviews/EmailHistoryTab';
 import { CompanyTeamManagementTab } from './CompanyTeamManagementTab';
 import { OpenCVCatalogView } from '../common/OpenCVCatalogView';
+import { FaceAttendanceMain } from '../face-attendance/FaceAttendanceMain';
 import { ModalPortal } from '../common/ModalPortal';
 import { useLanguage } from '../../context/LanguageContext';
 import {
@@ -145,8 +146,22 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
   const [activeTab, setActiveTab] = useState<BusinessTabType>(
     businessTab || 'vacancies'
   );
-  const [gateViewTab, setGateViewTab] = useState<'portal' | 'talent-pool' | 'smart-cv-pool'>(
-    businessTab === 'talent-pool' ? 'talent-pool' : businessTab === 'smart-cv-pool' ? 'smart-cv-pool' : 'portal'
+  const [gateViewTab, setGateViewTab] = useState<
+    'portal' | 'talent-pool' | 'smart-cv-pool' | 'face-attendance' | 'open-cv-catalog' | 'smart-forms' | 'vacation-calculator'
+  >(
+    businessTab === 'talent-pool'
+      ? 'talent-pool'
+      : businessTab === 'smart-cv-pool'
+      ? 'smart-cv-pool'
+      : businessTab === 'face-attendance'
+      ? 'face-attendance'
+      : businessTab === 'open-cv-catalog'
+      ? 'open-cv-catalog'
+      : businessTab === 'smart-forms'
+      ? 'smart-forms'
+      : businessTab === 'vacation-calculator'
+      ? 'vacation-calculator'
+      : 'portal'
   );
 
   // Sync external businessTab changes
@@ -157,6 +172,16 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
         setGateViewTab('talent-pool');
       } else if (businessTab === 'smart-cv-pool') {
         setGateViewTab('smart-cv-pool');
+      } else if (businessTab === 'face-attendance') {
+        setGateViewTab('face-attendance');
+      } else if (businessTab === 'open-cv-catalog') {
+        setGateViewTab('open-cv-catalog');
+      } else if (businessTab === 'smart-forms') {
+        setGateViewTab('smart-forms');
+      } else if (businessTab === 'vacation-calculator') {
+        setGateViewTab('vacation-calculator');
+      } else {
+        setGateViewTab('portal');
       }
     }
   }, [businessTab]);
@@ -344,30 +369,61 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
   /* ========================================================================= */
   /* 1. GATE VIEW: WHEN NOT LOGGED IN AS EMPLOYER (ZERO MOCK COMPANIES)       */
   /* ========================================================================= */
-  if (!currentUser || currentUser.role !== 'business') {
+  if (!currentUser || (currentUser.role !== 'business' && currentUser.role !== 'admin')) {
     return (
       <div className="space-y-6 py-4 sm:py-6 animate-fade-in">
         {/* Navigation & Mode Switcher for Employers */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-3 sm:p-4 rounded-2xl border border-slate-200 shadow-2xs">
-          <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 bg-white p-3 sm:p-4 rounded-2xl border border-slate-200 shadow-2xs">
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 lg:pb-0 scrollbar-none">
+            <button
+              id="gate-view-tab-portal"
+              onClick={() => {
+                setGateViewTab('portal');
+                onBusinessTabChange?.('vacancies');
+              }}
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-2 whitespace-nowrap transition-all cursor-pointer ${
+                gateViewTab === 'portal'
+                  ? 'bg-blue-600 text-white shadow-xs'
+                  : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
+              }`}
+            >
+              <Building2 className="w-4 h-4" />
+              <span>Şirkət Kabineti</span>
+            </button>
+
+            <button
+              id="gate-view-tab-face-attendance"
+              onClick={() => {
+                setGateViewTab('face-attendance');
+                onBusinessTabChange?.('face-attendance');
+              }}
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-2 whitespace-nowrap transition-all cursor-pointer ${
+                gateViewTab === 'face-attendance'
+                  ? 'bg-blue-600 text-white shadow-xs'
+                  : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
+              }`}
+            >
+              <Camera className="w-4 h-4 text-blue-500" />
+              <span>Üz Davamiyyəti & Tabel</span>
+              <span className="px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-blue-100 text-blue-700">
+                AI PWA
+              </span>
+            </button>
+
             <button
               id="gate-view-tab-talent-pool"
               onClick={() => {
                 setGateViewTab('talent-pool');
                 onBusinessTabChange?.('talent-pool');
               }}
-              className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 whitespace-nowrap transition-all cursor-pointer ${
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-2 whitespace-nowrap transition-all cursor-pointer ${
                 gateViewTab === 'talent-pool'
-                  ? 'bg-emerald-600 text-white shadow-sm'
+                  ? 'bg-blue-600 text-white shadow-xs'
                   : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
               }`}
             >
-              <UserCheck className="w-4 h-4 text-emerald-200" />
+              <UserCheck className="w-4 h-4 text-emerald-500" />
               <span>Kadr Bankı</span>
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500 text-white flex items-center gap-1">
-                <Lock className="w-2.5 h-2.5" />
-                Ödənişli
-              </span>
             </button>
 
             <button
@@ -376,33 +432,62 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
                 setGateViewTab('smart-cv-pool');
                 onBusinessTabChange?.('smart-cv-pool');
               }}
-              className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 whitespace-nowrap transition-all cursor-pointer ${
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-2 whitespace-nowrap transition-all cursor-pointer ${
                 gateViewTab === 'smart-cv-pool'
-                  ? 'bg-blue-600 text-white shadow-sm'
-                  : 'text-blue-700 bg-blue-50 hover:bg-blue-100'
-              }`}
-            >
-              <Sparkles className="w-4 h-4 text-amber-400" />
-              <span>Ağıllı CV Baza & Skorinq</span>
-              <span className="px-1.5 py-0.2 rounded-full text-[9px] font-black bg-blue-600 text-white">
-                Yeni
-              </span>
-            </button>
-
-            <button
-              id="gate-view-tab-portal"
-              onClick={() => {
-                setGateViewTab('portal');
-                onBusinessTabChange?.('vacancies');
-              }}
-              className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 whitespace-nowrap transition-all cursor-pointer ${
-                gateViewTab === 'portal'
-                  ? 'bg-blue-600 text-white shadow-sm'
+                  ? 'bg-blue-600 text-white shadow-xs'
                   : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
               }`}
             >
-              <Building2 className="w-4 h-4" />
-              <span>İşəgötürən Şəxsi Kabineti & Giriş</span>
+              <Sparkles className="w-4 h-4 text-amber-500" />
+              <span>Ağıllı CV Baza</span>
+            </button>
+
+            <button
+              id="gate-view-tab-open-cv-catalog"
+              onClick={() => {
+                setGateViewTab('open-cv-catalog');
+                onBusinessTabChange?.('open-cv-catalog');
+              }}
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-2 whitespace-nowrap transition-all cursor-pointer ${
+                gateViewTab === 'open-cv-catalog'
+                  ? 'bg-blue-600 text-white shadow-xs'
+                  : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
+              }`}
+            >
+              <Globe className="w-4 h-4 text-blue-500" />
+              <span>Açıq CV Kataloqu</span>
+            </button>
+
+            <button
+              id="gate-view-tab-smart-forms"
+              onClick={() => {
+                setGateViewTab('smart-forms');
+                onBusinessTabChange?.('smart-forms');
+              }}
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-2 whitespace-nowrap transition-all cursor-pointer ${
+                gateViewTab === 'smart-forms'
+                  ? 'bg-blue-600 text-white shadow-xs'
+                  : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
+              }`}
+            >
+              <FileText className="w-4 h-4 text-indigo-500" />
+              <span>Ağıllı Formalar</span>
+            </button>
+
+            <button
+              id="gate-view-tab-vacation-calculator"
+              onClick={() => {
+                setGateViewTab('vacation-calculator');
+                onBusinessTabChange?.('vacation-calculator');
+              }}
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-2 whitespace-nowrap transition-all cursor-pointer ${
+                gateViewTab === 'vacation-calculator'
+                  ? 'bg-blue-600 text-white shadow-xs'
+                  : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
+              }`}
+            >
+              <Palmtree className="w-4 h-4 text-emerald-600" />
+              <span>Məzuniyyət Kalkulyatoru</span>
             </button>
           </div>
 
@@ -424,7 +509,15 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
           </div>
         </div>
 
-        {gateViewTab === 'smart-cv-pool' ? (
+        {gateViewTab === 'face-attendance' ? (
+          <div className="space-y-4">
+            <FaceAttendanceMain
+              initialMode="admin"
+              supervisorName={currentUser?.fullName || 'Növbə Müdiri / HR'}
+              supervisorId={currentUser?.id || 'sup-guest'}
+            />
+          </div>
+        ) : gateViewTab === 'smart-cv-pool' ? (
           <div className="space-y-4">
             <SmartCVPoolView
               activeCompany={activeCompany}
@@ -435,10 +528,31 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
         ) : gateViewTab === 'talent-pool' ? (
           <div className="space-y-4">
             <CandidateTalentPool
-              currentUser={null}
+              currentUser={currentUser}
               activeCompany={activeCompany}
               onOpenPricingModal={onOpenPricingModal}
               onRequireAuth={() => onOpenAuthModal?.('login', 'business')}
+            />
+          </div>
+        ) : gateViewTab === 'open-cv-catalog' ? (
+          <div className="space-y-4">
+            <OpenCVCatalogView />
+          </div>
+        ) : gateViewTab === 'smart-forms' ? (
+          <div className="space-y-4">
+            <SmartFormsView
+              currentUser={currentUser}
+              activeCompany={activeCompany}
+              onOpenAuthModal={() => onOpenAuthModal?.('login', 'business')}
+            />
+          </div>
+        ) : gateViewTab === 'vacation-calculator' ? (
+          <div className="space-y-4">
+            <VacationCalculatorView
+              currentUser={currentUser}
+              companies={companies}
+              activeCompany={activeCompany}
+              onOpenAuthModal={onOpenAuthModal}
             />
           </div>
         ) : (
@@ -699,200 +813,206 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="flex items-center gap-1.5 bg-white p-1.5 rounded-xl border border-slate-200 text-xs font-medium w-full overflow-x-auto scrollbar-none shadow-2xs">
-        <button
-          onClick={() => handleTabSwitch('vacancies')}
-          className={`px-3.5 py-2 rounded-lg whitespace-nowrap transition-all cursor-pointer font-bold ${
-            activeTab === 'vacancies' ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-          }`}
-        >
-          Vakansiyalarım ({companyJobs.length})
-        </button>
+      {/* Tabs: Jobia.az Grouped Employer Navigation */}
+      <div className="bg-white p-2 rounded-2xl border border-slate-200 shadow-2xs space-y-2">
+        {/* Primary Open Modules */}
+        <div className="flex items-center gap-1.5 text-xs font-medium w-full overflow-x-auto scrollbar-none pb-0.5">
+          <button
+            onClick={() => handleTabSwitch('vacancies')}
+            className={`px-3.5 py-2 rounded-xl whitespace-nowrap transition-all flex items-center gap-1.5 cursor-pointer font-bold tabular-nums ${
+              activeTab === 'vacancies' ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+            }`}
+          >
+            <Briefcase className="w-3.5 h-3.5" />
+            <span>Vakansiyalarım ({companyJobs.length})</span>
+          </button>
 
-        <button
-          onClick={() => handleTabSwitch('applicants')}
-          className={`px-3.5 py-2 rounded-lg whitespace-nowrap transition-all cursor-pointer font-bold ${
-            activeTab === 'applicants' ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-          }`}
-        >
-          Gələn Müraciətlər ({companyApplications.length})
-        </button>
+          <button
+            onClick={() => handleTabSwitch('applicants')}
+            className={`px-3.5 py-2 rounded-xl whitespace-nowrap transition-all flex items-center gap-1.5 cursor-pointer font-bold tabular-nums ${
+              activeTab === 'applicants' ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+            }`}
+          >
+            <Users className="w-3.5 h-3.5" />
+            <span>Gələn Müraciətlər ({companyApplications.length})</span>
+          </button>
 
-        <button
-          id="btn-business-tab-talent-pool"
-          onClick={() => handleTabSwitch('talent-pool')}
-          className={`px-3.5 py-2 rounded-lg whitespace-nowrap transition-all flex items-center gap-1.5 cursor-pointer font-bold ${
-            activeTab === 'talent-pool'
-              ? 'bg-emerald-600 text-white shadow-xs'
-              : 'text-emerald-800 bg-emerald-50 hover:bg-emerald-100'
-          }`}
-        >
-          <UserCheck className="w-3.5 h-3.5" />
-          <span>Kadr Bankı</span>
-        </button>
+          <button
+            id="btn-business-tab-face-attendance"
+            onClick={() => handleTabSwitch('face-attendance')}
+            className={`px-3.5 py-2 rounded-xl whitespace-nowrap transition-all flex items-center gap-1.5 cursor-pointer font-bold ${
+              activeTab === 'face-attendance'
+                ? 'bg-blue-600 text-white shadow-xs'
+                : 'text-slate-700 bg-blue-50/60 hover:bg-blue-100/80'
+            }`}
+            title="Üz Tanıma ilə Davamiyyət (Face Attendance) və Dövlət Tabel Standartı"
+          >
+            <Camera className={`w-3.5 h-3.5 ${activeTab === 'face-attendance' ? 'text-white' : 'text-blue-600'}`} />
+            <span>Üz Davamiyyəti & Tabel</span>
+            <span className={`px-1.5 py-0.5 rounded-md text-[9px] font-bold ${
+              activeTab === 'face-attendance' ? 'bg-white/20 text-white' : 'bg-blue-600 text-white'
+            }`}>
+              AI PWA
+            </span>
+          </button>
 
-        <button
-          id="btn-business-tab-team-users"
-          onClick={() => handleTabSwitch('team-users')}
-          className={`px-3.5 py-2 rounded-lg whitespace-nowrap transition-all flex items-center gap-1.5 cursor-pointer font-bold ${
-            activeTab === 'team-users'
-              ? 'bg-purple-600 text-white shadow-xs'
-              : 'text-purple-800 bg-purple-50 hover:bg-purple-100'
-          }`}
-          title="Bir şirkət daxilində çoxsaylı istifadəçilər, rollar (HR Direktoru, Menecer, Recruiter) və fəaliyyət audit jurnalı"
-        >
-          <Users className="w-3.5 h-3.5" />
-          <span>Komanda & Rollar</span>
-          <span className="px-1.5 py-0.2 rounded-full text-[9px] font-black bg-purple-600 text-white">
-            RBAC
+          <button
+            id="btn-business-tab-talent-pool"
+            onClick={() => handleTabSwitch('talent-pool')}
+            className={`px-3.5 py-2 rounded-xl whitespace-nowrap transition-all flex items-center gap-1.5 cursor-pointer font-bold ${
+              activeTab === 'talent-pool'
+                ? 'bg-blue-600 text-white shadow-xs'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+            }`}
+          >
+            <UserCheck className="w-3.5 h-3.5" />
+            <span>Kadr Bankı</span>
+          </button>
+
+          <button
+            onClick={() => handleTabSwitch('offers')}
+            className={`px-3.5 py-2 rounded-xl whitespace-nowrap transition-all flex items-center gap-1.5 cursor-pointer font-bold tabular-nums ${
+              activeTab === 'offers' ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+            }`}
+          >
+            <Award className="w-3.5 h-3.5" />
+            <span>İş Təklifləri ({companyOffers.length})</span>
+          </button>
+
+          <button
+            onClick={() => handleTabSwitch('analytics')}
+            className={`px-3.5 py-2 rounded-xl whitespace-nowrap transition-all flex items-center gap-1.5 cursor-pointer font-bold ${
+              activeTab === 'analytics' ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+            }`}
+          >
+            <BarChart3 className="w-3.5 h-3.5" />
+            <span>Analitika</span>
+          </button>
+
+          <button
+            onClick={() => handleTabSwitch('company-profile')}
+            className={`px-3.5 py-2 rounded-xl whitespace-nowrap transition-colors cursor-pointer font-bold ${
+              activeTab === 'company-profile' ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+            }`}
+          >
+            Müəssisə Profili
+          </button>
+
+          <button
+            onClick={() => setIsCostCalculatorModalOpen(true)}
+            className="px-3.5 py-1.5 rounded-xl whitespace-nowrap transition-colors text-emerald-700 bg-emerald-50 hover:bg-emerald-100 font-bold flex items-center gap-1.5 cursor-pointer ml-auto"
+            title="AR 2026 Vergi və İşəgötürən Xərc Simulyatoru"
+          >
+            <Calculator className="w-3.5 h-3.5 text-emerald-600" />
+            <span>Maaş & Vergi</span>
+          </button>
+        </div>
+
+        {/* Secondary HR Tools Row (Clean Unified Strip) */}
+        <div className="flex items-center gap-1.5 pt-1.5 border-t border-slate-100 text-[11px] font-medium w-full overflow-x-auto scrollbar-none">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-2 shrink-0">
+            HR Alətlər:
           </span>
-        </button>
 
-        <button
-          id="btn-business-tab-open-cv-catalog"
-          onClick={() => handleTabSwitch('open-cv-catalog')}
-          className={`px-3.5 py-2 rounded-lg whitespace-nowrap transition-all flex items-center gap-1.5 cursor-pointer font-bold ${
-            activeTab === 'open-cv-catalog'
-              ? 'bg-blue-600 text-white shadow-xs'
-              : 'text-blue-800 bg-blue-50 hover:bg-blue-100'
-          }`}
-          title="Google və internetdə yayımlanmış təsdiqli Açıq CV Kataloqu"
-        >
-          <Globe className="w-3.5 h-3.5" />
-          <span>Açıq CV Kataloqu</span>
-          <span className="px-1.5 py-0.2 rounded-full text-[9px] font-black bg-blue-600 text-white">
-            SEO
-          </span>
-        </button>
+          <button
+            id="btn-business-tab-smart-cv-pool"
+            onClick={() => handleTabSwitch('smart-cv-pool')}
+            className={`px-2.5 py-1.5 rounded-lg whitespace-nowrap transition-all flex items-center gap-1.5 cursor-pointer font-semibold ${
+              activeTab === 'smart-cv-pool'
+                ? 'bg-slate-900 text-white'
+                : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+            }`}
+          >
+            <Sparkles className="w-3 h-3 text-amber-500" />
+            <span>Ağıllı CV Baza</span>
+          </button>
 
-        <button
-          id="btn-business-tab-smart-cv-pool"
-          onClick={() => handleTabSwitch('smart-cv-pool')}
-          className={`px-3.5 py-2 rounded-lg whitespace-nowrap transition-all flex items-center gap-1.5 cursor-pointer font-bold ${
-            activeTab === 'smart-cv-pool'
-              ? 'bg-blue-600 text-white shadow-xs'
-              : 'text-blue-800 bg-blue-50/90 hover:bg-blue-100'
-          }`}
-          title="Toplu və tək CV idxalı, vəzifələr üzrə uyğunluq dərəcəsi və biznes rekrutinq həlləri"
-        >
-          <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-          <span>Ağıllı CV Baza & Skorinq</span>
-          <span className="px-1.5 py-0.2 rounded-full text-[9px] font-black bg-blue-600 text-white">
-            Yeni
-          </span>
-        </button>
+          <button
+            id="btn-business-tab-open-cv-catalog"
+            onClick={() => handleTabSwitch('open-cv-catalog')}
+            className={`px-2.5 py-1.5 rounded-lg whitespace-nowrap transition-all flex items-center gap-1.5 cursor-pointer font-semibold ${
+              activeTab === 'open-cv-catalog'
+                ? 'bg-slate-900 text-white'
+                : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+            }`}
+          >
+            <Globe className="w-3 h-3 text-blue-500" />
+            <span>Açıq CV Kataloqu</span>
+          </button>
 
-        <button
-          id="btn-business-tab-smart-forms"
-          onClick={() => handleTabSwitch('smart-forms')}
-          className={`px-3.5 py-2 rounded-lg whitespace-nowrap transition-all flex items-center gap-1.5 cursor-pointer font-bold ${
-            activeTab === 'smart-forms'
-              ? 'bg-blue-600 text-white shadow-xs'
-              : 'text-indigo-800 bg-indigo-50/90 hover:bg-indigo-100'
-          }`}
-          title="AI Sənəd Şablonları, Ağıllı Formalar və Rəqəmsal İmzalama Modulu"
-        >
-          <FileText className="w-3.5 h-3.5 text-indigo-600" />
-          <span>Ağıllı Formalar & E-İmza</span>
-          <span className="px-1.5 py-0.2 rounded-full text-[9px] font-black bg-emerald-600 text-white">
-            AI
-          </span>
-        </button>
+          <button
+            id="btn-business-tab-smart-forms"
+            onClick={() => handleTabSwitch('smart-forms')}
+            className={`px-2.5 py-1.5 rounded-lg whitespace-nowrap transition-all flex items-center gap-1.5 cursor-pointer font-semibold ${
+              activeTab === 'smart-forms'
+                ? 'bg-slate-900 text-white'
+                : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+            }`}
+          >
+            <FileText className="w-3 h-3 text-indigo-500" />
+            <span>Ağıllı Formalar & E-İmza</span>
+          </button>
 
-        <button
-          id="btn-business-tab-interviews"
-          onClick={() => handleTabSwitch('interviews')}
-          className={`px-3.5 py-2 rounded-lg whitespace-nowrap transition-all flex items-center gap-1.5 cursor-pointer font-bold ${
-            activeTab === 'interviews'
-              ? 'bg-blue-600 text-white shadow-xs'
-              : 'text-blue-900 bg-blue-50/90 hover:bg-blue-100'
-          }`}
-          title="24 Saatlıq Avtomatik SMTP Xatırlatma Sistemi və Müsahibə Təqvimi"
-        >
-          <Calendar className="w-3.5 h-3.5 text-blue-600" />
-          <span>Müsahibələr & 24h Xatırlatma</span>
-          <span className="px-1.5 py-0.2 rounded-full text-[9px] font-black bg-blue-600 text-white">
-            SMTP
-          </span>
-        </button>
+          <button
+            id="btn-business-tab-interviews"
+            onClick={() => handleTabSwitch('interviews')}
+            className={`px-2.5 py-1.5 rounded-lg whitespace-nowrap transition-all flex items-center gap-1.5 cursor-pointer font-semibold ${
+              activeTab === 'interviews'
+                ? 'bg-slate-900 text-white'
+                : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+            }`}
+          >
+            <Calendar className="w-3 h-3 text-blue-500" />
+            <span>Müsahibələr & 24h</span>
+          </button>
 
-        <button
-          id="btn-business-tab-email-history"
-          onClick={() => handleTabSwitch('email-history')}
-          className={`px-3.5 py-2 rounded-lg whitespace-nowrap transition-all flex items-center gap-1.5 cursor-pointer font-bold ${
-            activeTab === 'email-history'
-              ? 'bg-blue-600 text-white shadow-xs'
-              : 'text-indigo-900 bg-indigo-50/90 hover:bg-indigo-100'
-          }`}
-          title="Avtomatlaşdırılmış müsahibə xatırlatma e-poçtlarının göndəriş tarixçəsi, zaman damğaları və çatdırılma statusları"
-        >
-          <Mail className="w-3.5 h-3.5 text-indigo-600" />
-          <span>E-poçt Tarixçəsi</span>
-          <span className="px-1.5 py-0.2 rounded-full text-[9px] font-black bg-indigo-600 text-white">
-            Log
-          </span>
-        </button>
+          <button
+            id="btn-business-tab-email-history"
+            onClick={() => handleTabSwitch('email-history')}
+            className={`px-2.5 py-1.5 rounded-lg whitespace-nowrap transition-all flex items-center gap-1.5 cursor-pointer font-semibold ${
+              activeTab === 'email-history'
+                ? 'bg-slate-900 text-white'
+                : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+            }`}
+          >
+            <Mail className="w-3 h-3 text-indigo-500" />
+            <span>E-poçt Tarixçəsi</span>
+          </button>
 
-        <button
-          onClick={() => handleTabSwitch('offers')}
-          className={`px-3.5 py-2 rounded-lg whitespace-nowrap transition-all flex items-center gap-1.5 cursor-pointer font-bold ${
-            activeTab === 'offers' ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-          }`}
-        >
-          <Award className="w-3.5 h-3.5" />
-          <span>İş Təklifləri ({companyOffers.length})</span>
-        </button>
+          <button
+            id="btn-business-tab-vacation-calculator"
+            onClick={() => handleTabSwitch('vacation-calculator')}
+            className={`px-2.5 py-1.5 rounded-lg whitespace-nowrap transition-all flex items-center gap-1.5 cursor-pointer font-semibold ${
+              activeTab === 'vacation-calculator'
+                ? 'bg-slate-900 text-white'
+                : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+            }`}
+          >
+            <Palmtree className="w-3 h-3 text-emerald-600" />
+            <span>Məzuniyyət Kalkulyatoru</span>
+          </button>
 
-        <button
-          onClick={() => handleTabSwitch('analytics')}
-          className={`px-3.5 py-2 rounded-lg whitespace-nowrap transition-all flex items-center gap-1.5 cursor-pointer font-bold ${
-            activeTab === 'analytics' ? 'bg-indigo-600 text-white shadow-xs' : 'text-indigo-700 bg-indigo-50 hover:bg-indigo-100'
-          }`}
-        >
-          <BarChart3 className="w-3.5 h-3.5" />
-          <span>Analitika</span>
-        </button>
+          <button
+            id="btn-business-tab-team-users"
+            onClick={() => handleTabSwitch('team-users')}
+            className={`px-2.5 py-1.5 rounded-lg whitespace-nowrap transition-all flex items-center gap-1.5 cursor-pointer font-semibold ${
+              activeTab === 'team-users'
+                ? 'bg-slate-900 text-white'
+                : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+            }`}
+          >
+            <Users className="w-3 h-3 text-purple-500" />
+            <span>Komanda & Rollar</span>
+          </button>
 
-        <button
-          onClick={() => setIsTemplatesModalOpen(true)}
-          className="px-3 py-2 rounded-lg whitespace-nowrap transition-colors text-slate-600 hover:text-slate-900 flex items-center gap-1 cursor-pointer hover:bg-slate-100"
-        >
-          <FileText className="w-3.5 h-3.5 text-slate-400" />
-          <span>Offer Şablonları</span>
-        </button>
-
-        <button
-          onClick={() => handleTabSwitch('company-profile')}
-          className={`px-3 py-2 rounded-lg whitespace-nowrap transition-colors cursor-pointer font-bold ${
-            activeTab === 'company-profile' ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-          }`}
-        >
-          Müəssisə Profili
-        </button>
-
-        <button
-          id="btn-business-tab-vacation-calculator"
-          onClick={() => handleTabSwitch('vacation-calculator')}
-          className={`px-3.5 py-2 rounded-lg whitespace-nowrap transition-colors flex items-center gap-1.5 cursor-pointer font-bold ${
-            activeTab === 'vacation-calculator'
-              ? 'bg-emerald-700 text-white shadow-xs'
-              : 'text-emerald-800 bg-emerald-50/80 hover:bg-emerald-100'
-          }`}
-          title="İşçilərin Məzuniyyət Haqqı Hesablaması, Direktor İmzası və Kütləvi Excel (AR Əmək Məcəlləsi Maddə 140)"
-        >
-          <Palmtree className="w-3.5 h-3.5" />
-          <span>Məzuniyyət Kalkulyatoru</span>
-        </button>
-
-        <button
-          onClick={() => setIsCostCalculatorModalOpen(true)}
-          className="px-3.5 py-1.5 rounded-md whitespace-nowrap transition-colors text-emerald-700 bg-emerald-50 hover:bg-emerald-100 font-bold flex items-center gap-1.5 cursor-pointer ml-auto"
-          title="AR 2026 Vergi və İşəgötürən Xərc Simulyatoru"
-        >
-          <Calculator className="w-3.5 h-3.5 text-emerald-600" />
-          <span>Maaş & Vergi Kalkulyatoru</span>
-        </button>
+          <button
+            onClick={() => setIsTemplatesModalOpen(true)}
+            className="px-2.5 py-1.5 rounded-lg whitespace-nowrap transition-colors text-slate-600 hover:text-slate-900 flex items-center gap-1 cursor-pointer hover:bg-slate-100 font-semibold"
+          >
+            <FileText className="w-3 h-3 text-slate-400" />
+            <span>Offer Şablonları</span>
+          </button>
+        </div>
       </div>
 
       {/* TAB 1: Company Vacancies */}
@@ -1899,6 +2019,16 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
       {activeTab === 'open-cv-catalog' && (
         <div className="space-y-4">
           <OpenCVCatalogView />
+        </div>
+      )}
+
+      {/* TAB: FACE ATTENDANCE & BIOMETRIC TABEL (ENTERPRISE) */}
+      {activeTab === 'face-attendance' && (
+        <div className="space-y-4">
+          <FaceAttendanceMain
+            supervisorName={currentUser?.fullName || activeCompany.name}
+            supervisorId={currentUser?.id || 'sup-current'}
+          />
         </div>
       )}
 
